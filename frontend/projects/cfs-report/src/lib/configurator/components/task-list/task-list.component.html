@@ -1,0 +1,59 @@
+<div class="cfg-list">
+
+  <div class="cfg-list__header">
+    <h2 class="cfg-list__title">All Tasks</h2>
+    <button class="cfg-btn cfg-btn--ghost cfg-btn--sm" (click)="load()">↻ Refresh</button>
+  </div>
+
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+  <div *ngIf="isLoading" class="cfg-loading" aria-live="polite">Loading…</div>
+
+  <table *ngIf="!isLoading && tasks.length > 0" class="cfg-table" aria-label="All tasks">
+    <thead>
+      <tr>
+        <th scope="col">Code</th>
+        <th scope="col">Label</th>
+        <th scope="col">Report</th>
+        <th scope="col">Mode</th>
+        <th scope="col">Status</th>
+        <th scope="col">Menu code</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of tasks; trackBy: trackById">
+        <td><code>{{ t.taskCode }}</code></td>
+        <td>{{ t.label }}</td>
+        <td>{{ t.reportId }}</td>
+        <td>
+          <span *ngIf="t.writebackMode" class="cfg-badge"
+                [class.cfg-badge--delta]="t.writebackMode === 'Delta'"
+                [class.cfg-badge--overwrite]="t.writebackMode === 'Overwrite'">
+            {{ t.writebackMode }}
+          </span>
+          <span *ngIf="!t.writebackMode" class="cfg-muted">—</span>
+        </td>
+        <td>
+          <span class="cfg-badge"
+                [class.cfg-badge--draft]="t.status === 'Draft'"
+                [class.cfg-badge--published]="t.status === 'Active'"
+                [class.cfg-badge--archived]="t.status === 'Archived'">
+            {{ t.status }}
+          </span>
+        </td>
+        <td>{{ t.menuItemCode || '—' }}</td>
+        <td class="cfg-table__actions">
+          <button *ngIf="t.status === 'Draft'"
+                  class="cfg-btn cfg-btn--sm cfg-btn--success"
+                  (click)="activate(t)">Activate</button>
+          <button *ngIf="t.status !== 'Archived'"
+                  class="cfg-btn cfg-btn--sm cfg-btn--danger"
+                  (click)="archive(t)">Archive</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!isLoading && tasks.length === 0" class="cfg-empty">No tasks found.</p>
+
+</div>

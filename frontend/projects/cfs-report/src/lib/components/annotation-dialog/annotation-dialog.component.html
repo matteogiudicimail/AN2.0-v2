@@ -1,0 +1,67 @@
+<!-- WCAG: role=dialog, aria-modal, aria-labelledby, focus trap managed in .ts -->
+<div class="cfs-overlay" role="presentation" (click)="onCancel()"></div>
+
+<div
+  class="cfs-dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="ann-title"
+>
+  <h2 id="ann-title" class="cfs-dialog__title">Edit value</h2>
+
+  <p class="cfs-dialog__subtitle">
+    <strong>{{ rowLabel }}</strong> — {{ processLabel }}
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="onConfirm()" novalidate>
+
+    <div class="cfs-dialog__field">
+      <label for="ann-value" class="cfs-dialog__label">
+        {{ isAggregate ? 'Adjustment amount' : 'New value' }}
+        <span aria-hidden="true">*</span>
+      </label>
+      <input
+        #firstFocus
+        id="ann-value"
+        type="number"
+        formControlName="newValue"
+        class="cfs-dialog__input"
+        aria-required="true"
+        [class.cfs-dialog__input--invalid]="form.get('newValue')!.invalid && form.get('newValue')!.touched"
+      />
+      <span
+        *ngIf="form.get('newValue')!.invalid && form.get('newValue')!.touched"
+        class="cfs-dialog__error"
+        role="alert"
+      >Value is required.</span>
+    </div>
+
+    <div class="cfs-dialog__field">
+      <label for="ann-text" class="cfs-dialog__label">
+        Annotation
+        <span *ngIf="requireAnnotation" aria-hidden="true"> *</span>
+        <span *ngIf="!requireAnnotation" class="cfs-dialog__optional">(optional)</span>
+      </label>
+      <textarea
+        id="ann-text"
+        formControlName="annotation"
+        rows="3"
+        class="cfs-dialog__textarea"
+        [attr.aria-required]="requireAnnotation ? 'true' : 'false'"
+        [class.cfs-dialog__textarea--invalid]="form.get('annotation')!.invalid && form.get('annotation')!.touched"
+        placeholder="Reason for this adjustment…"
+      ></textarea>
+      <span
+        *ngIf="form.get('annotation')!.invalid && form.get('annotation')!.touched"
+        class="cfs-dialog__error"
+        role="alert"
+      >Annotation is required (minimum 3 characters).</span>
+    </div>
+
+    <div class="cfs-dialog__actions">
+      <button type="button" class="cfs-dialog__btn" (click)="onCancel()">Cancel</button>
+      <button type="submit" class="cfs-dialog__btn cfs-dialog__btn--primary">Save</button>
+    </div>
+
+  </form>
+</div>

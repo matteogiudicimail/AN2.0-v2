@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "outDir": "../../out-tsc/app",
+    "types": []
+  },
+  "files": [
+    "src/main.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts",
+    "../../projects/cfs-report/src/**/*.ts"
+  ],
+  "exclude": [
+    "../../projects/cfs-report/src/**/*.spec.ts"
+  ]
+}

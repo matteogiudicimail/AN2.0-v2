@@ -1,0 +1,59 @@
+<div class="cfs-overlay" role="presentation"></div>
+
+<div
+  class="cfs-dialog"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="conflict-title"
+>
+  <h2 id="conflict-title" class="cfs-dialog__title">Concurrent edit conflict</h2>
+
+  <p class="cfs-dialog__body">
+    Another user has modified this cell while you were editing.
+  </p>
+
+  <table class="cfs-dialog__table" aria-label="Conflict details">
+    <thead>
+      <tr>
+        <th scope="col">Field</th>
+        <th scope="col">Your value</th>
+        <th scope="col">Server value</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Value</td>
+        <td>{{ conflict.yourValue }}</td>
+        <td>{{ conflict.serverValue }}</td>
+      </tr>
+      <tr>
+        <td>Last modified by</td>
+        <td>—</td>
+        <td>{{ conflict.modifiedBy }}</td>
+      </tr>
+      <tr>
+        <td>Last modified at</td>
+        <td>—</td>
+        <td>{{ conflict.modifiedAt | date:'short' }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="cfs-dialog__actions">
+    <button
+      #firstFocus
+      type="button"
+      class="cfs-dialog__btn"
+      (click)="discard()"
+    >
+      Discard my change
+    </button>
+    <button
+      type="button"
+      class="cfs-dialog__btn cfs-dialog__btn--primary"
+      (click)="retry()"
+    >
+      Reload &amp; retry
+    </button>
+  </div>
+</div>

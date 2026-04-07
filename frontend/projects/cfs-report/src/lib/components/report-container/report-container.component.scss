@@ -1,0 +1,96 @@
+// Report Container layout
+// Provides the shell: filter panel (top) + grid (fill remaining space)
+
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.cfs-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: #ffffff;
+
+  // ── Filter panel wrapper ─────────────────────────────────────────────────
+  &__filters {
+    flex-shrink: 0;
+    padding: 10px 14px 8px;
+    background: #ffffff;
+    border-bottom: 2px solid #8BC34A;
+  }
+
+  // ── Grid area ────────────────────────────────────────────────────────────
+  &__report {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;      // critical: allows flex child to shrink below content size
+    padding: 0;
+    overflow: hidden;
+  }
+
+  // ── Loading overlay ──────────────────────────────────────────────────────
+  &__overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(255, 255, 255, 0.80);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    z-index: 20;
+    font-size: 13px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: #555;
+  }
+
+  &__spinner {
+    display: inline-block;
+    width: 22px;
+    height: 22px;
+    border: 3px solid #d4eab5;
+    border-top-color: #7AB648;
+    border-radius: 50%;
+    animation: cfs-spin 0.75s linear infinite;
+  }
+
+  // ── Error banner ─────────────────────────────────────────────────────────
+  &__error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: #fef0ef;
+    border-left: 4px solid #c0392b;
+    color: #c0392b;
+    padding: 8px 14px;
+    margin: 8px 14px 0;
+    font-size: 12px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    border-radius: 0 3px 3px 0;
+  }
+
+  &__error-dismiss {
+    margin-left: auto;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #c0392b;
+    font-size: 14px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    line-height: 1;
+
+    &:hover { background: rgba(192, 57, 43, 0.08); }
+    &:focus-visible { outline: 2px solid #c0392b; }
+  }
+}
+
+@keyframes cfs-spin {
+  to { transform: rotate(360deg); }
+}

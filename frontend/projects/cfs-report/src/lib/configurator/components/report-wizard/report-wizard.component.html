@@ -1,0 +1,57 @@
+<div class="cfg-wizard">
+
+  <!-- Breadcrumb -->
+  <div class="cfg-wizard__breadcrumb">
+    <button class="cfg-btn cfg-btn--ghost" (click)="backToList()">← Reports</button>
+    <span class="cfg-wizard__report-name">{{ report?.reportLabel || 'New Report' }}</span>
+  </div>
+
+  <!-- Step tabs -->
+  <nav class="cfg-wizard__tabs" aria-label="Wizard steps">
+    <button *ngFor="let s of steps"
+            class="cfg-wizard__tab"
+            [class.cfg-wizard__tab--active]="step === s.index"
+            [class.cfg-wizard__tab--disabled]="s.index > 1 && !reportId"
+            [disabled]="s.index > 1 && !reportId"
+            (click)="goTo(s.index)"
+            [attr.aria-current]="step === s.index ? 'step' : null">
+      {{ s.label }}
+    </button>
+  </nav>
+
+  <!-- Error banner -->
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+
+  <!-- Step content -->
+  <div class="cfg-wizard__body">
+
+    <cfg-step-basic
+      *ngIf="step === 1"
+      [report]="report"
+      [isSaving]="isSaving"
+      (saved)="onBasicSaved($event)">
+    </cfg-step-basic>
+
+    <cfg-step-db-explorer
+      *ngIf="step === 2 && reportId"
+      [reportId]="reportId"
+      (next)="goNext()"
+      (back)="goBack()">
+    </cfg-step-db-explorer>
+
+    <cfg-step-structure
+      *ngIf="step === 3 && reportId"
+      [reportId]="reportId"
+      (next)="goNext()"
+      (back)="goBack()">
+    </cfg-step-structure>
+
+    <cfg-step-tasks
+      *ngIf="step === 4 && reportId"
+      [reportId]="reportId"
+      (back)="goBack()"
+      (finish)="backToList()">
+    </cfg-step-tasks>
+
+  </div>
+</div>

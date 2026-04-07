@@ -1,0 +1,231 @@
+<!--
+  Filter Panel — WCAG 2.1 AA
+  1.3.1  Form controls labelled via <label for="…">
+  2.1.1  All controls reachable via Tab; no mouse-only interactions
+  1.4.3  Contrast via SCSS variables
+  4.1.2  aria-required on required fields; aria-describedby for hint text
+-->
+<form [formGroup]="form" (ngSubmit)="onApply()" novalidate>
+
+  <div class="filter-panel__row">
+
+    <!-- Entity (required by default, optional if configured) -->
+    <div class="filter-panel__field" *ngIf="isVisible('entity')">
+      <label for="entityIds" class="filter-panel__label">
+        {{ entityLabel }}
+        <span *ngIf="isMandatory('entity')" class="filter-panel__required" aria-hidden="true">*</span>
+      </label>
+      <select
+        id="entityIds"
+        formControlName="entityIds"
+        multiple
+        [attr.aria-required]="isMandatory('entity')"
+        aria-label="Select one or more entities"
+        class="filter-panel__select"
+        [class.filter-panel__select--invalid]="form.get('entityIds')!.invalid && form.get('entityIds')!.touched"
+      >
+        <option *ngFor="let e of entities" [value]="e.entityId">{{ e.entityCode }} — {{ e.entityName }}</option>
+      </select>
+      <span
+        *ngIf="form.get('entityIds')!.invalid && form.get('entityIds')!.touched"
+        class="filter-panel__error"
+        role="alert"
+        aria-live="polite"
+      >
+        At least one entity is required.
+      </span>
+    </div>
+
+    <!-- Scope (required by default, optional if configured) -->
+    <div class="filter-panel__field" *ngIf="isVisible('scope')">
+      <label for="scopeId" class="filter-panel__label">
+        Scope
+        <span *ngIf="isMandatory('scope')" class="filter-panel__required" aria-hidden="true">*</span>
+      </label>
+      <span *ngIf="isLoadingScopes" class="filter-panel__loading" aria-live="polite">Loading…</span>
+      <select
+        id="scopeId"
+        formControlName="scopeId"
+        [attr.aria-required]="isMandatory('scope')"
+        class="filter-panel__select"
+        [class.filter-panel__select--invalid]="form.get('scopeId')!.invalid && form.get('scopeId')!.touched"
+      >
+        <option [value]="null" disabled>— select —</option>
+        <option *ngFor="let s of scopes" [value]="s.scopeId">{{ s.scopeDescription }}</option>
+      </select>
+      <span
+        *ngIf="form.get('scopeId')!.invalid && form.get('scopeId')!.touched"
+        class="filter-panel__error"
+        role="alert"
+        aria-live="polite"
+      >
+        Scope is required.
+      </span>
+    </div>
+
+    <!-- Currency (required by default, optional if configured) -->
+    <div class="filter-panel__field" *ngIf="isVisible('currency')">
+      <label for="currencyId" class="filter-panel__label">
+        Currency
+        <span *ngIf="isMandatory('currency')" class="filter-panel__required" aria-hidden="true">*</span>
+      </label>
+      <select
+        id="currencyId"
+        formControlName="currencyId"
+        [attr.aria-required]="isMandatory('currency')"
+        class="filter-panel__select"
+        [class.filter-panel__select--invalid]="form.get('currencyId')!.invalid && form.get('currencyId')!.touched"
+      >
+        <option [value]="null" disabled>— select —</option>
+        <option *ngFor="let c of currencies" [value]="c.currencyId">{{ c.currencyCode }} — {{ c.currencyDescription }}</option>
+      </select>
+      <span
+        *ngIf="form.get('currencyId')!.invalid && form.get('currencyId')!.touched"
+        class="filter-panel__error"
+        role="alert"
+        aria-live="polite"
+      >
+        Currency is required.
+      </span>
+    </div>
+
+    <!-- Process / Load (required by default, optional if configured) -->
+    <div class="filter-panel__field" *ngIf="isVisible('process')">
+      <label for="loadIds" class="filter-panel__label">
+        Process
+        <span *ngIf="isMandatory('process')" class="filter-panel__required" aria-hidden="true">*</span>
+      </label>
+      <select
+        id="loadIds"
+        formControlName="loadIds"
+        multiple
+        [attr.aria-required]="isMandatory('process')"
+        aria-label="Select one or more processes"
+        class="filter-panel__select"
+        [class.filter-panel__select--invalid]="form.get('loadIds')!.invalid && form.get('loadIds')!.touched"
+      >
+        <option *ngFor="let p of processes" [value]="p.loadId">{{ p.processDescription }}</option>
+      </select>
+      <span
+        *ngIf="form.get('loadIds')!.invalid && form.get('loadIds')!.touched"
+        class="filter-panel__error"
+        role="alert"
+        aria-live="polite"
+      >
+        At least one process is required.
+      </span>
+    </div>
+
+  </div><!-- /.filter-panel__row -->
+
+  <!-- Advanced / optional filters — hidden if none are visible -->
+  <details class="filter-panel__advanced" *ngIf="hasVisibleAdvancedFilters">
+    <summary class="filter-panel__advanced-toggle">Advanced filters</summary>
+
+    <div class="filter-panel__row filter-panel__row--advanced">
+
+      <!-- Adj Level (optional unless configured as mandatory) -->
+      <div class="filter-panel__field"
+           *ngIf="isVisible('adjLevel') && (adjLevels.length > 0 || isLoadingAdjLevels)">
+        <label for="adjLevelIds" class="filter-panel__label">
+          {{ adjLevelLabel }}
+          <span *ngIf="isMandatory('adjLevel')" class="filter-panel__required" aria-hidden="true">*</span>
+        </label>
+        <span *ngIf="isLoadingAdjLevels" class="filter-panel__loading" aria-live="polite">Loading…</span>
+        <select
+          id="adjLevelIds"
+          formControlName="adjLevelIds"
+          multiple
+          aria-label="Select adjustment levels (optional)"
+          class="filter-panel__select"
+        >
+          <option *ngFor="let a of adjLevels" [value]="a.adjLevelId">{{ a.adjLevelDescription }}</option>
+        </select>
+      </div>
+
+      <!-- Cost Center -->
+      <div class="filter-panel__field"
+           *ngIf="isVisible('costCenter') && costCenters.length > 0">
+        <label for="costCenterCodes" class="filter-panel__label">
+          Cost Center
+          <span *ngIf="isMandatory('costCenter')" class="filter-panel__required" aria-hidden="true">*</span>
+        </label>
+        <select
+          id="costCenterCodes"
+          formControlName="costCenterCodes"
+          multiple
+          aria-label="Select cost centers (optional)"
+          class="filter-panel__select"
+        >
+          <option *ngFor="let cc of costCenters" [value]="cc.costCenterCode">{{ cc.costCenterCode }} — {{ cc.costCenterDescription }}</option>
+        </select>
+      </div>
+
+      <!-- CO -->
+      <div class="filter-panel__field"
+           *ngIf="isVisible('co') && cos.length > 0">
+        <label for="coCodes" class="filter-panel__label">
+          CO
+          <span *ngIf="isMandatory('co')" class="filter-panel__required" aria-hidden="true">*</span>
+        </label>
+        <select
+          id="coCodes"
+          formControlName="coCodes"
+          multiple
+          aria-label="Select CO objects (optional)"
+          class="filter-panel__select"
+        >
+          <option *ngFor="let co of cos" [value]="co.coCode">{{ co.coCode }} — {{ co.coDescription }}</option>
+        </select>
+      </div>
+
+      <!-- Counterpart -->
+      <div class="filter-panel__field"
+           *ngIf="isVisible('counterpart') && counterparts.length > 0">
+        <label for="counterpartIds" class="filter-panel__label">
+          Counterpart
+          <span *ngIf="isMandatory('counterpart')" class="filter-panel__required" aria-hidden="true">*</span>
+        </label>
+        <select
+          id="counterpartIds"
+          formControlName="counterpartIds"
+          multiple
+          aria-label="Select counterparts (optional)"
+          class="filter-panel__select"
+        >
+          <option *ngFor="let cp of counterparts" [value]="cp.entityId">{{ cp.entityCode }} — {{ cp.entityName }}</option>
+        </select>
+      </div>
+
+      <!-- Include manual writeback toggle -->
+      <div class="filter-panel__field filter-panel__field--checkbox"
+           *ngIf="isVisible('includeManualWriteback')">
+        <label class="filter-panel__checkbox-label" for="includeManualWriteback">
+          <input
+            id="includeManualWriteback"
+            type="checkbox"
+            formControlName="includeManualWriteback"
+            class="filter-panel__checkbox"
+          />
+          Include manual adjustments
+        </label>
+        <span class="filter-panel__hint" id="includeManualWriteback-hint">
+          When checked, manual writeback deltas are included in the report totals.
+        </span>
+      </div>
+
+    </div>
+  </details>
+
+  <!-- Actions -->
+  <div class="filter-panel__actions">
+    <button
+      type="submit"
+      class="filter-panel__btn filter-panel__btn--primary"
+      [disabled]="form.invalid && form.touched"
+    >
+      Apply
+    </button>
+  </div>
+
+</form>

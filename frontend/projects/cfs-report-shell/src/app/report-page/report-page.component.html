@@ -1,0 +1,6 @@
+<div style="height: 100vh; display: flex; flex-direction: column;">
+  <div *ngIf="!isReady" style="display:flex;align-items:center;justify-content:center;height:100%;color:#666;font-family:sans-serif;">
+    Connecting to backend…
+  </div>
+  <cfs-report-container *ngIf="isReady" [inputData]="inputData"></cfs-report-container>
+</div>

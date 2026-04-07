@@ -1,0 +1,147 @@
+<div class="cfg-step">
+  <h3 class="cfg-step__title">DB Explorer</h3>
+  <p class="cfg-step__hint">Select the source table and map its columns to business fields.</p>
+
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="cfg-alert cfg-alert--success" role="status">{{ successMsg }}</div>
+
+  <div class="cfg-db-layout">
+
+    <!-- Left: table browser -->
+    <aside class="cfg-db-layout__sidebar">
+      <h4 class="cfg-db-layout__sidebar-title">Tables</h4>
+      <span *ngIf="isLoadingTables" class="cfg-loading">Loading…</span>
+      <ul class="cfg-db-table-list" role="listbox" aria-label="Database tables">
+        <li *ngFor="let t of tables; trackBy: trackByTable"
+            class="cfg-db-table-list__item"
+            [class.cfg-db-table-list__item--active]="selectedTable?.tableName === t.tableName && selectedTable?.schemaName === t.schemaName"
+            role="option"
+            [attr.aria-selected]="selectedTable?.tableName === t.tableName"
+            tabindex="0"
+            (click)="selectTable(t)"
+            (keydown.enter)="selectTable(t)">
+          <span class="cfg-db-table-list__schema">{{ t.schemaName }}</span>.<strong>{{ t.tableName }}</strong>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Right: columns + mapping -->
+    <div class="cfg-db-layout__main">
+
+      <!-- Fact table selector -->
+      <form [formGroup]="factTableForm" novalidate class="cfg-db-binding">
+        <div class="cfg-field">
+          <label class="cfg-field__label">Fact table <span class="cfg-field__required" aria-hidden="true">*</span></label>
+          <input type="text" formControlName="factTable" class="cfg-field__input cfg-field__input--mono"
+                 placeholder="e.g. dbo.tCFS_FactValue_Local_Cube" readonly />
+          <span *ngIf="factTableForm.get('factTable')!.invalid && factTableForm.get('factTable')!.touched"
+                class="cfg-field__error" role="alert">Select a table from the browser.</span>
+        </div>
+      </form>
+
+      <!-- Column preview -->
+      <div *ngIf="selectedTable" class="cfg-db-columns">
+        <h4 class="cfg-db-columns__title">
+          Columns — {{ selectedTable.schemaName }}.{{ selectedTable.tableName }}
+        </h4>
+        <span *ngIf="isLoadingColumns" class="cfg-loading">Loading…</span>
+        <table *ngIf="!isLoadingColumns && columns.length > 0" class="cfg-table cfg-table--compact" aria-label="Table columns">
+          <thead>
+            <tr>
+              <th scope="col">Column</th>
+              <th scope="col">Type</th>
+              <th scope="col">Nullable</th>
+              <th scope="col">PK</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let c of columns; trackBy: trackByCol">
+              <td>{{ c.columnName }}</td>
+              <td>{{ c.dataType }}{{ c.maxLength ? '(' + c.maxLength + ')' : '' }}</td>
+              <td>{{ c.isNullable ? 'YES' : 'NO' }}</td>
+              <td>{{ c.isPrimaryKey ? '★' : '' }}</td>
+              <td>
+                <button class="cfg-btn cfg-btn--xs cfg-btn--ghost" (click)="selectColumnForMapping(c)"
+                        title="Add field mapping for this column">+ Map</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Field mappings list -->
+      <div class="cfg-db-mappings">
+        <div class="cfg-db-mappings__header">
+          <h4>Field Mappings</h4>
+          <button class="cfg-btn cfg-btn--sm cfg-btn--secondary" (click)="showMappingForm = !showMappingForm">
+            {{ showMappingForm ? 'Cancel' : '+ Add Mapping' }}
+          </button>
+        </div>
+
+        <!-- Mapping form -->
+        <form *ngIf="showMappingForm" [formGroup]="mappingForm" (ngSubmit)="addMapping()" novalidate class="cfg-inline-form cfg-inline-form--card">
+          <div class="cfg-inline-form__row">
+            <div class="cfg-field cfg-field--md">
+              <label class="cfg-field__label">DB field *</label>
+              <input type="text" formControlName="dbField" class="cfg-field__input" placeholder="e.g. FactValueLC" />
+            </div>
+            <div class="cfg-field cfg-field--md">
+              <label class="cfg-field__label">Business label *</label>
+              <input type="text" formControlName="businessLabel" class="cfg-field__input" placeholder="e.g. Local Currency Value" />
+            </div>
+            <div class="cfg-field cfg-field--sm">
+              <label class="cfg-field__label">Field type *</label>
+              <select formControlName="fieldType" class="cfg-field__select">
+                <option value="measure">measure</option>
+                <option value="dimension">dimension</option>
+                <option value="key">key</option>
+                <option value="period">period</option>
+                <option value="scenario">scenario</option>
+                <option value="note">note</option>
+                <option value="audit">audit</option>
+              </select>
+            </div>
+            <div class="cfg-field cfg-field--sm">
+              <label class="cfg-field__label">Role</label>
+              <input type="text" formControlName="role" class="cfg-field__input" placeholder="value" />
+            </div>
+            <label class="cfg-checkbox"><input type="checkbox" formControlName="editable" /> Editable</label>
+            <label class="cfg-checkbox"><input type="checkbox" formControlName="visible" /> Visible</label>
+            <label class="cfg-checkbox"><input type="checkbox" formControlName="required" /> Required</label>
+            <button type="submit" class="cfg-btn cfg-btn--primary cfg-btn--sm">Add</button>
+          </div>
+        </form>
+
+        <!-- Mappings table -->
+        <table *ngIf="fieldMappings.length > 0" class="cfg-table cfg-table--compact" aria-label="Field mappings">
+          <thead>
+            <tr><th>DB field</th><th>Label</th><th>Type</th><th>Editable</th><th></th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of fieldMappings; let i = index; trackBy: trackByIdx">
+              <td>{{ m.dbField }}</td>
+              <td>{{ m.businessLabel }}</td>
+              <td>{{ m.fieldType }}</td>
+              <td>{{ m.editable ? '✓' : '✗' }}</td>
+              <td><button class="cfg-btn cfg-btn--xs cfg-btn--danger" (click)="removeMapping(i)">✕</button></td>
+            </tr>
+          </tbody>
+        </table>
+        <p *ngIf="fieldMappings.length === 0" class="cfg-empty">No mappings yet.</p>
+      </div>
+
+      <!-- Actions -->
+      <div class="cfg-step__actions">
+        <button type="button" class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
+        <button type="button" class="cfg-btn cfg-btn--secondary"
+                [disabled]="isSaving || factTableForm.invalid"
+                (click)="saveBinding()">
+          {{ isSaving ? 'Saving…' : 'Save Binding' }}
+        </button>
+        <button type="button" class="cfg-btn cfg-btn--primary" (click)="next.emit()">Next →</button>
+      </div>
+
+    </div><!-- /.cfg-db-layout__main -->
+  </div><!-- /.cfg-db-layout -->
+</div>

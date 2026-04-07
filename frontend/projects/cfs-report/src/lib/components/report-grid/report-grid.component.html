@@ -1,0 +1,44 @@
+<!-- WCAG 4.1.2: aria-label describes the grid purpose -->
+<div
+  class="cfs-report-grid"
+  role="region"
+  aria-label="P&amp;L Consolidated Financial Statement"
+>
+  <!-- Grid toolbar: pivot toggle (shown only when allowPivot=true) -->
+  <div *ngIf="allowPivot" class="cfs-grid-toolbar">
+    <button
+      type="button"
+      class="cfs-grid-toolbar__btn"
+      [class.cfs-grid-toolbar__btn--active]="pivotActive"
+      (click)="togglePivot()"
+      [attr.aria-pressed]="pivotActive"
+      title="{{ pivotActive ? 'Disable pivot view' : 'Enable pivot view (transpose rows/columns)' }}"
+    >
+      ⊞ {{ pivotActive ? 'Normal view' : 'Pivot view' }}
+    </button>
+  </div>
+  <ag-grid-angular
+    class="ag-theme-alpine cfs-grid"
+    [style.width]="'100%'"
+    [style.height]="'100%'"
+    [gridOptions]="gridOptions"
+    [columnDefs]="columnDefs"
+    [rowData]="gridRows"
+    [treeData]="true"
+    [getDataPath]="gridOptions.getDataPath!"
+    [autoGroupColumnDef]="gridOptions.autoGroupColumnDef"
+    [defaultColDef]="gridOptions.defaultColDef"
+    [groupDefaultExpanded]="-1"
+    [animateRows]="false"
+    [rowHeight]="26"
+    [headerHeight]="30"
+    [rowGroupPanelShow]="'never'"
+    [pivotPanelShow]="'never'"
+    [sideBar]="false"
+    [statusBar]="gridOptions.statusBar"
+    [suppressRowClickSelection]="true"
+    [suppressDragLeaveHidesColumns]="true"
+    aria-label="Financial report grid — use arrow keys to navigate"
+  >
+  </ag-grid-angular>
+</div>

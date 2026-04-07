@@ -1,0 +1,210 @@
+// Filter Panel — MESA visual style
+// WCAG 1.4.3: contrast ≥ 4.5:1 on all text/background pairs
+
+$green:          #8BC34A;
+$green-dark:     #7AB648;
+$green-focus:    #5a9e24;
+$color-error:    #c0392b;
+$color-border:   #cccccc;
+$color-text:     #333333;
+$color-hint:     #666666;
+$color-bg:       #ffffff;
+$radius:         3px;
+
+.filter-panel {
+
+  // ── Main row: 4 filter fields side by side ─────────────────────────────
+  &__row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 8px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 160px;
+    min-width: 130px;
+    max-width: 280px;
+
+    &--checkbox {
+      justify-content: flex-end;
+      flex: 0 0 auto;
+      min-width: 220px;
+      max-width: 280px;
+    }
+  }
+
+  // ── Labels ─────────────────────────────────────────────────────────────
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $color-text;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__required {
+    color: $color-error;
+    margin-left: 1px;
+  }
+
+  // ── Native <select> ────────────────────────────────────────────────────
+  &__select {
+    padding: 4px 6px;
+    border: 1px solid $color-border;
+    border-radius: $radius;
+    background: $color-bg;
+    color: $color-text;
+    font-size: 12px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    min-height: 30px;
+    outline: none;
+    appearance: auto;  // keep native arrow for single selects
+
+    &[multiple] {
+      min-height: 72px;    // ~3 visible items
+      max-height: 90px;
+      appearance: none;    // listbox style, no arrow
+      resize: none;
+    }
+
+    &:focus {
+      border-color: $green;
+      box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.25);
+    }
+
+    &:focus-visible {
+      outline: 2px solid $green-focus;
+      outline-offset: 1px;
+    }
+
+    &--invalid {
+      border-color: $color-error;
+    }
+  }
+
+  // ── Inline messages ────────────────────────────────────────────────────
+  &__error {
+    font-size: 11px;
+    color: $color-error;
+    margin-top: 2px;
+  }
+
+  &__loading {
+    font-size: 11px;
+    color: $color-hint;
+    font-style: italic;
+    margin-bottom: 2px;
+  }
+
+  &__hint {
+    font-size: 10px;
+    color: $color-hint;
+    margin-top: 2px;
+    line-height: 1.4;
+  }
+
+  // ── Checkbox ───────────────────────────────────────────────────────────
+  &__checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: $color-text;
+    cursor: pointer;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+  }
+
+  &__checkbox {
+    width: 14px;
+    height: 14px;
+    accent-color: $green;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  // ── Advanced filters collapsible ───────────────────────────────────────
+  &__advanced {
+    background: #f8fdf4;
+    border: 1px solid #d4eab5;
+    border-radius: $radius;
+    padding: 0 12px;
+    margin-bottom: 8px;
+
+    &[open] {
+      padding-bottom: 8px;
+    }
+  }
+
+  &__advanced-toggle {
+    padding: 7px 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: $green-dark;
+    cursor: pointer;
+    list-style: none;
+    user-select: none;
+
+    &::-webkit-details-marker { display: none; }
+
+    &::before {
+      content: '▶ ';
+      font-size: 9px;
+      transition: transform 0.15s;
+      display: inline-block;
+    }
+  }
+
+  details[open] &__advanced-toggle::before {
+    transform: rotate(90deg);
+  }
+
+  &__row--advanced {
+    padding-top: 8px;
+  }
+
+  // ── Actions row ────────────────────────────────────────────────────────
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 8px;
+    padding-top: 2px;
+  }
+
+  &__btn {
+    padding: 6px 20px;
+    border-radius: $radius;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    cursor: pointer;
+    border: 1px solid transparent;
+    transition: background 0.12s, color 0.12s, border-color 0.12s;
+
+    &--primary {
+      background: $green;
+      color: #ffffff;
+      border-color: $green-dark;
+
+      &:hover:not(:disabled) {
+        background: $green-dark;
+        border-color: #699e38;
+      }
+
+      &:focus-visible {
+        outline: 2px solid $green-focus;
+        outline-offset: 2px;
+      }
+
+      &:disabled {
+        opacity: 0.50;
+        cursor: not-allowed;
+      }
+    }
+  }
+}

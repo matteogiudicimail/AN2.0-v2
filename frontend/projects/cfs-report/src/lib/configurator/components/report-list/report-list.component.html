@@ -1,0 +1,68 @@
+<div class="cfg-list">
+
+  <div class="cfg-list__header">
+    <h2 class="cfg-list__title">Reports</h2>
+    <button class="cfg-btn cfg-btn--primary" (click)="openWizard()">+ New Report</button>
+  </div>
+
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+  <div *ngIf="isLoading" class="cfg-loading" aria-live="polite">Loading…</div>
+
+  <table *ngIf="!isLoading && reports.length > 0" class="cfg-table" aria-label="Report list">
+    <thead>
+      <tr>
+        <th scope="col">Code</th>
+        <th scope="col">Label</th>
+        <th scope="col">Mode</th>
+        <th scope="col">Status</th>
+        <th scope="col">Version</th>
+        <th scope="col">Updated</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of reports; trackBy: trackById"
+          class="cfg-table__row cfg-table__row--clickable"
+          (click)="openWizard(r.reportId)"
+          tabindex="0"
+          (keydown.enter)="openWizard(r.reportId)"
+          [attr.aria-label]="'Edit report ' + r.reportLabel">
+        <td><code>{{ r.reportCode }}</code></td>
+        <td>{{ r.reportLabel }}</td>
+        <td>
+          <span class="cfg-badge"
+                [class.cfg-badge--delta]="r.writebackMode === 'Delta'"
+                [class.cfg-badge--overwrite]="r.writebackMode === 'Overwrite'">
+            {{ r.writebackMode }}
+          </span>
+        </td>
+        <td>
+          <span class="cfg-badge"
+                [class.cfg-badge--draft]="r.status === 'Draft'"
+                [class.cfg-badge--ready]="r.status === 'ReadyForPublish'"
+                [class.cfg-badge--published]="r.status === 'Published'"
+                [class.cfg-badge--archived]="r.status === 'Archived'">
+            {{ r.status }}
+          </span>
+        </td>
+        <td>{{ r.version }}</td>
+        <td>{{ r.updatedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+        <td class="cfg-table__actions">
+          <button class="cfg-btn cfg-btn--sm cfg-btn--secondary"
+                  (click)="openWizard(r.reportId); $event.stopPropagation()">Edit</button>
+          <button *ngIf="r.status === 'Draft' || r.status === 'ReadyForPublish'"
+                  class="cfg-btn cfg-btn--sm cfg-btn--success"
+                  (click)="publish(r, $event)">Publish</button>
+          <button *ngIf="r.status !== 'Archived'"
+                  class="cfg-btn cfg-btn--sm cfg-btn--danger"
+                  (click)="archive(r, $event)">Archive</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!isLoading && reports.length === 0" class="cfg-empty">
+    No reports yet. Click <strong>+ New Report</strong> to create one.
+  </p>
+
+</div>

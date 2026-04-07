@@ -1,0 +1,111 @@
+<div class="cfs-overlay" role="presentation" (click)="close()"></div>
+
+<div
+  class="cfs-dialog cfs-dialog--wide"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="detail-title"
+>
+  <h2 id="detail-title" class="cfs-dialog__title">Dettaglio cella — {{ cellLabel }}</h2>
+
+  <div *ngIf="isLoading" class="cfs-dialog__body" aria-live="polite">Caricamento…</div>
+  <div *ngIf="error" class="cfs-dialog__body cfs-dialog__body--error" role="alert">{{ error }}</div>
+
+  <div *ngIf="!isLoading && !error && detail">
+
+    <!-- Value summary -->
+    <div class="cfs-detail-summary">
+      <div class="cfs-detail-summary__row">
+        <span class="cfs-detail-summary__label">Valore base</span>
+        <span class="cfs-detail-summary__value">{{ detail.baseValue | number:'1.2-2' }}</span>
+      </div>
+      <div class="cfs-detail-summary__row" *ngFor="let adj of detail.adjustments">
+        <span class="cfs-detail-summary__label">
+          Rettifica
+          <span class="cfs-detail-summary__by">{{ adj.modifiedBy }}, {{ adj.modifiedAt | date:'dd/MM/yy HH:mm' }}</span>
+        </span>
+        <span class="cfs-detail-summary__value"
+              [class.cfs-detail-summary__value--pos]="adj.deltaValue > 0"
+              [class.cfs-detail-summary__value--neg]="adj.deltaValue < 0">
+          {{ adj.deltaValue > 0 ? '+' : '' }}{{ adj.deltaValue | number:'1.2-2' }}
+        </span>
+      </div>
+      <div class="cfs-detail-summary__row cfs-detail-summary__row--total">
+        <span class="cfs-detail-summary__label">Valore effettivo</span>
+        <span class="cfs-detail-summary__value">{{ detail.effectiveValue | number:'1.2-2' }}</span>
+      </div>
+    </div>
+
+    <!-- Adjustments table -->
+    <table class="cfs-dialog__table" aria-label="Riepilogo rettifiche" style="margin-top:14px;">
+      <thead>
+        <tr>
+          <th scope="col">Utente</th>
+          <th scope="col">Data</th>
+          <th scope="col" style="text-align:right;">Importo rettifica</th>
+          <th scope="col">Nota</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let adj of detail.adjustments">
+          <td>{{ adj.modifiedBy }}</td>
+          <td>{{ adj.modifiedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+          <td style="text-align:right;font-weight:600;"
+              [style.color]="adj.deltaValue > 0 ? '#7AB648' : adj.deltaValue < 0 ? '#c0392b' : 'inherit'">
+            {{ adj.deltaValue > 0 ? '+' : '' }}{{ adj.deltaValue | number:'1.2-2' }}
+          </td>
+          <td>{{ adj.annotation || '—' }}</td>
+        </tr>
+        <tr *ngIf="detail.adjustments.length === 0">
+          <td colspan="4" style="color:#888;font-style:italic;">Nessuna rettifica attiva</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Audit trail (collapsible) -->
+    <details *ngIf="detail.auditTrail.length > 0" style="margin-top:12px;">
+      <summary style="cursor:pointer;font-size:12px;font-weight:600;color:#7AB648;">
+        Cronologia modifiche ({{ detail.auditTrail.length }})
+      </summary>
+      <table class="cfs-dialog__table" aria-label="Cronologia modifiche" style="margin-top:6px;">
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Utente</th>
+            <th scope="col">Tipo</th>
+            <th scope="col" style="text-align:right;">Prec.</th>
+            <th scope="col" style="text-align:right;">Nuovo</th>
+            <th scope="col" style="text-align:right;">Δ</th>
+            <th scope="col">Nota</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of detail.auditTrail">
+            <td>{{ e.modifiedAt | date:'dd/MM/yyyy HH:mm' }}</td>
+            <td>{{ e.modifiedBy }}</td>
+            <td>{{ e.modificationType }}</td>
+            <td style="text-align:right;">{{ e.previousValue | number:'1.2-2' }}</td>
+            <td style="text-align:right;">{{ e.newValue | number:'1.2-2' }}</td>
+            <td style="text-align:right;font-weight:600;"
+                [style.color]="e.deltaAmount > 0 ? '#7AB648' : e.deltaAmount < 0 ? '#c0392b' : 'inherit'">
+              {{ e.deltaAmount > 0 ? '+' : '' }}{{ e.deltaAmount | number:'1.2-2' }}
+            </td>
+            <td>{{ e.annotation || '—' }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </details>
+
+  </div>
+
+  <div class="cfs-dialog__actions">
+    <button
+      #firstFocus
+      type="button"
+      class="cfs-dialog__btn cfs-dialog__btn--primary"
+      (click)="close()"
+    >
+      Chiudi
+    </button>
+  </div>
+</div>

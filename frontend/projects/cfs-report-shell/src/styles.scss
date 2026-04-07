@@ -1,0 +1,246 @@
+/* ─── Base reset ─────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 12px;
+  color: #333333;
+  background: #ffffff;
+}
+
+/* ─── AG Grid Enterprise — global panel suppression ────── */
+/* Belt-and-suspenders: component SCSS also hides these via ::ng-deep,
+   but global rules ensure no flash of Enterprise chrome at all. */
+.ag-column-drop-wrapper,
+.ag-column-drop,
+.ag-column-drop-row-group,
+.ag-column-drop-pivot,
+.ag-pivot-mode-panel,
+.ag-status-bar {
+  display: none !important;
+  height: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* ─── CFS dialog styles ───────────────────────────────── */
+/* Global (not in component SCSS) because Angular view-encapsulation
+   would prevent parent styles from reaching child dialog templates.  */
+
+.cfs-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.40);
+  z-index: 100;
+}
+
+.cfs-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #ffffff;
+  border-radius: 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.20);
+  padding: 22px 26px;
+  min-width: 360px;
+  max-width: 480px;
+  width: 90vw;
+  z-index: 101;
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 12px;
+
+  &--wide { max-width: 700px; }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #333333;
+    margin: 0 0 10px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #8BC34A;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: #666666;
+    margin: 0 0 14px;
+  }
+
+  &__body {
+    font-size: 12px;
+    color: #333333;
+    margin-bottom: 14px;
+    line-height: 1.5;
+
+    &--error { color: #c0392b; }
+  }
+
+  &__field {
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #333333;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  &__optional {
+    font-weight: 400;
+    color: #888888;
+    font-size: 10px;
+    text-transform: none;
+  }
+
+  &__input,
+  &__textarea {
+    padding: 5px 8px;
+    border: 1px solid #cccccc;
+    border-radius: 3px;
+    font-size: 12px;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    color: #333333;
+
+    &:focus {
+      outline: 2px solid #7AB648;
+      outline-offset: 1px;
+      border-color: #7AB648;
+    }
+
+    &--invalid { border-color: #c0392b; }
+  }
+
+  &__textarea {
+    resize: vertical;
+    min-height: 70px;
+    line-height: 1.5;
+  }
+
+  &__error {
+    font-size: 11px;
+    color: #c0392b;
+    margin-top: 2px;
+  }
+
+  &__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+    margin-bottom: 14px;
+
+    th, td {
+      padding: 5px 8px;
+      border: 1px solid #eeeeee;
+      text-align: left;
+    }
+    th {
+      background: #f4f4f4;
+      font-weight: 600;
+      color: #444444;
+    }
+  }
+
+  &__num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    &--neg { color: #c0392b; }
+  }
+}
+
+/* ─── CFS cell-detail summary block ──────────────────── */
+/* Used by cell-history-dialog to show base / adjustments / effective value */
+.cfs-detail-summary {
+  border: 1px solid #e0e0e0;
+  border-radius: 3px;
+  overflow: hidden;
+  margin-bottom: 4px;
+  font-size: 12px;
+
+  &__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding: 5px 10px;
+    border-bottom: 1px solid #f0f0f0;
+
+    &:last-child { border-bottom: none; }
+
+    &--total {
+      background: #f7f7f7;
+      border-top: 2px solid #d0d0d0;
+      font-weight: 700;
+    }
+  }
+
+  &__label {
+    color: #555555;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__by {
+    font-size: 10px;
+    color: #999999;
+    font-weight: 400;
+  }
+
+  &__value {
+    font-variant-numeric: tabular-nums;
+    font-weight: 600;
+    color: #333333;
+    white-space: nowrap;
+
+    &--pos { color: #7AB648; }
+    &--neg { color: #c0392b; }
+  }
+}
+
+/* re-open .cfs-dialog so SCSS nesting above can close cleanly */
+.cfs-dialog {
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 12px;
+    border-top: 1px solid #eeeeee;
+  }
+
+  &__btn {
+    padding: 6px 16px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    cursor: pointer;
+    border: 1px solid #cccccc;
+    background: #ffffff;
+    color: #333333;
+    transition: background 0.12s;
+
+    &:hover { background: #f5f5f5; }
+    &:focus-visible { outline: 2px solid #7AB648; outline-offset: 2px; }
+
+    &--primary {
+      background: #8BC34A;
+      color: #ffffff;
+      border-color: #7AB648;
+
+      &:hover { background: #7AB648; }
+    }
+  }
+}

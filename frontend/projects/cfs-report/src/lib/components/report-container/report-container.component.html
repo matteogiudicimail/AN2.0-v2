@@ -1,0 +1,99 @@
+<!-- Main container layout -->
+<div class="cfs-container">
+
+  <!-- Filter Panel -->
+  <aside class="cfs-container__filters" aria-label="Report filters">
+    <cfs-filter-panel
+      [initialValues]="reportPresetFilters"
+      [filterConfig]="reportFilterConfig"
+      [columnDimension]="reportColumnDimension"
+      (filterApplied)="onFilterApplied($event)"
+    ></cfs-filter-panel>
+  </aside>
+
+  <!-- Report area -->
+  <main class="cfs-container__report" aria-label="Report data">
+
+    <!-- Toolbar: writeback mode badge -->
+    <div class="cfs-container__toolbar" *ngIf="writebackMode">
+      <span
+        class="cfs-mode-badge"
+        [class.cfs-mode-badge--delta]="writebackMode === 'Delta'"
+        [class.cfs-mode-badge--overwrite]="writebackMode === 'Overwrite'"
+        [attr.title]="writebackMode === 'Delta' ? 'Delta mode: saves are additive' : 'Overwrite mode: saves replace previous value'"
+        [attr.aria-label]="'Writeback mode: ' + writebackMode"
+      >
+        {{ writebackMode === 'Delta' ? 'Δ Delta' : '⊘ Overwrite' }}
+      </span>
+    </div>
+
+    <!-- Loading indicator (WCAG 4.1.3 aria-live) -->
+    <div
+      *ngIf="isLoading"
+      class="cfs-container__overlay"
+      aria-live="polite"
+      aria-atomic="true"
+      role="status"
+    >
+      <span class="cfs-container__spinner" aria-hidden="true"></span>
+      <span>Loading report…</span>
+    </div>
+
+    <!-- Error (WCAG 4.1.3 role=alert) -->
+    <div
+      *ngIf="errorMessage && !isLoading"
+      class="cfs-container__error"
+      role="alert"
+      aria-live="assertive"
+    >
+      {{ errorMessage }}
+      <button
+        type="button"
+        class="cfs-container__error-dismiss"
+        (click)="errorMessage = ''"
+        aria-label="Dismiss error"
+      >✕</button>
+    </div>
+
+    <!-- Grid (hidden while loading to avoid flash) -->
+    <cfs-report-grid
+      *ngIf="!isLoading"
+      [rows]="reportRows"
+      [processColumns]="processColumns"
+      [canWrite]="canWrite"
+      [lockedLoadIds]="lockedLoadIds"
+      [allowPivot]="allowPivot"
+      [pendingSaveRclKeys]="pendingSaveRclKeys"
+      (cellEditRequested)="onCellEditRequested($event)"
+      (cellHistoryRequested)="onCellHistoryRequested($event)"
+    ></cfs-report-grid>
+
+  </main>
+
+</div>
+
+<!-- Annotation Dialog -->
+<cfs-annotation-dialog
+  *ngIf="showAnnotationDialog && pendingEditCoordinates"
+  [currentValue]="pendingEditOldValue"
+  [rowLabel]="pendingEditRowLabel"
+  [processLabel]="pendingEditProcessLabel"
+  [requireAnnotation]="!pendingEditIsLeaf"
+  [isAggregate]="!pendingEditIsLeaf"
+  (closed)="onAnnotationClosed($event)"
+></cfs-annotation-dialog>
+
+<!-- Conflict Dialog -->
+<cfs-conflict-dialog
+  *ngIf="showConflictDialog && conflictInfo"
+  [conflict]="conflictInfo"
+  (resolved)="onConflictResolved($event)"
+></cfs-conflict-dialog>
+
+<!-- Cell History Dialog -->
+<cfs-cell-history-dialog
+  *ngIf="showHistoryDialog && historyCoordinates"
+  [coordinates]="historyCoordinates"
+  [cellLabel]="historyCellLabel"
+  (closed)="onHistoryClosed()"
+></cfs-cell-history-dialog>

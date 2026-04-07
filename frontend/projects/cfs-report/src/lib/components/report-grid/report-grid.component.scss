@@ -1,0 +1,305 @@
+// ═══════════════════════════════════════════════════════════════════════════════
+// CFS Report Grid — Exact MESA table look on AG Grid v30 alpine
+//
+// Reference: MESA "formazione_multi_entity" screenshot
+// Key visual rules:
+//   - Section headers (level 0): SOLID green bar, white text, bold
+//   - Aggregate rows (level 1 groups): white bg, bold black text
+//   - Leaf rows: white bg, normal weight
+//   - No vertical cell borders — clean horizontal-only lines
+//   - Compact 26px rows, 30px header
+//   - ALL Enterprise panels hidden
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ── Host element must participate in the flex height chain ───────────────────
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+// ── Layout wrappers ──────────────────────────────────────────────────────────
+.cfs-report-grid {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.cfs-grid {
+  flex: 1;
+  width: 100%;
+}
+
+// ── AG Grid CSS-variable overrides ──────────────────────────────────────────
+// Use ::ng-deep .cfs-grid.ag-theme-alpine for HIGHER specificity than
+// AG Grid's own .ag-theme-alpine defaults (0.2.0 > 0.1.0).
+// Row/header heights also set in gridOptions TS as belt-and-suspenders.
+:host ::ng-deep .cfs-grid.ag-theme-alpine {
+  // Typography
+  --ag-font-family:    Verdana, Geneva, Tahoma, sans-serif;
+  --ag-font-size:      12px;
+
+  // Dimensions — ultra-compact like MESA
+  --ag-row-height:               26px;
+  --ag-header-height:            30px;
+  --ag-cell-horizontal-padding:  6px;
+  --ag-list-item-height:         24px;
+  --ag-row-group-indent-size:    20px;
+
+  // Palette — neutrals
+  --ag-background-color:              #ffffff;
+  --ag-foreground-color:              #333333;
+  --ag-secondary-foreground-color:    #666666;
+  --ag-odd-row-background-color:      #ffffff;
+  --ag-control-panel-background-color: #f8f8f8;
+
+  // Borders — minimal (no vertical cell borders)
+  --ag-border-color:              #e0e0e0;
+  --ag-row-border-color:          #eee;
+  --ag-cell-horizontal-border:    none;
+
+  // Row interaction
+  --ag-row-hover-color:                #f7fbf2;
+  --ag-column-hover-color:             transparent;
+  --ag-selected-row-background-color:  #e8f5e9;
+
+  // Header — MESA green
+  --ag-header-background-color:              #8BC34A;
+  --ag-header-foreground-color:              #ffffff;
+  --ag-header-cell-hover-background-color:   #7CB83F;
+  --ag-header-cell-moving-background-color:  #6da834;
+  --ag-header-column-separator-display:      block;
+  --ag-header-column-separator-color:        rgba(255, 255, 255, 0.20);
+  --ag-header-column-separator-height:       50%;
+  --ag-header-column-resize-handle-color:    rgba(255, 255, 255, 0.40);
+  --ag-header-column-resize-handle-height:   50%;
+
+  // Pinned column border — subtle gray (not heavy green)
+  --ag-pinned-column-border-color: #d0d0d0;
+
+  // Editing / range selection
+  --ag-range-selection-border-color:       #7AB648;
+  --ag-range-selection-background-color:   rgba(139, 195, 74, 0.10);
+  --ag-input-border-color:                 #7AB648;
+  --ag-input-focus-border-color:           #5a9e24;
+  --ag-checkbox-unchecked-color:           #aaa;
+  --ag-checkbox-checked-color:             #7AB648;
+  --ag-checkbox-indeterminate-color:       #7AB648;
+
+  // Popups
+  --ag-card-shadow:  0 2px 8px rgba(0, 0, 0, 0.12);
+  --ag-popup-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+
+// ── Deep structural overrides ────────────────────────────────────────────────
+:host ::ng-deep {
+
+  // ═══ NUCLEAR: hide ALL Enterprise chrome ═══════════════════════════════════
+  // Belt-and-suspenders: gridOptions already say 'never' / false,
+  // but Enterprise sometimes renders the DOM anyway.
+  .ag-column-drop-wrapper,
+  .ag-column-drop,
+  .ag-column-drop-list,
+  .ag-column-drop-cell,
+  .ag-column-drop-row-group,
+  .ag-column-drop-pivot,
+  .ag-pivot-mode-panel,
+  .ag-pivot-mode-select,
+  .ag-status-bar,
+  .ag-side-bar,
+  .ag-tool-panel-wrapper,
+  .ag-column-panel {
+    display: none !important;
+    height: 0 !important;
+    min-height: 0 !important;
+    max-height: 0 !important;
+    overflow: hidden !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .ag-column-drop-wrapper {
+    flex: 0 0 0px !important;
+  }
+
+  // ═══ HEADER ═══════════════════════════════════════════════════════════════
+  .ag-header-cell-text {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  // Sort / filter / menu icons — white on green
+  .ag-header-icon,
+  .ag-header-cell-menu-button,
+  .ag-sort-indicator-icon {
+    color: rgba(255, 255, 255, 0.75) !important;
+  }
+
+  // Center-align data column headers (matches MESA entity column headers)
+  .ag-header-cell[col-id^="load_"] .ag-header-cell-label {
+    justify-content: center;
+  }
+
+  // ═══ LEVEL 0 — SOLID GREEN BAR (section headers) ═════════════════════════
+  // "4a. Volumi generali", "Revenue", "Cost of Sales" etc.
+  .ag-row-level-0 {
+    background-color: #8BC34A !important;
+  }
+  .ag-row-level-0 > .ag-cell,
+  .ag-row-level-0 .ag-cell {
+    background-color: #8BC34A !important;
+    color: #ffffff !important;
+    font-weight: 700 !important;
+    border-bottom-color: #7AB648 !important;
+  }
+  .ag-row-level-0 .ag-group-value,
+  .ag-row-level-0 .ag-cell-value {
+    color: #ffffff !important;
+  }
+  // Expand arrow on green → white
+  .ag-row-level-0 .ag-group-expanded .ag-icon,
+  .ag-row-level-0 .ag-group-contracted .ag-icon {
+    color: rgba(255, 255, 255, 0.70) !important;
+  }
+  // Hover → slightly darker green
+  .ag-row-level-0:hover > .ag-cell,
+  .ag-row-level-0:hover .ag-cell {
+    background-color: #7CB83F !important;
+  }
+  // Negative value on green → pale red for visibility
+  .ag-row-level-0 .cfs-cell--negative {
+    color: #ffd6d6 !important;
+  }
+
+  // ═══ LEVEL 1 — Aggregate / total rows (WHITE, BOLD) ═════════════════════
+  .ag-row-group.ag-row-level-1 .ag-cell,
+  .ag-row-level-1.ag-row-group .ag-cell {
+    background-color: #ffffff !important;
+    color: #333333 !important;
+    font-weight: 700 !important;
+  }
+  .ag-row-group.ag-row-level-1 .ag-group-value {
+    font-weight: 700 !important;
+  }
+  .ag-row-group.ag-row-level-1:hover .ag-cell {
+    background-color: #f7fbf2 !important;
+  }
+
+  // ═══ LEVEL 2+ / LEAF — Detail rows (WHITE, NORMAL) ══════════════════════
+  .ag-row:not(.ag-row-group) .ag-cell,
+  .ag-row.ag-row-level-2 .ag-cell,
+  .ag-row.ag-row-level-3 .ag-cell,
+  .ag-row.ag-row-level-4 .ag-cell {
+    font-weight: 400;
+    background-color: #ffffff !important;
+    color: #333333 !important;
+  }
+
+  // ═══ VALUE CELLS ═════════════════════════════════════════════════════════
+  .cfs-cell--number {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    padding-right: 8px !important;
+  }
+
+  // Negative amounts — WCAG 1.4.1: colour AND minus sign present
+  .cfs-cell--negative {
+    color: #c0392b !important;
+  }
+
+  // Synthetic (aggregate writeback) — italic, warm tint
+  .cfs-cell--synthetic {
+    font-style: italic !important;
+    background-color: #fffde7 !important;
+    color: #826d00 !important;
+  }
+
+  // ═══ TREE ARROWS — subtle ═══════════════════════════════════════════════
+  // (Level-0 white arrows already handled above)
+  .ag-group-expanded .ag-icon,
+  .ag-group-contracted .ag-icon {
+    color: #999 !important;
+    font-size: 10px !important;
+  }
+
+  // ═══ PINNED COLUMN — subtle separator ═══════════════════════════════════
+  .ag-pinned-left-header {
+    border-right: 1px solid #d0d0d0 !important;
+  }
+  .ag-pinned-left-cols-container {
+    border-right: 1px solid #d0d0d0 !important;
+  }
+
+  // ═══ PENDING SAVE — yellow row while API call is in-flight ══════════════
+  // Applied via rowClassRules; overrides level-specific bg only for data cells
+  .ag-row.cfs-row--pending .ag-cell:not(.ag-cell-focus) {
+    background-color: #fffde0 !important;
+  }
+  // Green-bar (level-0) rows are already highlighted; use a slightly warmer shade
+  .ag-row-level-0.cfs-row--pending .ag-cell {
+    background-color: #f0e060 !important;
+    color: #333333 !important;
+  }
+
+  // ═══ ADJUSTED CELLS — orange "!" badge when active deltas exist ══════════
+  // The badge is pinned to the left edge of the cell via absolute positioning
+  // so it never overlaps the right-aligned number.
+  .cfs-cell--adjusted {
+    position: relative !important;
+
+    &::before {
+      content: '!';
+      position: absolute;
+      left: 4px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #f57c00;
+      font-weight: 700;
+      font-size: 11px;
+      line-height: 1;
+      pointer-events: none;
+    }
+  }
+
+  // ═══ CELL EDITING ═══════════════════════════════════════════════════════
+  .ag-cell-inline-editing {
+    border: 2px solid #8BC34A !important;
+    border-radius: 1px;
+    box-shadow: 0 0 0 2px rgba(139, 195, 74, 0.20);
+  }
+
+  // ═══ CONTEXT MENU ═══════════════════════════════════════════════════════
+  .ag-menu {
+    font-family: Verdana, Geneva, Tahoma, sans-serif;
+    font-size: 12px;
+    border: 1px solid #e0e0e0;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.10);
+    border-radius: 3px;
+  }
+  .ag-menu-option-active {
+    background-color: #f0f8e8 !important;
+  }
+
+  // ═══ OVERLAY ════════════════════════════════════════════════════════════
+  .ag-overlay-no-rows-center {
+    font-size: 13px;
+    color: #888;
+  }
+
+  // ═══ SCROLLBARS — thin, neutral ═════════════════════════════════════════
+  .ag-body-viewport,
+  .ag-body-horizontal-scroll-viewport {
+    scrollbar-width: thin;
+    scrollbar-color: #ccc #f5f5f5;
+
+    &::-webkit-scrollbar        { width: 6px; height: 6px; }
+    &::-webkit-scrollbar-track  { background: #f5f5f5; }
+    &::-webkit-scrollbar-thumb  {
+      background: #ccc;
+      border-radius: 3px;
+      &:hover { background: #999; }
+    }
+  }
+}

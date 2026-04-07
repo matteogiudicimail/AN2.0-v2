@@ -1,0 +1,1477 @@
+{
+  "name": "SemanticModel",
+  "compatibilityLevel": 1500,
+  "model": {
+    "culture": "it-IT",
+    "discourageImplicitMeasures": true,
+    "dataSources": [
+      {
+        "type": "structured",
+        "name": "SQL/Seaside database windows net;MESAFINANCEDEMO",
+        "connectionDetails": {
+          "protocol": "tds",
+          "address": {
+            "server": "seaside.database.windows.net",
+            "database": "MESAFINANCEDEMO"
+          },
+          "authentication": null,
+          "query": null
+        },
+        "credential": {
+          "AuthenticationKind": "OAuth2",
+          "kind": "SQL",
+          "path": "seaside.database.windows.net;MESAFINANCEDEMO",
+          "Expires": "Mon, 23 Mar 2026 15:37:33 GMT"
+        }
+      }
+    ],
+    "tables": [
+      {
+        "name": "Reclassification",
+        "columns": [
+          {
+            "name": "FolderFatherKey",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "FolderFatherKey"
+          },
+          {
+            "name": "FolderChildKey",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "FolderChildKey"
+          },
+          {
+            "name": "Folder",
+            "dataType": "string",
+            "sourceColumn": "Folder"
+          },
+          {
+            "name": "InLevelOrder",
+            "dataType": "double",
+            "isHidden": true,
+            "sourceColumn": "InLevelOrder"
+          },
+          {
+            "type": "calculated",
+            "name": "PATH",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": "PATH([FolderChildKey],[FolderFatherKey])"
+          },
+          {
+            "type": "calculated",
+            "name": "Reclassification Model",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": "LOOKUPVALUE([Folder],[FolderChildKey],PATHITEM(Reclassification[PATH],1))",
+            "sortByColumn": "L_h01_Order"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h02",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder],[FolderChildKey],PATHITEM(Reclassification[PATH],2))",
+            "sortByColumn": "L_h02_Order"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h03",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder],[FolderChildKey],PATHITEM(Reclassification[PATH],3))",
+            "sortByColumn": "L_h03_Order"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h04",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder],[FolderChildKey],PATHITEM(Reclassification[PATH],4))",
+            "sortByColumn": "L_h04_Order"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h05",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder],[FolderChildKey],PATHITEM(Reclassification[PATH],5))",
+            "sortByColumn": "L_h05_Order"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h01_Order",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "RELATED(OrderH01[PathItem01])"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h02_Order",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "RELATED(OrderH02[PathItem02])"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h03_Order",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "RELATED(OrderH03[PathItem03])"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h04_Order",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "RELATED(OrderH04[PathItem04])"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h05_Order",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "RELATED(OrderH05[PathItem05])"
+          },
+          {
+            "type": "calculated",
+            "name": "PathItem01",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "PATHITEM(Reclassification[PATH],1)"
+          },
+          {
+            "type": "calculated",
+            "name": "PathItem02",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "PATHITEM(Reclassification[PATH],2)"
+          },
+          {
+            "type": "calculated",
+            "name": "PathItem03",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "PATHITEM(Reclassification[PATH],3)"
+          },
+          {
+            "type": "calculated",
+            "name": "PathItem04",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "PATHITEM(Reclassification[PATH],4)"
+          },
+          {
+            "type": "calculated",
+            "name": "PathItem05",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "PATHITEM(Reclassification[PATH],5)"
+          },
+          {
+            "name": "Folder_Code",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Folder_Code"
+          },
+          {
+            "name": "HierarchyMasterLever",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "HierarchyMasterLever"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h02_C",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder_Code],[FolderChildKey],PATHITEM(Reclassification[PATH],2))"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h03_C",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder_Code],[FolderChildKey],PATHITEM(Reclassification[PATH],3))"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h04_C",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder_Code],[FolderChildKey],PATHITEM(Reclassification[PATH],4))"
+          },
+          {
+            "type": "calculated",
+            "name": "L_h05_C",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE([Folder_Code],[FolderChildKey],PATHITEM(Reclassification[PATH],5))"
+          },
+          {
+            "type": "calculated",
+            "name": "Account Father Code",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              "var fc = Reclassification[Folder_Code] return SWITCH(TRUE(), ",
+              "    Reclassification[L_h05_C]<>fc && Reclassification[L_h05] <> BLANK(), Reclassification[L_h05_C] ",
+              "  , Reclassification[L_h04_C]<>fc && Reclassification[L_h04] <> BLANK(), Reclassification[L_h04_C]",
+              "  , Reclassification[L_h03_C]<>fc && Reclassification[L_h03] <> BLANK(), Reclassification[L_h03_C]",
+              "  , Reclassification[L_h02_C]<>fc && Reclassification[L_h02] <> BLANK(), Reclassification[L_h02_C]",
+              "  , Reclassification[HierarchyMasterLever])"
+            ]
+          },
+          {
+            "type": "calculated",
+            "name": "Folder Code",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": "var pr2 = PATHITEMREVERSE(Reclassification[PATH],1)  return IFERROR( right(pr2, len(pr2) - FIND(\"_\", pr2)), \"\")"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_vCFS_ReclassificationHierarchy = Source{[Schema=\"dbo\",Item=\"vCFS_ReclassificationHierarchy\"]}[Data]",
+                "in",
+                "    dbo_vCFS_ReclassificationHierarchy"
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "RowsCount",
+            "expression": "COUNTROWS(Reclassification) ",
+            "formatString": "#,0"
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Reclassification_h",
+            "levels": [
+              {
+                "name": "L_h01",
+                "ordinal": 0,
+                "column": "Reclassification Model"
+              },
+              {
+                "name": "L_h02",
+                "ordinal": 1,
+                "column": "L_h02"
+              },
+              {
+                "name": "L_h05",
+                "ordinal": 4,
+                "column": "L_h05"
+              },
+              {
+                "name": "L_h03",
+                "ordinal": 2,
+                "column": "L_h03"
+              },
+              {
+                "name": "L_h04",
+                "ordinal": 3,
+                "column": "L_h04"
+              }
+            ]
+          },
+          {
+            "name": "Reclassification_Code_h",
+            "levels": [
+              {
+                "name": "L_h01_C",
+                "ordinal": 0,
+                "column": "Reclassification Model"
+              },
+              {
+                "name": "L_h02_C",
+                "ordinal": 1,
+                "column": "L_h02_C"
+              },
+              {
+                "name": "L_h03_C",
+                "ordinal": 2,
+                "column": "L_h03_C"
+              },
+              {
+                "name": "L_h04_C",
+                "ordinal": 3,
+                "column": "L_h04_C"
+              },
+              {
+                "name": "L_h05_C",
+                "ordinal": 4,
+                "column": "L_h05_C"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "OrderH01",
+        "isHidden": true,
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "ord",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[ord]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "PathItem01",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "Reclassification[PathItem01]"
+          },
+          {
+            "type": "calculated",
+            "name": "PLIs",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": "IFERROR( LOOKUPVALUE(RclSourceType[PLIs],RclSourceType[RclJoin],OrderH01[PathItem01]), 1)"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": " FILTER(SUMMARIZE(Reclassification,[PathItem01], \"ord\", MIN(Reclassification[InLevelOrder])), NOT ISBLANK(Reclassification[PathItem01]))  "
+            }
+          }
+        ]
+      },
+      {
+        "name": "OrderH02",
+        "isHidden": true,
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "ord",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[ord]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "PathItem02",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "Reclassification[PathItem02]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": " FILTER(SUMMARIZE(Reclassification,[PathItem02], \"ord\", MIN(Reclassification[InLevelOrder])), NOT ISBLANK(Reclassification[PathItem02]))  "
+            }
+          }
+        ]
+      },
+      {
+        "name": "OrderH03",
+        "isHidden": true,
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "ord",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[ord]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "PathItem03",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "Reclassification[PathItem03]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 1",
+            "source": {
+              "type": "calculated",
+              "expression": " FILTER(SUMMARIZE(Reclassification,[PathItem03], \"ord\", MIN(Reclassification[InLevelOrder])), NOT ISBLANK(Reclassification[PathItem03]))  "
+            }
+          }
+        ]
+      },
+      {
+        "name": "OrderH04",
+        "isHidden": true,
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "ord",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[ord]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "PathItem04",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "Reclassification[PathItem04]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 2",
+            "source": {
+              "type": "calculated",
+              "expression": " FILTER(SUMMARIZE(Reclassification,[PathItem04], \"ord\", MIN(Reclassification[InLevelOrder])), NOT ISBLANK(Reclassification[PathItem04]))  "
+            }
+          }
+        ]
+      },
+      {
+        "name": "OrderH05",
+        "isHidden": true,
+        "columns": [
+          {
+            "type": "calculatedTableColumn",
+            "name": "ord",
+            "dataType": "double",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "[ord]"
+          },
+          {
+            "type": "calculatedTableColumn",
+            "name": "PathItem05",
+            "dataType": "string",
+            "isNameInferred": true,
+            "isDataTypeInferred": true,
+            "sourceColumn": "Reclassification[PathItem05]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculatedTable 3",
+            "source": {
+              "type": "calculated",
+              "expression": " FILTER(SUMMARIZE(Reclassification,[PathItem05], \"ord\", MIN(Reclassification[InLevelOrder])), NOT ISBLANK(Reclassification[PathItem05]))  "
+            }
+          }
+        ]
+      },
+      {
+        "name": "Entity",
+        "columns": [
+          {
+            "name": "EntityId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "EntityId"
+          },
+          {
+            "name": "EntityCode",
+            "dataType": "string",
+            "sourceColumn": "EntityCode"
+          },
+          {
+            "name": "Entity",
+            "dataType": "string",
+            "sourceColumn": "Entity"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_Entity = Source{[Schema=\"dbo\",Item=\"tCFS_Entity\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_Entity,{\"EntGenericDim01\", \"EntGenericDim02\", \"EntGenericDim03\", \"EntGenericDim04\", \"EnableIs\", \"CoAId\", \"CurrencyId\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "CO",
+        "columns": [
+          {
+            "name": "DimAcc02Code",
+            "dataType": "string",
+            "sourceColumn": "DimAcc02Code"
+          },
+          {
+            "name": "DimAcc02",
+            "dataType": "string",
+            "sourceColumn": "DimAcc02"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_DimAcc02 = Source{[Schema=\"dbo\",Item=\"tCFS_DimAcc02\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_DimAcc02,{\"DimAcc02FatherCode\", \"DimAcc02_01\", \"DimAcc02_02\", \"DimAcc02_03\", \"DimAcc02_04\", \"DimAcc02_05\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Process",
+        "columns": [
+          {
+            "name": "LoadId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "LoadId"
+          },
+          {
+            "name": "Process",
+            "dataType": "string",
+            "sourceColumn": "Process"
+          },
+          {
+            "name": "Scenario",
+            "dataType": "string",
+            "sourceColumn": "Scenario"
+          },
+          {
+            "name": "StartDate",
+            "dataType": "dateTime",
+            "sourceColumn": "StartDate"
+          },
+          {
+            "name": "EndDate",
+            "dataType": "dateTime",
+            "sourceColumn": "EndDate"
+          },
+          {
+            "name": "RefPrevious",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "RefPrevious"
+          },
+          {
+            "type": "calculated",
+            "name": "Year",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "expression": " YEAR(Process[EndDate])"
+          },
+          {
+            "type": "calculated",
+            "name": "Month",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": [
+              " var dt = Month(Process[EndDate]) return",
+              "Process[Year] & \"-\" & right(\"0\"&dt,2)",
+              ""
+            ]
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_Process = Source{[Schema=\"dbo\",Item=\"tCFS_Process\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_Process,{\"RefActual\", \"RefBudget\", \"RefRevBudget\", \"RefForecast\", \"RefGen01\", \"RefGen02\", \"CPMId\", \"CPM\", \"ScenarioId\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Calendar",
+            "levels": [
+              {
+                "name": "Month",
+                "ordinal": 1,
+                "column": "Month"
+              },
+              {
+                "name": "Year",
+                "ordinal": 0,
+                "column": "Year"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Currency",
+        "columns": [
+          {
+            "name": "CurrencyId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "CurrencyId"
+          },
+          {
+            "name": "CurrencyCode",
+            "dataType": "string",
+            "sourceColumn": "CurrencyCode"
+          },
+          {
+            "name": "Currency",
+            "dataType": "string",
+            "sourceColumn": "Currency"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_Currency = Source{[Schema=\"dbo\",Item=\"tCFS_Currency\"]}[Data]",
+                "in",
+                "    dbo_tCFS_Currency"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Fact",
+        "columns": [
+          {
+            "name": "LoadId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "LoadId"
+          },
+          {
+            "name": "EntityId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "EntityId"
+          },
+          {
+            "name": "DimAcc01Code",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "DimAcc01Code"
+          },
+          {
+            "name": "DimAcc02Code",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "DimAcc02Code"
+          },
+          {
+            "name": "CurrencyId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "CurrencyId"
+          },
+          {
+            "name": "Account Code Local",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AccountCodeLocal"
+          },
+          {
+            "name": "RclAccountKey",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "RclAccountKey"
+          },
+          {
+            "name": "AmountLocCurrency",
+            "dataType": "double",
+            "isHidden": true,
+            "sourceColumn": "AmountLocCurrency"
+          },
+          {
+            "name": "ExcRateLocal",
+            "dataType": "double",
+            "isHidden": true,
+            "sourceColumn": "ExcRateLocal"
+          },
+          {
+            "name": "AmountDocCurrency",
+            "dataType": "double",
+            "isHidden": true,
+            "sourceColumn": "AmountDocCurrency"
+          },
+          {
+            "name": "Counterpart",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "Counterpart"
+          },
+          {
+            "name": "DocNo",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "DocNo"
+          },
+          {
+            "name": "AdjLevlId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "AdjLevlId"
+          },
+          {
+            "name": "Adj. Annotation",
+            "dataType": "string",
+            "sourceColumn": "Annotation"
+          },
+          {
+            "type": "calculated",
+            "name": "MappingKey",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "'Fact'[EntityId]&\"|\"&'Fact'[Account Code Local]"
+          },
+          {
+            "type": "calculated",
+            "name": "PLIs2",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "RELATED(OrderH01[PLIs])"
+          },
+          {
+            "type": "calculated",
+            "name": "Am Loc Sign",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "IF('Fact'[PLIs2]=1, -1, 1) * [AmountLocCurrency]"
+          },
+          {
+            "type": "calculated",
+            "name": "Am Doc Sign",
+            "dataType": "double",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "IF('Fact'[PLIs2]=1, -1, 1) * [AmountDocCurrency]"
+          },
+          {
+            "type": "calculated",
+            "name": "RefLoadKey",
+            "dataType": "int64",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "LOOKUPVALUE(Process[RefPrevious], Process[LoadId], 'Fact'[LoadId])"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_FactValue_Local = Source{[Schema=\"dbo\",Item=\"vCFS_FactValue_Local_Cube\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_FactValue_Local,{\"AdjIs\", \"TraceDate\", \"TraceUser\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ],
+        "measures": [
+          {
+            "name": "Amount (Loc. Curr.)",
+            "expression": "SUM('Fact'[Am Loc Sign])",
+            "formatString": "#,0.00"
+          },
+          {
+            "name": "Amount (Doc. Curr.)",
+            "expression": "SUM('Fact'[Am Doc Sign])",
+            "formatString": "#,0.00"
+          },
+          {
+            "name": "Avg Exch Rate",
+            "expression": " AVERAGE('Fact'[ExcRateLocal])",
+            "formatString": "0.00000"
+          },
+          {
+            "name": "Amount (Loc. Curr.) vs Previous Process",
+            "expression": [
+              "",
+              "var pp = CALCULATE([Amount (Loc. Curr.)], FILTER(ALL(Process), Process[LoadId] = MAX('Fact'[RefLoadKey])))",
+              "return ",
+              " [Amount (Loc. Curr.)] -  pp"
+            ],
+            "formatString": "#,0.00"
+          }
+        ]
+      },
+      {
+        "name": "Hierarchy Visulization",
+        "calculationGroup": {
+          "calculationItems": [
+            {
+              "name": "Ragged",
+              "expression": [
+                "SWITCH ( TRUE (), ",
+                "ISINSCOPE(Reclassification[L_h02]) && ISBLANK ( SELECTEDVALUE ( Reclassification[L_h02] ) ), BLANK (), ",
+                "ISINSCOPE(Reclassification[L_h03]) && ISBLANK ( SELECTEDVALUE ( Reclassification[L_h03] ) ), BLANK (), ",
+                "ISINSCOPE(Reclassification[L_h04]) && ISBLANK ( SELECTEDVALUE ( Reclassification[L_h04] ) ), BLANK (), ",
+                "ISINSCOPE(Reclassification[L_h05]) && ISBLANK ( SELECTEDVALUE ( Reclassification[L_h05] ) ), BLANK (),  SELECTEDMEASURE())",
+                ""
+              ],
+              "ordinal": 1
+            },
+            {
+              "name": "Flatted",
+              "expression": "SELECTEDMEASURE()",
+              "ordinal": 2
+            }
+          ]
+        },
+        "columns": [
+          {
+            "name": "Hierarchy Visulization Mode",
+            "dataType": "string",
+            "sourceColumn": "Name"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "CalculationGroup 1",
+            "mode": "import",
+            "source": {
+              "type": "calculationGroup"
+            }
+          }
+        ]
+      },
+      {
+        "name": "Adjustments",
+        "columns": [
+          {
+            "name": "AdjLevelId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "AdjLevelId"
+          },
+          {
+            "name": "AdjLevelCode",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AdjLevel"
+          },
+          {
+            "name": "AdjLevel",
+            "dataType": "string",
+            "sourceColumn": "AdjLevelDSC",
+            "sortByColumn": "AdjLevelCode"
+          },
+          {
+            "name": "AdjGroup",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AdjGroup",
+            "sortByColumn": "AdjLevelGroup_Dsc_Ord"
+          },
+          {
+            "name": "AdjGroupType",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AdjGroupType",
+            "sortByColumn": "AdjLevelGroupType_Dsc_Ord"
+          },
+          {
+            "name": "AdjLevelGroup_Dsc_Ord",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AdjLevelGroup_Dsc_Ord"
+          },
+          {
+            "name": "AdjLevelGroupType_Dsc_Ord",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AdjLevelGroupType_Dsc_Ord"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_AdjLevel = Source{[Schema=\"dbo\",Item=\"vCFS_AdjLevelHierarchy\"]}[Data]",
+                "in",
+                "    dbo_tCFS_AdjLevel"
+              ]
+            }
+          }
+        ],
+        "hierarchies": [
+          {
+            "name": "Adjustment level",
+            "levels": [
+              {
+                "name": "AdjGroup",
+                "ordinal": 0,
+                "column": "AdjGroup"
+              },
+              {
+                "name": "AdjGroupType",
+                "ordinal": 1,
+                "column": "AdjGroupType"
+              },
+              {
+                "name": "AdjLevel",
+                "ordinal": 2,
+                "column": "AdjLevel"
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "Local Accounts",
+        "columns": [
+          {
+            "name": "EntityId",
+            "dataType": "int64",
+            "isHidden": true,
+            "sourceColumn": "EntityId"
+          },
+          {
+            "name": "AccountKey",
+            "dataType": "string",
+            "isHidden": true,
+            "sourceColumn": "AccountKey"
+          },
+          {
+            "name": "Account Code Local",
+            "dataType": "string",
+            "sourceColumn": "AccountCodeLocal"
+          },
+          {
+            "type": "calculated",
+            "name": "MappinkKey",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "isHidden": true,
+            "expression": "[EntityId]&\"|\"&[Account Code Local]"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_AccountLocalMapping = Source{[Schema=\"dbo\",Item=\"tCFS_AccountLocalMapping\"]}[Data]",
+                "in",
+                "    dbo_tCFS_AccountLocalMapping"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Group Accounts",
+        "columns": [
+          {
+            "name": "AccountCode",
+            "dataType": "string",
+            "sourceColumn": "AccountCode"
+          },
+          {
+            "name": "Account",
+            "dataType": "string",
+            "sourceColumn": "Account"
+          },
+          {
+            "name": "AccountKey",
+            "dataType": "string",
+            "sourceColumn": "AccountKey"
+          },
+          {
+            "name": "ConsolidationGroupId",
+            "dataType": "int64",
+            "sourceColumn": "ConsolidationGroupId"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_Account = Source{[Schema=\"dbo\",Item=\"tCFS_Account\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_Account,{\"CoAId\", \"AccountSourceId\", \"GroupAccountKey\", \"ReconciliationIs\", \"ReconciliationKey\", \"AcceptIC\", \"OnlyICIs\", \"BudgetIs\", \"PartnerTaskId\", \"AccGenericDim01\", \"AccGenericDim02\", \"AccGenericDim03\", \"AccGenericDim04\", \"AccGenericDim05\", \"EnableIs\"}),",
+                "    #\"Reordered Columns\" = Table.ReorderColumns(#\"Removed Columns\",{\"AccountCode\", \"Account\", \"AccountKey\", \"ConsolidationGroupId\"})",
+                "in",
+                "    #\"Reordered Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Mapping_AdjLevel_Scope",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "AdjLevelId",
+            "dataType": "int64",
+            "sourceColumn": "AdjLevelId"
+          },
+          {
+            "name": "ScopeId",
+            "dataType": "int64",
+            "sourceColumn": "ScopeId"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_Mapping_AdjLevel_ScopeId = Source{[Schema=\"dbo\",Item=\"tCFS_Mapping_AdjLevel_ScopeId\"]}[Data]",
+                "in",
+                "    dbo_tCFS_Mapping_AdjLevel_ScopeId"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Scope",
+        "columns": [
+          {
+            "name": "ScopeId",
+            "dataType": "int64",
+            "sourceColumn": "ScopeId"
+          },
+          {
+            "name": "Scope",
+            "dataType": "int64",
+            "sourceColumn": "Scope"
+          },
+          {
+            "name": "ScopeOfConsolidation",
+            "dataType": "string",
+            "sourceColumn": "ScopeOfConsolidation"
+          },
+          {
+            "name": "AccountingModelId",
+            "dataType": "int64",
+            "sourceColumn": "AccountingModelId"
+          },
+          {
+            "name": "EnableId",
+            "dataType": "boolean",
+            "sourceColumn": "EnableId"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_ScopeOfConsolidation = Source{[Schema=\"dbo\",Item=\"tCFS_ScopeOfConsolidation\"]}[Data]",
+                "in",
+                "    dbo_tCFS_ScopeOfConsolidation"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "RclSourceType",
+        "isHidden": true,
+        "columns": [
+          {
+            "name": "ReclassificationId",
+            "dataType": "int64",
+            "sourceColumn": "ReclassificationId"
+          },
+          {
+            "name": "PLIs",
+            "dataType": "int64",
+            "sourceColumn": "PLIs"
+          },
+          {
+            "type": "calculated",
+            "name": "RclJoin",
+            "dataType": "string",
+            "isDataTypeInferred": true,
+            "expression": "RclSourceType[ReclassificationId]&\"_\""
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_vCFS_Reclassification_SourceType = Source{[Schema=\"dbo\",Item=\"vCFS_Reclassification_SourceType\"]}[Data]",
+                "in",
+                "    dbo_vCFS_Reclassification_SourceType"
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Cost Center",
+        "columns": [
+          {
+            "name": "Cost Center Code",
+            "dataType": "string",
+            "sourceColumn": "DimAcc01Code"
+          },
+          {
+            "name": "Cost Center",
+            "dataType": "string",
+            "sourceColumn": "DimAcc01"
+          },
+          {
+            "name": "Cost Center Aggregation",
+            "dataType": "string",
+            "sourceColumn": "DimAcc01_01"
+          },
+          {
+            "name": "Cost Center Responsible",
+            "dataType": "string",
+            "sourceColumn": "DimAcc01Responsible"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_DimAcc01 = Source{[Schema=\"dbo\",Item=\"vCFS_AccDim01\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_DimAcc01,{\"DimAcc01_02\", \"DimAcc01_03\", \"DimAcc01_04\", \"DimAcc01_05\", \"DimAcc01FatherCode\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Counterpart",
+        "columns": [
+          {
+            "name": "CounterpartId",
+            "dataType": "int64",
+            "sourceColumn": "CounterpartId"
+          },
+          {
+            "name": "CounterpartCode",
+            "dataType": "string",
+            "sourceColumn": "CounterpartCode"
+          },
+          {
+            "name": "Counterpart",
+            "dataType": "string",
+            "sourceColumn": "Counterpart"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_Entity = Source{[Schema=\"dbo\",Item=\"tCFS_Entity\"]}[Data],",
+                "    #\"Removed Other Columns\" = Table.SelectColumns(dbo_tCFS_Entity,{\"EntityId\", \"EntityCode\", \"Entity\"}),",
+                "    #\"Renamed Columns\" = Table.RenameColumns(#\"Removed Other Columns\",{{\"EntityId\", \"CounterpartId\"}, {\"EntityCode\", \"CounterpartCode\"}, {\"Entity\", \"Counterpart\"}})",
+                "in",
+                "    #\"Renamed Columns\""
+              ]
+            }
+          }
+        ]
+      },
+      {
+        "name": "Consolidation Group",
+        "columns": [
+          {
+            "name": "ConsolidationGroupId",
+            "dataType": "int64",
+            "sourceColumn": "ConsolidationGroupId"
+          },
+          {
+            "name": "ConsolidationGroup",
+            "dataType": "string",
+            "sourceColumn": "ConsolidationGroup"
+          }
+        ],
+        "partitions": [
+          {
+            "name": "Partition",
+            "dataView": "full",
+            "source": {
+              "type": "m",
+              "expression": [
+                "let",
+                "    Source = #\"SQL/Seaside database windows net;MESAFINANCEDEMO\",",
+                "    dbo_tCFS_ConsolidationGroup = Source{[Schema=\"dbo\",Item=\"tCFS_ConsolidationGroup\"]}[Data],",
+                "    #\"Removed Columns\" = Table.RemoveColumns(dbo_tCFS_ConsolidationGroup,{\"ConsolidationLogicId\", \"ConsolidationLogic\"})",
+                "in",
+                "    #\"Removed Columns\""
+              ]
+            }
+          }
+        ]
+      }
+    ],
+    "relationships": [
+      {
+        "name": "09939df5-f4b0-42bf-a8d6-43042fa8a2e7",
+        "fromTable": "Fact",
+        "fromColumn": "LoadId",
+        "toTable": "Process",
+        "toColumn": "LoadId"
+      },
+      {
+        "name": "f9efe34d-69eb-42b2-a806-3d0133ab93bb",
+        "fromTable": "Fact",
+        "fromColumn": "CurrencyId",
+        "toTable": "Currency",
+        "toColumn": "CurrencyId"
+      },
+      {
+        "name": "fd6ef839-cdbe-43ce-8383-ce7b01231826",
+        "fromTable": "Fact",
+        "fromColumn": "EntityId",
+        "toTable": "Entity",
+        "toColumn": "EntityId"
+      },
+      {
+        "name": "4843d0dd-b09e-47fc-b0d2-90e410c68205",
+        "fromTable": "Fact",
+        "fromColumn": "DimAcc02Code",
+        "toTable": "CO",
+        "toColumn": "DimAcc02Code"
+      },
+      {
+        "name": "d60fb275-edca-415a-8fa5-a9b918625e46",
+        "fromTable": "Fact",
+        "fromColumn": "DimAcc01Code",
+        "toTable": "Cost Center",
+        "toColumn": "Cost Center Code"
+      },
+      {
+        "name": "8c015a4f-86bd-4514-9adc-ef51335b8fc6",
+        "fromTable": "Fact",
+        "fromColumn": "RclAccountKey",
+        "toTable": "Reclassification",
+        "toColumn": "FolderChildKey"
+      },
+      {
+        "name": "ea5aa44c-e6f7-484e-9707-13b633523d9e",
+        "fromTable": "Reclassification",
+        "fromColumn": "PathItem01",
+        "toTable": "OrderH01",
+        "toColumn": "PathItem01"
+      },
+      {
+        "name": "d008863c-5ece-4dfc-9372-753732c24ea0",
+        "fromTable": "Reclassification",
+        "fromColumn": "PathItem03",
+        "toTable": "OrderH03",
+        "toColumn": "PathItem03"
+      },
+      {
+        "name": "ee69642e-d54d-4ce7-b4b1-64f2c8aab62f",
+        "fromTable": "Reclassification",
+        "fromColumn": "PathItem04",
+        "toTable": "OrderH04",
+        "toColumn": "PathItem04"
+      },
+      {
+        "name": "aaa5b4b9-6900-41bc-804b-5327a84b223a",
+        "fromTable": "Reclassification",
+        "fromColumn": "PathItem05",
+        "toTable": "OrderH05",
+        "toColumn": "PathItem05"
+      },
+      {
+        "name": "fdc0d5a8-3dfd-4c7c-8cdf-53786a7a3f92",
+        "fromTable": "Reclassification",
+        "fromColumn": "PathItem02",
+        "toTable": "OrderH02",
+        "toColumn": "PathItem02"
+      },
+      {
+        "name": "4dc579ec-ca28-426e-8a36-533004e55499",
+        "fromTable": "Local Accounts",
+        "fromColumn": "AccountKey",
+        "toTable": "Group Accounts",
+        "toColumn": "AccountKey",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "6beacbcc-96c8-44c4-921e-f04ded071584",
+        "fromTable": "Fact",
+        "fromColumn": "MappingKey",
+        "toTable": "Local Accounts",
+        "toColumn": "MappinkKey",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "5e010f8c-ade2-4da9-80f9-055fbc7a2048",
+        "fromTable": "Mapping_AdjLevel_Scope",
+        "fromColumn": "ScopeId",
+        "toTable": "Scope",
+        "toColumn": "ScopeId"
+      },
+      {
+        "name": "f54b3034-cb5c-4a87-9439-b46fe9d71977",
+        "fromTable": "Mapping_AdjLevel_Scope",
+        "fromColumn": "AdjLevelId",
+        "toTable": "Adjustments",
+        "toColumn": "AdjLevelId",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "ca6b9cb2-b352-4487-9a02-bb1ea55c32e4",
+        "fromTable": "Fact",
+        "fromColumn": "AdjLevlId",
+        "toTable": "Adjustments",
+        "toColumn": "AdjLevelId",
+        "crossFilteringBehavior": "bothDirections"
+      },
+      {
+        "name": "95ace4cd-6ca5-45ca-ac0c-d3cc521c6fb9",
+        "fromTable": "Fact",
+        "fromColumn": "Counterpart",
+        "toTable": "Counterpart",
+        "toColumn": "CounterpartId"
+      },
+      {
+        "name": "8490827d-bf02-45ea-91da-caf1b7d36c4a",
+        "fromTable": "Group Accounts",
+        "fromColumn": "ConsolidationGroupId",
+        "toTable": "Consolidation Group",
+        "toColumn": "ConsolidationGroupId"
+      }
+    ],
+    "roles": [
+      {
+        "name": "Admin",
+        "modelPermission": "administrator",
+        "members": [
+          {
+            "memberName": "becco@mesagroup.eu",
+            "memberId": "becco@mesagroup.eu#AzureAD",
+            "identityProvider": "AzureAD"
+          },
+          {
+            "memberName": "barbera@mesagroup.eu",
+            "memberId": "barbera@mesagroup.eu#AzureAD",
+            "identityProvider": "AzureAD"
+          },
+          {
+            "memberName": "chen@mesagroup.eu",
+            "memberId": "chen@mesagroup.eu#AzureAD",
+            "identityProvider": "AzureAD"
+          }
+        ]
+      }
+    ],
+    "annotations": [
+      {
+        "name": "ClientCompatibilityLevel",
+        "value": "600"
+      }
+    ]
+  },
+  "id": "SemanticModel"
+}

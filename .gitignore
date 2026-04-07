@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+*/node_modules/
+
+# Build output
+dist/
+build/
+*/dist/
+*/build/
+
+# Environment secrets — NEVER commit real .env files [V1, V8]
+.env
+*/.env
+backend/.env
+frontend/.env
+
+# SQLite database files (runtime only)
+backend/data/*.db
+backend/data/*.db-shm
+backend/data/*.db-wal
+
+# Angular cache
+.angular/
+frontend/.angular/
+
+# Logs
+*.log
+logs/
+*/logs/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+coverage/
+*/coverage/

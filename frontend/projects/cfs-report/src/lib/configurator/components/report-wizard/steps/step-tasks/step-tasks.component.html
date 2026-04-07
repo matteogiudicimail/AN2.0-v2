@@ -1,0 +1,146 @@
+<div class="cfg-step">
+  <h3 class="cfg-step__title">Task Generation — Seaside System</h3>
+  <p class="cfg-step__hint">
+    Tasks are the "seaside" entries that appear in the MG menu and point users to a pre-configured grid page.
+    Each task has a unique <code>taskCode</code>, optional writeback mode override, and pre-set context filters hidden at runtime.
+  </p>
+
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="cfg-alert cfg-alert--success" role="status">{{ successMsg }}</div>
+  <div *ngIf="isLoading"  class="cfg-loading">Loading…</div>
+
+  <div *ngIf="!isLoading" class="cfg-list__header cfg-list__header--inline">
+    <h4>Tasks for this report</h4>
+    <button class="cfg-btn cfg-btn--primary cfg-btn--sm" (click)="openNew()">+ New Task</button>
+  </div>
+
+  <table *ngIf="!isLoading && tasks.length > 0" class="cfg-table" aria-label="Tasks">
+    <thead>
+      <tr>
+        <th scope="col">Code</th>
+        <th scope="col">Label</th>
+        <th scope="col">Mode</th>
+        <th scope="col">Status</th>
+        <th scope="col">Menu code</th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let t of tasks; trackBy: trackById">
+        <td><code>{{ t.taskCode }}</code></td>
+        <td>{{ t.label }}</td>
+        <td>
+          <span *ngIf="t.writebackMode" class="cfg-badge"
+                [class.cfg-badge--delta]="t.writebackMode === 'Delta'"
+                [class.cfg-badge--overwrite]="t.writebackMode === 'Overwrite'">
+            {{ t.writebackMode }}
+          </span>
+          <span *ngIf="!t.writebackMode" class="cfg-muted">from report</span>
+        </td>
+        <td>
+          <span class="cfg-badge"
+                [class.cfg-badge--draft]="t.status === 'Draft'"
+                [class.cfg-badge--published]="t.status === 'Active'"
+                [class.cfg-badge--archived]="t.status === 'Archived'">
+            {{ t.status }}
+          </span>
+        </td>
+        <td>{{ t.menuItemCode || '—' }}</td>
+        <td class="cfg-table__actions">
+          <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" (click)="editTask(t)">Edit</button>
+          <button class="cfg-btn cfg-btn--sm cfg-btn--primary" (click)="openTask(t)"
+                  title="Open data entry grid">Open</button>
+          <button *ngIf="t.status === 'Draft'"    class="cfg-btn cfg-btn--sm cfg-btn--success" (click)="activate(t)">Activate</button>
+          <button *ngIf="t.status !== 'Archived'" class="cfg-btn cfg-btn--sm cfg-btn--danger"  (click)="archiveTask(t)">Archive</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!isLoading && tasks.length === 0 && !showForm" class="cfg-empty">
+    No tasks yet. Click <strong>+ New Task</strong> to create one.
+  </p>
+
+  <!-- Task form -->
+  <form *ngIf="showForm" [formGroup]="form" (ngSubmit)="saveTask()" novalidate
+        class="cfg-inline-form cfg-inline-form--card">
+    <h4 class="cfg-inline-form__title">{{ editingTaskId ? 'Edit task' : 'New task' }}</h4>
+
+    <div class="cfg-inline-form__grid">
+
+      <div class="cfg-field">
+        <label class="cfg-field__label">Task Code * <span class="cfg-field__hint">(immutable after creation)</span></label>
+        <input type="text" formControlName="taskCode" class="cfg-field__input" maxlength="50"
+               placeholder="e.g. Q1_2025_XYZ (letters, numbers, _ -)" />
+        <span *ngIf="form.get('taskCode')!.invalid && form.get('taskCode')!.touched"
+              class="cfg-field__error" role="alert">Required — only letters, numbers, _ and -.</span>
+      </div>
+
+      <div class="cfg-field">
+        <label class="cfg-field__label">Label *</label>
+        <input type="text" formControlName="label" class="cfg-field__input" maxlength="200"
+               placeholder="e.g. Q1 2025 — Entity XYZ" />
+        <span *ngIf="form.get('label')!.invalid && form.get('label')!.touched"
+              class="cfg-field__error" role="alert">Label is required.</span>
+      </div>
+
+      <div class="cfg-field cfg-field--full">
+        <label class="cfg-field__label">Description</label>
+        <textarea formControlName="description" class="cfg-field__textarea" rows="2"></textarea>
+      </div>
+
+      <div class="cfg-field">
+        <label class="cfg-field__label">Writeback mode override</label>
+        <select formControlName="writebackMode" class="cfg-field__select">
+          <option value="">— use report default —</option>
+          <option value="Delta">Delta</option>
+          <option value="Overwrite">Overwrite</option>
+        </select>
+      </div>
+
+      <div class="cfg-field">
+        <label class="cfg-field__label">Allowed roles</label>
+        <input type="text" formControlName="assignedRole" class="cfg-field__input"
+               placeholder="e.g. Editor,Approver" />
+      </div>
+
+      <div class="cfg-field cfg-field--full">
+        <label class="cfg-field__label">Route URL
+          <span class="cfg-field__hint">— page path in MESAPPA where this task opens</span>
+        </label>
+        <input type="text" formControlName="routeUrl" class="cfg-field__input"
+               placeholder="e.g. /cfs-report/grid" />
+      </div>
+
+      <div class="cfg-field cfg-field--full">
+        <label class="cfg-field__label">MG Menu item code
+          <span class="cfg-field__hint">— seaside registration key for the host menu</span>
+        </label>
+        <input type="text" formControlName="menuItemCode" class="cfg-field__input"
+               placeholder="e.g. CFS_TASK_Q1_2025_XYZ" />
+      </div>
+
+      <div class="cfg-field cfg-field--full">
+        <label class="cfg-field__label">Context filters
+          <span class="cfg-field__hint">— JSON object: filter values pre-set and hidden at runtime</span>
+        </label>
+        <textarea formControlName="contextFilters" class="cfg-field__textarea cfg-field__textarea--mono" rows="3"
+                  placeholder='{"entityId": 12, "scopeId": 1, "currencyId": 2}'></textarea>
+        <span *ngIf="contextFiltersError" class="cfg-field__error" role="alert">{{ contextFiltersError }}</span>
+      </div>
+
+    </div>
+
+    <div class="cfg-inline-form__actions">
+      <button type="submit" class="cfg-btn cfg-btn--primary" [disabled]="isSaving">
+        {{ isSaving ? 'Saving…' : 'Save Task' }}
+      </button>
+      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="cancelForm()">Cancel</button>
+    </div>
+  </form>
+
+  <div class="cfg-step__actions cfg-step__actions--nav">
+    <button type="button" class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
+    <button type="button" class="cfg-btn cfg-btn--success" (click)="finish.emit()">Finish ✓</button>
+  </div>
+</div>

@@ -1,0 +1,176 @@
+<div class="cfg-step">
+  <h3 class="cfg-step__title">Report Structure</h3>
+  <p class="cfg-step__hint">Define rows, columns, filters and the grid layout.</p>
+
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="cfg-alert cfg-alert--success" role="status">{{ successMsg }}</div>
+  <div *ngIf="isLoading"  class="cfg-loading">Loading…</div>
+
+  <nav *ngIf="!isLoading" class="cfg-subtabs" aria-label="Structure sections">
+    <button class="cfg-subtabs__tab" [class.cfg-subtabs__tab--active]="activeTab==='rows'"    (click)="activeTab='rows'">Rows</button>
+    <button class="cfg-subtabs__tab" [class.cfg-subtabs__tab--active]="activeTab==='columns'" (click)="activeTab='columns'">Columns</button>
+    <button class="cfg-subtabs__tab" [class.cfg-subtabs__tab--active]="activeTab==='filters'" (click)="activeTab='filters'">Filters</button>
+    <button class="cfg-subtabs__tab" [class.cfg-subtabs__tab--active]="activeTab==='layout'"  (click)="activeTab='layout'">Layout</button>
+  </nav>
+
+  <!-- ── ROWS ── -->
+  <div *ngIf="!isLoading && activeTab === 'rows'" class="cfg-subtab-body">
+    <table class="cfg-table" aria-label="Report rows">
+      <thead><tr><th>Code</th><th>Label</th><th>Type</th><th>Indent</th><th>Order</th><th>Edit</th><th>Vis</th><th></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let r of rows; trackBy: trackById">
+          <td><code>{{ r.rowCode }}</code></td><td>{{ r.label }}</td><td>{{ r.rowType }}</td>
+          <td>{{ r.indentLevel }}</td><td>{{ r.sortOrder }}</td>
+          <td>{{ r.isEditable ? '✓' : '✗' }}</td><td>{{ r.isVisible ? '✓' : '✗' }}</td>
+          <td>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" (click)="editRow(r)">Edit</button>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--danger" (click)="deleteRow(r.rowId)">Del</button>
+          </td>
+        </tr>
+        <tr *ngIf="rows.length === 0"><td colspan="8" class="cfg-empty">No rows. Add one below.</td></tr>
+      </tbody>
+    </table>
+    <form [formGroup]="rowForm" (ngSubmit)="saveRow()" novalidate class="cfg-inline-form">
+      <h4 class="cfg-inline-form__title">{{ editingRowId ? 'Edit row' : 'Add row' }}</h4>
+      <div class="cfg-inline-form__row">
+        <div class="cfg-field cfg-field--sm"><label class="cfg-field__label">Code *</label>
+          <input type="text" formControlName="rowCode" class="cfg-field__input" placeholder="e.g. REV_TOTAL" maxlength="50" /></div>
+        <div class="cfg-field cfg-field--md"><label class="cfg-field__label">Label *</label>
+          <input type="text" formControlName="label" class="cfg-field__input" /></div>
+        <div class="cfg-field cfg-field--sm"><label class="cfg-field__label">Type</label>
+          <select formControlName="rowType" class="cfg-field__select">
+            <option value="Input">Input</option><option value="Subtotal">Subtotal</option>
+            <option value="SectionHeader">SectionHeader</option><option value="Spacer">Spacer</option>
+            <option value="GroupParent">GroupParent</option>
+          </select></div>
+        <div class="cfg-field cfg-field--xs"><label class="cfg-field__label">Indent</label>
+          <input type="number" formControlName="indentLevel" class="cfg-field__input" min="0" max="10" /></div>
+        <div class="cfg-field cfg-field--xs"><label class="cfg-field__label">Order</label>
+          <input type="number" formControlName="sortOrder" class="cfg-field__input" min="0" /></div>
+        <label class="cfg-checkbox"><input type="checkbox" formControlName="isEditable" /> Editable</label>
+        <label class="cfg-checkbox"><input type="checkbox" formControlName="isVisible" /> Visible</label>
+        <button type="submit" class="cfg-btn cfg-btn--primary cfg-btn--sm" [disabled]="isSaving">Save</button>
+        <button *ngIf="editingRowId" type="button" class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                (click)="editingRowId=null; rowForm.reset({rowType:'Input',indentLevel:0,sortOrder:0,isEditable:true,isVisible:true})">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── COLUMNS ── -->
+  <div *ngIf="!isLoading && activeTab === 'columns'" class="cfg-subtab-body">
+    <table class="cfg-table" aria-label="Report columns">
+      <thead><tr><th>Code</th><th>Label</th><th>Dimension</th><th>Order</th><th>Visible</th><th></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let c of columns; trackBy: trackById">
+          <td><code>{{ c.columnCode }}</code></td><td>{{ c.label }}</td>
+          <td>{{ c.dimensionName || '—' }}</td><td>{{ c.sortOrder }}</td>
+          <td>{{ c.isVisible ? '✓' : '✗' }}</td>
+          <td>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" (click)="editColumn(c)">Edit</button>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--danger" (click)="deleteColumn(c.columnId)">Del</button>
+          </td>
+        </tr>
+        <tr *ngIf="columns.length === 0"><td colspan="6" class="cfg-empty">No columns.</td></tr>
+      </tbody>
+    </table>
+    <form [formGroup]="columnForm" (ngSubmit)="saveColumn()" novalidate class="cfg-inline-form">
+      <h4 class="cfg-inline-form__title">{{ editingColumnId ? 'Edit column' : 'Add column' }}</h4>
+      <div class="cfg-inline-form__row">
+        <div class="cfg-field cfg-field--sm"><label class="cfg-field__label">Code *</label>
+          <input type="text" formControlName="columnCode" class="cfg-field__input" placeholder="e.g. BUDGET_2025" maxlength="50" /></div>
+        <div class="cfg-field cfg-field--md"><label class="cfg-field__label">Label *</label>
+          <input type="text" formControlName="label" class="cfg-field__input" /></div>
+        <div class="cfg-field cfg-field--md"><label class="cfg-field__label">Dimension name</label>
+          <input type="text" formControlName="dimensionName" class="cfg-field__input" placeholder="e.g. Process" /></div>
+        <div class="cfg-field cfg-field--xs"><label class="cfg-field__label">Order</label>
+          <input type="number" formControlName="sortOrder" class="cfg-field__input" min="0" /></div>
+        <label class="cfg-checkbox"><input type="checkbox" formControlName="isVisible" /> Visible</label>
+        <button type="submit" class="cfg-btn cfg-btn--primary cfg-btn--sm" [disabled]="isSaving">Save</button>
+        <button *ngIf="editingColumnId" type="button" class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                (click)="editingColumnId=null; columnForm.reset({isVisible:true,sortOrder:0})">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── FILTERS ── -->
+  <div *ngIf="!isLoading && activeTab === 'filters'" class="cfg-subtab-body">
+    <table class="cfg-table" aria-label="Report filters">
+      <thead><tr><th>Code</th><th>Label</th><th>Dimension</th><th>Multi</th><th>Mandatory</th><th></th></tr></thead>
+      <tbody>
+        <tr *ngFor="let f of filters; trackBy: trackById">
+          <td><code>{{ f.filterCode }}</code></td><td>{{ f.label }}</td><td>{{ f.dimensionName }}</td>
+          <td>{{ f.isMultiSelect ? '✓' : '✗' }}</td><td>{{ f.isMandatory ? '✓' : '✗' }}</td>
+          <td>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" (click)="editFilter(f)">Edit</button>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--danger" (click)="deleteFilter(f.filterId)">Del</button>
+          </td>
+        </tr>
+        <tr *ngIf="filters.length === 0"><td colspan="6" class="cfg-empty">No filters.</td></tr>
+      </tbody>
+    </table>
+    <form [formGroup]="filterForm" (ngSubmit)="saveFilter()" novalidate class="cfg-inline-form">
+      <h4 class="cfg-inline-form__title">{{ editingFilterId ? 'Edit filter' : 'Add filter' }}</h4>
+      <div class="cfg-inline-form__row">
+        <div class="cfg-field cfg-field--sm"><label class="cfg-field__label">Code *</label>
+          <input type="text" formControlName="filterCode" class="cfg-field__input" placeholder="e.g. ENTITY" maxlength="50" /></div>
+        <div class="cfg-field cfg-field--md"><label class="cfg-field__label">Label *</label>
+          <input type="text" formControlName="label" class="cfg-field__input" /></div>
+        <div class="cfg-field cfg-field--md"><label class="cfg-field__label">Dimension *</label>
+          <input type="text" formControlName="dimensionName" class="cfg-field__input" placeholder="e.g. Entity" /></div>
+        <div class="cfg-field cfg-field--md"><label class="cfg-field__label">Default value</label>
+          <input type="text" formControlName="defaultValue" class="cfg-field__input" /></div>
+        <div class="cfg-field cfg-field--xs"><label class="cfg-field__label">Order</label>
+          <input type="number" formControlName="sortOrder" class="cfg-field__input" min="0" /></div>
+        <label class="cfg-checkbox"><input type="checkbox" formControlName="isMultiSelect" /> Multi-select</label>
+        <label class="cfg-checkbox"><input type="checkbox" formControlName="isMandatory" /> Mandatory</label>
+        <label class="cfg-checkbox"><input type="checkbox" formControlName="isVisible" /> Visible</label>
+        <button type="submit" class="cfg-btn cfg-btn--primary cfg-btn--sm" [disabled]="isSaving">Save</button>
+        <button *ngIf="editingFilterId" type="button" class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                (click)="editingFilterId=null; filterForm.reset({isMultiSelect:false,isMandatory:true,isVisible:true,sortOrder:0})">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- ── LAYOUT ── -->
+  <div *ngIf="!isLoading && activeTab === 'layout'" class="cfg-subtab-body">
+    <form [formGroup]="layoutForm" (ngSubmit)="saveLayout()" novalidate class="cfg-step cfg-step--nested">
+      <div class="cfg-inline-form__row cfg-inline-form__row--wrap">
+        <div class="cfg-field cfg-field--sm"><label class="cfg-field__label">Density</label>
+          <select formControlName="density" class="cfg-field__select">
+            <option value="standard">Standard</option><option value="compact">Compact</option>
+          </select></div>
+        <div class="cfg-field cfg-field--sm"><label class="cfg-field__label">Column dimension</label>
+          <select formControlName="columnDimension" class="cfg-field__select"
+                  title="Quale dimensione usare come colonne della griglia">
+            <option value="Process">Process (default)</option>
+            <option value="Entity">Entity</option>
+            <option value="AdjLevel">Adj Level</option>
+          </select></div>
+        <div class="cfg-field cfg-field--xs"><label class="cfg-field__label">Frozen cols</label>
+          <input type="number" formControlName="frozenColumnCount" class="cfg-field__input" min="0" max="10" /></div>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="stickyHeader" /> Sticky header</label>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="hoverHighlight" /> Hover highlight</label>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="subtotalHighlight" /> Subtotal highlight</label>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="showIndentation" /> Show indentation</label>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="autosaveEnabled" /> Autosave</label>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="saveOnBlur" /> Save on blur</label>
+        <label class="cfg-checkbox cfg-checkbox--block"><input type="checkbox" formControlName="allowPivot" /> Allow pivot view</label>
+      </div>
+      <div class="cfg-field" *ngIf="layoutForm.value.allowPivot">
+        <label class="cfg-field__label">Pivot config <span class="cfg-field__hint">(JSON)</span></label>
+        <textarea formControlName="pivotConfig" class="cfg-field__textarea cfg-field__textarea--mono" rows="3"
+                  placeholder='{"defaultRows":["entity"],"defaultCols":["process"]}'></textarea>
+      </div>
+      <div class="cfg-step__actions">
+        <button type="submit" class="cfg-btn cfg-btn--secondary" [disabled]="isSaving">
+          {{ isSaving ? 'Saving…' : 'Save Layout' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <div *ngIf="!isLoading" class="cfg-step__actions cfg-step__actions--nav">
+    <button type="button" class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
+    <button type="button" class="cfg-btn cfg-btn--primary" (click)="next.emit()">Next →</button>
+  </div>
+</div>
