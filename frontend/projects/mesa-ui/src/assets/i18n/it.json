@@ -1,0 +1,49 @@
+{
+  "SIDEBAR": {
+    "HOME": "Home",
+    "SEARCH": "Cerca",
+    "QUICK_ACTIONS": "Azioni Rapide",
+    "NOTIFICATIONS": "Notifiche",
+    "ESG_REPORTS": "ESG Reports",
+    "LANGUAGE": "Lingua",
+    "DARK_MODE": "Modalità scura",
+    "LIGHT_MODE": "Modalità chiara",
+    "LOGOUT": "Esci"
+  },
+  "USERS": {
+    "TITLE": "Gestione Utenti",
+    "SUBTITLE": "Crea, modifica e gestisci gli account utente",
+    "NEW_USER": "Nuovo utente",
+    "LOADING": "Caricamento…",
+    "USER": "Utente",
+    "USERNAME": "Username",
+    "EMAIL": "Email",
+    "ROLES": "Ruoli",
+    "STATUS": "Stato",
+    "ACTIVE": "Attivo",
+    "INACTIVE": "Inattivo",
+    "NONE_FOUND": "Nessun utente trovato",
+    "EDIT_USER": "Modifica utente",
+    "CANCEL": "Annulla",
+    "SAVING": "Salvataggio…",
+    "SAVE_CHANGES": "Salva modifiche",
+    "CREATE_USER": "Crea utente"
+  },
+  "MODULES": {
+    "TITLE": "Gestione Moduli",
+    "SUBTITLE": "Aggiungi, modifica o rimuovi i moduli applicativi",
+    "NEW_MODULE": "Nuovo modulo",
+    "MODULE": "Modulo",
+    "CODE": "Codice",
+    "TYPE": "Tipo",
+    "VERSION": "Versione",
+    "NONE_FOUND": "Nessun modulo configurato",
+    "EDIT_MODULE": "Modifica modulo",
+    "CREATE_MODULE": "Crea modulo"
+  },
+  "REPORTS": {
+    "LOADING": "Caricamento report…",
+    "NONE_FOUND": "Nessun report HR disponibile.",
+    "FILTER": "Filtra"
+  }
+}

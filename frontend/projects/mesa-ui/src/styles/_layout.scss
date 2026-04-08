@@ -1,0 +1,199 @@
+@use 'variables' as *;
+
+// ---- Topbar ----
+.topbar {
+  height: $topbar-height;
+  display: flex;
+  align-items: center;
+  background: $color-white;
+  border-bottom: 1px solid $color-border;
+  padding: 0 $spacing-lg 0 0;
+  position: sticky;
+  top: 0;
+  z-index: $z-topbar;
+}
+
+.nav {
+  display: flex;
+  gap: 0;
+  flex: 1;
+  padding-left: $spacing-sm;
+  a {
+    font-size: $font-size-nav;
+    color: #666;
+    text-decoration: none;
+    padding: 14px $spacing-xl;
+    border-bottom: 2px solid transparent;
+    display: flex;
+    align-items: center;
+    gap: $spacing-xs;
+    transition: color $transition-fast;
+    &.active {
+      color: $mesa-green;
+      border-bottom-color: $mesa-green;
+      font-weight: 600;
+    }
+    &:hover:not(.active) { color: $color-text; }
+  }
+}
+
+.badge {
+  background: $mesa-green;
+  color: $color-white;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 8px;
+}
+
+.user-area {
+  display: flex;
+  align-items: center;
+  gap: $spacing-md;
+  margin-left: auto;
+  padding-right: $spacing-lg;
+}
+
+.user-name {
+  font-size: 12px;
+  color: $color-text-muted;
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: $radius-full;
+  background: $mesa-green;
+  color: $color-white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  font-family: $font-family-logo;
+}
+
+.logout-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #999;
+  font-size: 16px;
+  padding: 4px 6px;
+  border-radius: $radius-lg;
+  line-height: 1;
+  &:hover { color: #e53935; background: rgba(229,57,53,0.08); }
+}
+
+// ---- App Layout ----
+.layout {
+  display: flex;
+  height: 100vh;
+  overflow: hidden;
+  background: #f5f5f5;
+}
+
+// ---- Sidebar ----
+.sidebar {
+  width: $sidebar-width;
+  min-width: $sidebar-width;
+  background: $color-white;
+  border-right: 1px solid $color-border;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  transition: width 0.2s ease, min-width 0.2s ease;
+
+  &.sidebar--collapsed {
+    width: $sidebar-width-collapsed;
+    min-width: $sidebar-width-collapsed;
+  }
+}
+
+
+// ---- Content area (card on grey background, like mesa-grc) ----
+.content {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  margin: 12px;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.03), 0 1px 6px -1px rgba(0,0,0,0.02), 0 2px 4px rgba(0,0,0,0.02);
+  border: 1px solid #f0f0f0;
+}
+
+// ---- Action bar ----
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: $spacing-sm;
+  padding: $spacing-sm $spacing-lg;
+  border-bottom: 1px solid $color-border;
+  background: $color-white;
+  white-space: nowrap;
+  flex-shrink: 0;
+  height: $action-bar-height;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px $spacing-lg;
+  border: 1px solid $mesa-green;
+  border-radius: $radius-lg;
+  background: $color-white;
+  color: $mesa-green-dark;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background $transition-fast;
+  svg { width: 14px; height: 14px; fill: $mesa-green-dark; }
+  &:hover { background: $mesa-green-hover; }
+  &:focus-visible {
+    outline: 2px solid $mesa-green;
+    outline-offset: 2px;
+  }
+
+  &--fill {
+    background: $mesa-green;
+    color: $color-white;
+    border-color: $mesa-green-dark;
+    svg { fill: $color-white; }
+    &:hover { background: $mesa-green-dark; }
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.sep {
+  width: 1px;
+  height: 24px;
+  background: $color-border;
+  margin: 0 $spacing-xs;
+}
+
+.asp { flex: 1; } // spacer
+
+// ---- Report status badge ----
+.report-status {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+
+  &.status--draft     { background: #e3f2fd; color: #1565c0; }
+  &.status--submitted { background: #fff3e0; color: #e65100; }
+  &.status--approved  { background: #e8f5e9; color: #2e7d32; }
+  &.status--rejected  { background: #ffebee; color: #b71c1c; }
+}

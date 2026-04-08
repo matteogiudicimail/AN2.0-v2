@@ -1,0 +1,222 @@
+<div class="users-page">
+
+  <!-- Header -->
+  <div class="users-page__header">
+    <div>
+      <h2 class="users-page__title">Gestione Utenti</h2>
+      <p class="users-page__subtitle">Crea, modifica e gestisci gli account utente</p>
+    </div>
+    <button class="up-btn up-btn--primary" (click)="openNew()" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      Nuovo utente
+    </button>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="up-filter-bar" *ngIf="!loading && !error">
+    <div class="up-filter-bar__search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" [(ngModel)]="filterText" placeholder="Cerca utenti…" class="up-filter-bar__input"/>
+      <button *ngIf="filterText" class="up-filter-bar__clear" (click)="filterText=''" type="button">✕</button>
+    </div>
+    <span class="up-filter-bar__count">{{ filteredUsers.length }} / {{ users.length }} utenti</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="up-status">Caricamento…</div>
+  <div *ngIf="error"   class="up-status up-status--error">{{ error }}</div>
+
+  <!-- Table -->
+  <div class="up-table-wrap" *ngIf="!loading && !error">
+    <table class="up-table">
+      <thead>
+        <tr>
+          <th class="up-th--sortable" (click)="sort('displayName')">
+            Utente <span class="up-sort-icon">{{ sortIcon('displayName') }}</span>
+          </th>
+          <th class="up-th--sortable" (click)="sort('username')">
+            Username <span class="up-sort-icon">{{ sortIcon('username') }}</span>
+          </th>
+          <th class="up-th--sortable" (click)="sort('email')">
+            Email <span class="up-sort-icon">{{ sortIcon('email') }}</span>
+          </th>
+          <th>Ruoli</th>
+          <th class="up-th--sortable" (click)="sort('isActive')">
+            Stato <span class="up-sort-icon">{{ sortIcon('isActive') }}</span>
+          </th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let u of filteredUsers"
+            class="up-row"
+            [class.up-row--inactive]="!u.isActive"
+            (click)="openDetail(u)"
+            style="cursor:pointer">
+          <td>
+            <div class="up-user-cell">
+              <div class="up-avatar">{{ u.initials }}</div>
+              <span class="up-display-name">{{ u.displayName }}</span>
+            </div>
+          </td>
+          <td class="up-mono">{{ u.username }}</td>
+          <td>{{ u.email }}</td>
+          <td>
+            <span *ngFor="let r of u.roles" class="up-role-badge up-role-badge--{{ r.toLowerCase() }}">
+              {{ roleLabel(r) }}
+            </span>
+          </td>
+          <td>
+            <span class="up-status-badge" [class.up-status-badge--active]="u.isActive">
+              {{ u.isActive ? 'Attivo' : 'Inattivo' }}
+            </span>
+          </td>
+          <td>
+            <div class="up-actions" (click)="$event.stopPropagation()">
+              <button class="up-icon-btn" (click)="openEdit(u)" title="Modifica" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="up-icon-btn up-icon-btn--danger" (click)="delete(u)" title="Elimina" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredUsers.length === 0 && users.length > 0">
+          <td colspan="6" class="up-empty">Nessun utente corrisponde al filtro</td>
+        </tr>
+        <tr *ngIf="users.length === 0">
+          <td colspan="6" class="up-empty">Nessun utente trovato</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ===== DETAIL DRAWER ===== -->
+<div class="up-drawer-overlay" *ngIf="drawerUser && !showForm" (click)="closeDetail()">
+  <div class="up-drawer" (click)="$event.stopPropagation()">
+    <div class="up-drawer__header">
+      <div class="up-drawer__avatar">{{ drawerUser.initials }}</div>
+      <div class="up-drawer__title-block">
+        <h3 class="up-drawer__name">{{ drawerUser.displayName }}</h3>
+        <span class="up-drawer__username">@{{ drawerUser.username }}</span>
+      </div>
+      <button class="up-drawer__close" (click)="closeDetail()" type="button">✕</button>
+    </div>
+    <div class="up-drawer__body">
+      <div class="up-drawer__field">
+        <span class="up-drawer__label">Email</span>
+        <span class="up-drawer__value">{{ drawerUser.email || '—' }}</span>
+      </div>
+      <div class="up-drawer__field">
+        <span class="up-drawer__label">Stato</span>
+        <span class="up-status-badge" [class.up-status-badge--active]="drawerUser.isActive">
+          {{ drawerUser.isActive ? 'Attivo' : 'Inattivo' }}
+        </span>
+      </div>
+      <div class="up-drawer__field">
+        <span class="up-drawer__label">Ruoli</span>
+        <div class="up-drawer__roles">
+          <span *ngFor="let r of drawerUser.roles" class="up-role-badge up-role-badge--{{ r.toLowerCase() }}">
+            {{ roleLabel(r) }}
+          </span>
+          <span *ngIf="drawerUser.roles.length === 0">—</span>
+        </div>
+      </div>
+    </div>
+    <div class="up-drawer__footer">
+      <button class="up-btn up-btn--outline" (click)="closeDetail()" type="button">Chiudi</button>
+      <button class="up-btn up-btn--primary" (click)="openEdit(drawerUser)" type="button">Modifica</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== USER FORM MODAL ===== -->
+<div class="up-overlay" *ngIf="showForm" (click)="cancel()">
+  <div class="up-modal" (click)="$event.stopPropagation()">
+
+    <div class="up-modal__header">
+      <h3>{{ editingId ? 'Modifica utente' : 'Nuovo utente' }}</h3>
+      <button class="up-modal__close" (click)="cancel()" type="button">✕</button>
+    </div>
+
+    <div class="up-modal__body">
+
+      <div class="up-form-row">
+        <label class="up-field">
+          <span>Username *</span>
+          <input type="text" [(ngModel)]="form.username" placeholder="nome.cognome" [disabled]="!!editingId"/>
+        </label>
+        <label class="up-field">
+          <span>Display name *</span>
+          <input type="text" [(ngModel)]="form.displayName" placeholder="Mario Rossi"/>
+        </label>
+      </div>
+
+      <div class="up-form-row">
+        <label class="up-field">
+          <span>Iniziali</span>
+          <input type="text" [(ngModel)]="form.initials" placeholder="MR" maxlength="3"/>
+        </label>
+        <label class="up-field">
+          <span>Email</span>
+          <input type="email" [(ngModel)]="form.email" placeholder="mario@esempio.it"/>
+        </label>
+      </div>
+
+      <label class="up-field">
+        <span>Password {{ editingId ? '(lascia vuota per non cambiarla)' : '*' }}</span>
+        <input type="password" [(ngModel)]="form.password" placeholder="••••••••"/>
+      </label>
+
+      <!-- Roles -->
+      <div class="up-field">
+        <span>Ruoli</span>
+        <div class="up-roles">
+          <button *ngFor="let r of allRoles"
+                  type="button"
+                  class="up-role-toggle"
+                  [class.up-role-toggle--on]="hasRole(r.code)"
+                  (click)="toggleRole(r.code)">
+            {{ r.name }}
+          </button>
+        </div>
+      </div>
+
+      <!-- Active toggle -->
+      <label class="up-field up-field--inline">
+        <span>Utente attivo</span>
+        <button class="up-switch" type="button"
+                [class.up-switch--on]="form.isActive"
+                (click)="form.isActive = !form.isActive">
+          <span class="up-switch__thumb"></span>
+        </button>
+      </label>
+
+    </div>
+
+    <div class="up-modal__footer">
+      <button class="up-btn up-btn--outline" (click)="cancel()" type="button">Annulla</button>
+      <button class="up-btn up-btn--primary"
+              (click)="save()"
+              [disabled]="saving || !form.username || !form.displayName"
+              type="button">
+        {{ saving ? 'Salvataggio…' : (editingId ? 'Salva modifiche' : 'Crea utente') }}
+      </button>
+    </div>
+
+  </div>
+</div>

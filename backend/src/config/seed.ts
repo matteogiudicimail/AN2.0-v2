@@ -8,7 +8,7 @@
 import fs from 'fs';
 import path from 'path';
 import { getPool, closePool } from './db';
-import { dbAll, dbGet, dbRun } from './dbHelpers';
+import { dbGet } from './dbHelpers';
 
 const SQL_DIR = path.resolve(__dirname, '../../sql');
 

@@ -47,6 +47,8 @@ export const config = {
     .map((o) => o.trim())
     .filter(Boolean),
 
+  mesaJwtSecret: process.env['MESA_JWT_SECRET'] ?? '',
+
   mesappa: {
     /** URL base dell'host MESAPPA per la registrazione delle voci menu Seaside.
      *  Es. http://mesappa-server:8080 — lasciare vuoto in sviluppo locale senza host. */

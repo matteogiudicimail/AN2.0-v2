@@ -1,0 +1,70 @@
+<div class="cfg-wizard">
+
+  <!-- Breadcrumb -->
+  <div class="cfg-wizard__breadcrumb">
+    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Data Models</button>
+    <span class="cfg-wizard__report-name">{{ report?.reportLabel || 'New Data Model' }}</span>
+  </div>
+
+  <!-- Step tabs -->
+  <nav class="cfg-wizard__tabs" aria-label="Wizard steps">
+    <button *ngFor="let s of steps"
+            class="cfg-wizard__tab"
+            [class.cfg-wizard__tab--active]="step === s.index"
+            [class.cfg-wizard__tab--disabled]="isStepDisabled(s.index)"
+            [disabled]="isStepDisabled(s.index)"
+            (click)="goTo(s.index)"
+            [attr.aria-current]="step === s.index ? 'step' : null">
+      {{ s.label }}
+    </button>
+  </nav>
+
+  <!-- Error banner -->
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+
+  <!-- Step content -->
+  <div class="cfg-wizard__body">
+
+    <esg-step-basic
+      *ngIf="step === 1"
+      [report]="report"
+      [isSaving]="isSaving"
+      (saved)="onBasicSaved($event)">
+    </esg-step-basic>
+
+    <esg-step-db-explorer
+      *ngIf="step === 2 && reportId"
+      [reportId]="reportId"
+      (back)="goTo(1)"
+      (next)="goTo(3)">
+    </esg-step-db-explorer>
+
+    <esg-step-kpi-params
+      *ngIf="step === 3 && reportId"
+      [reportId]="reportId"
+      (back)="goTo(2)"
+      (next)="goTo(4)">
+    </esg-step-kpi-params>
+
+    <esg-step-entry-layout
+      *ngIf="step === 4 && reportId"
+      [reportId]="reportId"
+      (back)="goTo(3)"
+      (next)="goTo(5)">
+    </esg-step-entry-layout>
+
+    <esg-data-entry-sheet
+      *ngIf="step === 5 && reportId"
+      [reportId]="reportId"
+      (back)="goTo(4)"
+      (next)="goTo(6)">
+    </esg-data-entry-sheet>
+
+    <esg-step-publish
+      *ngIf="step === 6 && reportId"
+      [reportId]="reportId"
+      (back)="goTo(5)">
+    </esg-step-publish>
+
+  </div>
+</div>

@@ -1,0 +1,134 @@
+<div class="cfg-dtc-shell">
+
+  <!-- Header -->
+  <div class="cfg-dtc-shell__header">
+    <div class="cfg-dtc-shell__title-row">
+      <h3 class="cfg-dtc-shell__title">
+        <code>{{ schema }}.{{ table }}</code>
+      </h3>
+      <button class="cfg-btn cfg-btn--primary cfg-btn--sm"
+              type="button"
+              [disabled]="isLoading || !!editingRow"
+              (click)="startNew()">
+        + Nuova riga
+      </button>
+    </div>
+    <input class="cfg-input cfg-dtc-shell__search"
+           type="search"
+           [(ngModel)]="searchText"
+           placeholder="Cerca nelle righe…"
+           aria-label="Cerca" />
+  </div>
+
+  <!-- Alerts -->
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="cfg-alert cfg-alert--success"  role="status">{{ successMsg }}</div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="cfg-dtc-loading" role="status" aria-live="polite">
+    <span class="cfg-spinner"></span> Caricamento…
+  </div>
+
+  <!-- Edit / New row form -->
+  <div *ngIf="editingRow" class="cfg-dtc-form" role="form" [attr.aria-label]="editingRow.isNew ? 'Nuova riga' : 'Modifica riga'">
+    <h4 class="cfg-dtc-form__title">{{ editingRow.isNew ? '+ Nuova riga' : 'Modifica riga' }}</h4>
+    <div class="cfg-dtc-form__fields">
+      <div *ngFor="let col of colNames; trackBy: trackByCol" class="cfg-form-group">
+        <label class="cfg-label" [for]="'dtc-' + col">{{ col }}</label>
+        <input [id]="'dtc-' + col"
+               class="cfg-input"
+               type="text"
+               [(ngModel)]="editingRow.values[col]"
+               [attr.aria-label]="col">
+      </div>
+    </div>
+    <div *ngIf="saveError" class="cfg-alert cfg-alert--error" role="alert">{{ saveError }}</div>
+    <div class="cfg-dtc-form__actions">
+      <button class="cfg-btn cfg-btn--primary cfg-btn--sm"
+              type="button"
+              [disabled]="isSaving"
+              (click)="saveRow()">
+        <span *ngIf="isSaving">Salvataggio…</span>
+        <span *ngIf="!isSaving">{{ editingRow.isNew ? 'Inserisci' : 'Salva' }}</span>
+      </button>
+      <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+              type="button"
+              (click)="cancelEdit()">
+        Annulla
+      </button>
+    </div>
+  </div>
+
+  <!-- Delete confirmation -->
+  <div *ngIf="deleteConfirmPk"
+       class="cfg-dtc-confirm"
+       role="alertdialog"
+       aria-live="assertive"
+       [attr.aria-label]="'Conferma eliminazione riga ' + deleteConfirmPk">
+    <p>Eliminare la riga con <strong>{{ pkCol }} = {{ deleteConfirmPk }}</strong>? Questa azione è irreversibile.</p>
+    <div class="cfg-dtc-confirm__actions">
+      <button class="cfg-btn cfg-btn--danger cfg-btn--sm"
+              type="button"
+              [disabled]="isDeleting"
+              (click)="confirmDelete()">
+        {{ isDeleting ? 'Eliminazione…' : 'Elimina' }}
+      </button>
+      <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+              type="button"
+              (click)="cancelDelete()">
+        Annulla
+      </button>
+    </div>
+  </div>
+
+  <!-- Data grid -->
+  <ng-container *ngIf="!isLoading">
+    <div *ngIf="rows.length === 0 && !editingRow" class="cfg-dtc-empty">
+      Nessuna riga trovata. Usa <strong>+ Nuova riga</strong> per aggiungere dati.
+    </div>
+
+    <div *ngIf="rows.length > 0" class="cfg-dtc-grid-wrap">
+      <table class="cfg-table cfg-table--sm cfg-dtc-grid"
+             [attr.aria-label]="'Dati di ' + table">
+        <thead>
+          <tr>
+            <th *ngFor="let col of colNames; trackBy: trackByCol"
+                scope="col">
+              {{ col }}
+            </th>
+            <th scope="col" aria-label="Azioni"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of filteredRows; trackBy: trackByPk">
+            <td *ngFor="let col of colNames; trackBy: trackByCol">
+              {{ cellDisplay(row, col) }}
+            </td>
+            <td class="cfg-table__actions">
+              <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                      type="button"
+                      [disabled]="!!editingRow"
+                      (click)="startEdit(row)"
+                      [attr.aria-label]="'Modifica riga ' + pkOf(row)">
+                Modifica
+              </button>
+              <button class="cfg-btn cfg-btn--danger cfg-btn--sm"
+                      type="button"
+                      [disabled]="!!editingRow || deleteConfirmPk === pkOf(row)"
+                      (click)="requestDelete(row)"
+                      [attr.aria-label]="'Elimina riga ' + pkOf(row)">
+                ✕
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredRows.length === 0">
+            <td [attr.colspan]="colNames.length + 1" class="cfg-dtc-no-match">
+              Nessuna riga corrisponde a "{{ searchText }}"
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </ng-container>
+
+</div>

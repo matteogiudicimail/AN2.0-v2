@@ -7,12 +7,15 @@
     "build": "ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "run:all": "node node_modules/@angular-architects/module-federation/src/server/mf-dev-server.js"
+    "run:all": "node node_modules/@angular-architects/module-federation/src/server/mf-dev-server.js",
+    "start:mesa-ui": "ng serve --project mesa-ui",
+    "build:mesa-ui": "ng build --project mesa-ui --configuration production"
   },
   "private": true,
   "dependencies": {
     "@angular-architects/module-federation": "^16.0.4",
     "@angular/animations": "^16.2.0",
+    "@angular/cdk": "^16.2.14",
     "@angular/common": "^16.2.0",
     "@angular/compiler": "^16.2.0",
     "@angular/core": "^16.2.0",
@@ -20,10 +23,13 @@
     "@angular/platform-browser": "^16.2.0",
     "@angular/platform-browser-dynamic": "^16.2.0",
     "@angular/router": "^16.2.0",
+    "@ngx-translate/core": "^15.0.0",
+    "@ngx-translate/http-loader": "^8.0.0",
     "ag-grid-angular": "^30.2.1",
     "ag-grid-community": "^30.2.1",
     "ag-grid-enterprise": "^30.2.1",
     "rxjs": "~7.8.0",
+    "socket.io-client": "^4.8.3",
     "tslib": "^2.3.0",
     "zone.js": "~0.13.0"
   },

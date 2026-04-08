@@ -1,0 +1,30 @@
+<header class="topbar" role="banner">
+  <!-- Skip to main content — WCAG 2.4.1 -->
+  <a class="skip-link" href="#main-content">Vai al contenuto principale</a>
+
+  <!-- Navigation tabs -->
+  <nav class="nav" role="navigation" aria-label="Menu principale">
+    <a href="#" [class.active]="activeNav === 'Home'" aria-current="false">Home</a>
+    <a href="#" [class.active]="activeNav === 'Preferiti'" aria-current="false">Preferiti</a>
+    <a href="#" [class.active]="activeNav === 'Attivita'" aria-current="false">
+      Attività <span class="badge" aria-label="3 attività">3</span>
+    </a>
+    <a href="#" [class.active]="activeNav === 'Commenti'" aria-current="false">
+      Commenti <span class="badge" aria-label="1 commento">1</span>
+    </a>
+    <a href="#" [class.active]="activeNav === 'Ricerca'" aria-current="false">Ricerca</a>
+    <a href="#" [class.active]="activeNav === 'HR Data Collection'" aria-current="page">
+      HR Data Collection
+    </a>
+  </nav>
+
+  <!-- User area -->
+  <div class="user-area" role="complementary" aria-label="Area utente">
+    <span class="user-name">{{ user?.displayName ?? 'Utente' }}</span>
+    <div class="avatar"
+         role="img"
+         [attr.aria-label]="'Avatar di ' + (user?.displayName ?? 'Utente')">
+      {{ user?.initials ?? 'U' }}
+    </div>
+  </div>
+</header>

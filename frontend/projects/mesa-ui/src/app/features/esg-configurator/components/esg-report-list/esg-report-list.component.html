@@ -1,0 +1,95 @@
+<div class="cfg-list">
+
+  <div class="cfg-list__header">
+    <h2 class="cfg-list__title">Data Models</h2>
+    <button class="cfg-btn cfg-btn--primary" (click)="openWizard.emit(null)">+ New Data Model</button>
+  </div>
+
+  <!-- Search bar -->
+  <div class="cfg-list__search-bar">
+    <input
+      type="search"
+      class="cfg-input cfg-list__search-input"
+      placeholder="Search by code, name or status…"
+      [(ngModel)]="searchText"
+      aria-label="Search data models" />
+    <span *ngIf="searchText" class="cfg-list__search-count">
+      {{ filteredReports.length }} / {{ reports.length }} shown
+    </span>
+  </div>
+
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+  <div *ngIf="isLoading" class="cfg-loading" aria-live="polite">Loading…</div>
+
+  <table *ngIf="!isLoading && reports.length > 0" class="cfg-table" aria-label="Data Models">
+    <thead>
+      <tr>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportCode')" tabindex="0"
+            (keydown.enter)="sortBy('reportCode')" [attr.aria-sort]="sortCol==='reportCode' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
+          Code <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('reportCode') }}</span>
+        </th>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportLabel')" tabindex="0"
+            (keydown.enter)="sortBy('reportLabel')" [attr.aria-sort]="sortCol==='reportLabel' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
+          Name <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('reportLabel') }}</span>
+        </th>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('writebackMode')" tabindex="0"
+            (keydown.enter)="sortBy('writebackMode')" [attr.aria-sort]="sortCol==='writebackMode' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
+          Mode <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('writebackMode') }}</span>
+        </th>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('status')" tabindex="0"
+            (keydown.enter)="sortBy('status')" [attr.aria-sort]="sortCol==='status' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
+          Status <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('status') }}</span>
+        </th>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('version')" tabindex="0"
+            (keydown.enter)="sortBy('version')" [attr.aria-sort]="sortCol==='version' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
+          Version <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('version') }}</span>
+        </th>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('updatedAt')" tabindex="0"
+            (keydown.enter)="sortBy('updatedAt')" [attr.aria-sort]="sortCol==='updatedAt' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
+          Updated <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('updatedAt') }}</span>
+        </th>
+        <th scope="col">Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let r of filteredReports; trackBy: trackById"
+          class="cfg-table__row cfg-table__row--clickable"
+          (click)="openWizard.emit(r.reportId)"
+          tabindex="0"
+          (keydown.enter)="openWizard.emit(r.reportId)"
+          [attr.aria-label]="'Edit data model ' + r.reportLabel">
+        <td><code>{{ r.reportCode }}</code></td>
+        <td>{{ r.reportLabel }}</td>
+        <td>
+          <span class="cfg-badge"
+                [class.cfg-badge--delta]="r.writebackMode === 'Delta'"
+                [class.cfg-badge--overwrite]="r.writebackMode === 'Overwrite'">
+            {{ r.writebackMode }}
+          </span>
+        </td>
+        <td>
+          <span class="cfg-badge"
+                [class.cfg-badge--draft]="r.status === 'Draft'"
+                [class.cfg-badge--ready]="r.status === 'ReadyForPublish'"
+                [class.cfg-badge--published]="r.status === 'Published'"
+                [class.cfg-badge--archived]="r.status === 'Archived'">
+            {{ r.status }}
+          </span>
+        </td>
+        <td>{{ r.version }}</td>
+        <td>{{ r.updatedAt ? (r.updatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+        <td class="cfg-table__actions">
+          <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
+                  (click)="openWizard.emit(r.reportId); $event.stopPropagation()">
+            Edit
+          </button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p *ngIf="!isLoading && reports.length === 0" class="cfg-empty">
+    No Data Models found. Click <strong>+ New Data Model</strong> to create one.
+  </p>
+
+</div>

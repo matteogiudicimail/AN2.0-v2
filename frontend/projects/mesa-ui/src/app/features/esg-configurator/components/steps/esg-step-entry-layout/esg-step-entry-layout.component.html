@@ -1,0 +1,250 @@
+<div class="cfg-el-shell">
+
+  <!-- Binding missing -->
+  <div *ngIf="!isLoading && !binding" class="cfg-alert cfg-alert--info" role="status">
+    Configure the binding in Step 2 (Data Model) first.
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="cfg-el-loading" role="status" aria-live="polite">
+    <span class="cfg-spinner"></span> Loading configuration…
+  </div>
+
+  <!-- Alert banners -->
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="cfg-alert cfg-alert--success"  role="status">{{ successMsg }}</div>
+
+  <ng-container *ngIf="!isLoading && binding">
+
+    <!-- Available fields pool — grouped by source table -->
+    <section class="cfg-el-pool" aria-label="Available fields">
+      <h3 class="cfg-el-pool__title">
+        Available Fields
+        <span *ngIf="usingDbFallback" class="cfg-badge cfg-badge--info"
+              title="No field mappings configured in Step 2 — showing all fact table columns">
+          DB columns
+        </span>
+      </h3>
+
+      <ng-container *ngIf="fieldGroups.length > 0; else noGroups">
+        <div *ngFor="let group of fieldGroups; trackBy: trackByGroup" class="cfg-el-pool__group">
+          <h4 class="cfg-el-pool__group-label">{{ group }}</h4>
+          <div class="cfg-el-pool__chips" role="list">
+            <span *ngFor="let f of fieldsInGroup(group); trackBy: trackByField"
+                  class="cfg-el-chip cfg-el-chip--pool"
+                  [class.cfg-el-chip--assigned]="isAssigned(f.fieldName)"
+                  role="listitem"
+                  [title]="f.fieldName + (f.fieldType !== 'column' ? ' (' + f.fieldType + ')' : '')">
+              {{ fieldTypeIcon(f.fieldType) }} {{ f.label }}
+            </span>
+          </div>
+        </div>
+      </ng-container>
+
+      <ng-template #noGroups>
+        <div class="cfg-el-pool__chips" role="list">
+          <span *ngFor="let f of allFields; trackBy: trackByField"
+                class="cfg-el-chip cfg-el-chip--pool"
+                [class.cfg-el-chip--assigned]="isAssigned(f.fieldName)"
+                role="listitem">
+            {{ fieldTypeIcon(f.fieldType) }} {{ f.label }}
+          </span>
+          <span *ngIf="allFields.length === 0" class="cfg-text-muted">
+            No fields in binding — configure mappings in Step 2.
+          </span>
+        </div>
+      </ng-template>
+    </section>
+
+    <!-- 2×2 zone grid: Filters | Columns / Rows | Values -->
+    <div class="cfg-el-zones">
+
+      <ng-container *ngFor="let zone of zones; trackBy: trackByZone">
+        <section class="cfg-el-zone" [attr.aria-label]="zoneMeta[zone].title">
+
+          <!-- Zone header -->
+          <div class="cfg-el-zone__header">
+            <span class="cfg-el-zone__icon">{{ zoneMeta[zone].icon }}</span>
+            <h4 class="cfg-el-zone__title">{{ zoneMeta[zone].title }}</h4>
+            <span class="cfg-el-zone__count cfg-badge">
+              {{ zone === 'values' ? getValueItems().length : getAxisItems(zone).length }}
+            </span>
+          </div>
+          <p class="cfg-el-zone__hint">{{ zoneMeta[zone].hint }}</p>
+
+          <!-- Axis zone items (filters / rows / columns) with drag-drop -->
+          <div *ngIf="isAxisZone(zone)"
+               class="cfg-el-zone__items"
+               role="list"
+               cdkDropList
+               [cdkDropListData]="getAxisItems(zone)"
+               (cdkDropListDropped)="onDrop($event, zone)"
+               [attr.aria-label]="'Field order — ' + zoneMeta[zone].title + ', drag to reorder'">
+            <div *ngFor="let item of getAxisItems(zone); trackBy: trackByAxisItem"
+                 class="cfg-el-chip-row"
+                 role="listitem"
+                 cdkDrag
+                 [cdkDragData]="item">
+              <span class="cfg-el-chip__drag-handle"
+                    cdkDragHandle
+                    title="Drag to reorder"
+                    aria-label="Drag to reorder">⠿</span>
+              <span class="cfg-el-chip cfg-el-chip--assigned">
+                {{ item.label }}
+                <button class="cfg-el-chip__remove"
+                        (click)="removeFromZone(zone, item.fieldName)"
+                        [attr.aria-label]="'Remove ' + item.label + ' from ' + zoneMeta[zone].title">
+                  ✕
+                </button>
+              </span>
+              <!-- Param toggle -->
+              <button *ngIf="hasParamTable(item.fieldName)"
+                      class="cfg-el-param-toggle"
+                      [class.cfg-el-param-toggle--on]="isParamEnabled(zone, item.fieldName)"
+                      (click)="toggleParam(zone, item.fieldName)"
+                      [title]="isParamEnabled(zone, item.fieldName)
+                        ? 'PARAM values active — click to deactivate'
+                        : 'Activate PARAM values: ' + getParamTable(item.fieldName)?.paramTableName"
+                      [attr.aria-pressed]="isParamEnabled(zone, item.fieldName)">
+                ⚙ params
+              </button>
+              <!-- Dim table selector -->
+              <select *ngIf="joinedTables.length > 0"
+                      class="cfg-el-dim-select"
+                      [ngModel]="getDimTable(zone, item.fieldName)"
+                      (ngModelChange)="setDimTable(zone, item.fieldName, $event)"
+                      [title]="'Dim table for hierarchy (current: ' + (getDimTable(zone, item.fieldName) || 'none') + ')'"
+                      [attr.aria-label]="'Dim table for ' + item.label">
+                <option value="">— no dim —</option>
+                <option *ngFor="let t of joinedTables" [value]="t">🏔 {{ t }}</option>
+              </select>
+              <!-- Skip depths -->
+              <label *ngIf="zone === 'rows' && getDimTable(zone, item.fieldName)"
+                     class="cfg-el-skip-label"
+                     [title]="'Skip first N hierarchy levels (0 = show all)'">
+                Skip levels:
+                <input type="number" min="0" max="10" step="1"
+                       class="cfg-el-skip-input"
+                       [ngModel]="getSkipDepths(zone, item.fieldName)"
+                       (ngModelChange)="setSkipDepths(zone, item.fieldName, $event)" />
+              </label>
+              <!-- Locked members (columns zone only) — opens guided checklist dialog -->
+              <span *ngIf="zone === 'columns'" class="cfg-el-lock-wrap">
+                <button class="cfg-btn cfg-btn--xs cfg-btn--ghost cfg-el-lock-btn"
+                        type="button"
+                        [attr.aria-label]="'Lock members for ' + item.label"
+                        [title]="'Select which column values are locked (read-only) in the grid'"
+                        (click)="openLockDialog(item.fieldName)">
+                  🔒 Lock
+                  <span *ngIf="getLockedMembersCount(item.fieldName) > 0"
+                        class="cfg-el-lock-badge">
+                    {{ getLockedMembersCount(item.fieldName) }}
+                  </span>
+                </button>
+              </span>
+            </div>
+            <p *ngIf="getAxisItems(zone).length === 0" class="cfg-el-zone__empty">
+              No fields assigned
+            </p>
+          </div>
+
+          <!-- Values zone items with drag-drop -->
+          <div *ngIf="!isAxisZone(zone)"
+               class="cfg-el-zone__items"
+               role="list"
+               cdkDropList
+               [cdkDropListData]="getValueItems()"
+               (cdkDropListDropped)="onDrop($event, 'values')"
+               aria-label="Field order — Values, drag to reorder">
+            <div *ngFor="let item of getValueItems(); trackBy: trackByValueItem"
+                 class="cfg-el-chip-row cfg-el-chip-row--value"
+                 role="listitem"
+                 cdkDrag
+                 [cdkDragData]="item">
+              <span class="cfg-el-chip__drag-handle"
+                    cdkDragHandle
+                    title="Drag to reorder"
+                    aria-label="Drag to reorder">⠿</span>
+              <span class="cfg-el-chip cfg-el-chip--value">
+                {{ item.label }}
+                <button class="cfg-el-chip__remove"
+                        (click)="removeFromZone(zone, item.fieldName)"
+                        [attr.aria-label]="'Remove ' + item.label + ' from Values'">
+                  ✕
+                </button>
+              </span>
+              <select class="cfg-el-agg-select"
+                      [ngModel]="item.aggregation"
+                      (ngModelChange)="setAggregation(item.fieldName, $event)"
+                      [attr.aria-label]="'Aggregation for ' + item.label"
+                      title="Aggregation function">
+                <option *ngFor="let a of aggregations" [value]="a.value">{{ a.label }}</option>
+              </select>
+            </div>
+            <p *ngIf="getValueItems().length === 0" class="cfg-el-zone__empty">
+              No fields assigned
+            </p>
+          </div>
+
+          <!-- Add field control -->
+          <div class="cfg-el-zone__add">
+            <select class="cfg-select cfg-el-zone__add-select"
+                    [(ngModel)]="addPending[zone]"
+                    [attr.aria-label]="'Add field to ' + zoneMeta[zone].title">
+              <option value="">— add field —</option>
+              <option *ngFor="let f of availableForZone(zone); trackBy: trackByField"
+                      [value]="f.fieldName">
+                {{ fieldTypeIcon(f.fieldType) }} {{ f.label }}{{ f.groupLabel ? ' (' + f.groupLabel + ')' : '' }}
+              </option>
+            </select>
+            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                    [disabled]="!addPending[zone]"
+                    (click)="addToZone(zone)"
+                    [attr.aria-label]="'Add selected field to ' + zoneMeta[zone].title">
+              + Add
+            </button>
+          </div>
+
+        </section>
+      </ng-container>
+
+    </div>
+
+    <!-- Save bar -->
+    <div class="cfg-el-savebar">
+      <button class="cfg-btn cfg-btn--primary"
+              [disabled]="isSaving"
+              (click)="saveLayout()">
+        {{ isSaving ? 'Saving…' : 'Save Layout' }}
+      </button>
+      <span *ngIf="layoutId" class="cfg-text-muted" style="font-size:11px">
+        Layout ID {{ layoutId }}
+      </span>
+    </div>
+
+  </ng-container>
+
+  <!-- Footer nav -->
+  <div class="cfg-kpi-footer">
+    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
+    <button class="cfg-btn cfg-btn--primary"
+            *ngIf="layoutId"
+            (click)="next.emit()">
+      Next: Preview →
+    </button>
+  </div>
+
+</div>
+
+<!-- Lock members dialog (rendered outside main flow to avoid z-index issues) -->
+<ng-container *ngIf="lockDialogField">
+  <lock-members-dialog
+    [schemaName]="getLockDialogContext(lockDialogField).schema"
+    [tableName]="getLockDialogContext(lockDialogField).table"
+    [columnName]="getLockDialogContext(lockDialogField).column"
+    [currentLocked]="getLockDialogCurrentMembers(lockDialogField)"
+    [fieldLabel]="getLockDialogLabel(lockDialogField)"
+    (saved)="onLockDialogSaved(lockDialogField, $event)"
+    (cancelled)="lockDialogField = null">
+  </lock-members-dialog>
+</ng-container>

@@ -1,0 +1,159 @@
+.hr-dc {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  background: #f7f8fa;
+
+  &__loading, &__error, &__empty {
+    padding: 32px;
+    text-align: center;
+    color: #666;
+  }
+
+  &__error {
+    color: #d9534f;
+    background: #fdf2f2;
+    border-bottom: 1px solid #f5c6cb;
+  }
+
+  &__hint {
+    font-size: 13px;
+    color: #999;
+    margin-top: 8px;
+  }
+
+  &__report-bar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 16px;
+    background: #fff;
+    border-bottom: 1px solid #dde1e6;
+    flex-shrink: 0;
+  }
+
+  &__report-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #333;
+  }
+
+  &__report-select {
+    padding: 4px 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 13px;
+    min-width: 200px;
+  }
+
+  &__main {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  &__sections {
+    width: 220px;
+    flex-shrink: 0;
+    background: #fff;
+    border-right: 1px solid #dde1e6;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+  }
+
+  &__sections-header {
+    padding: 14px 14px 10px;
+    border-bottom: 1px solid #f0f0f0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__sections-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #333;
+    line-height: 1.3;
+  }
+
+  &__sections-period {
+    font-size: 11px;
+    color: #888;
+  }
+
+  &__badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 10px;
+    text-transform: uppercase;
+    width: fit-content;
+
+    &--draft      { background: #e8f0f8; color: #3474a7; }
+    &--submitted  { background: #fff3cd; color: #856404; }
+    &--approved   { background: #d4edda; color: #155724; }
+    &--rejected   { background: #f8d7da; color: #721c24; }
+  }
+
+  &__sec-list {
+    list-style: none;
+    margin: 0;
+    padding: 8px 0;
+  }
+
+  &__sec-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 14px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #444;
+    border-left: 3px solid transparent;
+    transition: background 0.12s;
+
+    &:hover {
+      background: #f5f7fa;
+    }
+
+    &--active {
+      background: #f0f7e8 !important;
+      border-left-color: #7AB648;
+      color: #5e9438;
+      font-weight: 600;
+    }
+  }
+
+  &__sec-icon {
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  &__sec-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__sec--complete    { /* inherits */ }
+  &__sec--incomplete  { color: #856404; }
+  &__sec--empty       { color: #aaa; }
+
+  &__grid-area {
+    flex: 1;
+    min-width: 0;
+    overflow: auto;
+    background: #fff;
+  }
+
+  &__grid-empty {
+    padding: 40px;
+    text-align: center;
+    color: #aaa;
+    font-size: 14px;
+  }
+}

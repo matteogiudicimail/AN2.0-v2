@@ -1,0 +1,142 @@
+<div class="cfg-sv-shell">
+
+  <!-- Header -->
+  <div class="cfg-sv-header">
+    <h3 class="cfg-sv-header__title">
+      📊 {{ taskLabel || 'Snapshot Viewer' }}
+      <span class="cfg-badge cfg-badge--info" title="Snapshot ID">snap #{{ snapshotId }}</span>
+    </h3>
+    <div class="cfg-sv-header__actions">
+      <span *ngIf="isSaving" class="cfg-de-header__saving">
+        <span class="cfg-spinner cfg-spinner--xs"></span> Saving…
+      </span>
+      <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+              type="button"
+              (click)="load()"
+              aria-label="Ricarica griglia">
+        ↻ Reload
+      </button>
+      <button class="cfg-btn-icon"
+              type="button"
+              aria-label="Chiudi snapshot viewer"
+              (click)="closed.emit()">✕</button>
+    </div>
+  </div>
+
+  <!-- Alerts -->
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="saveError"  class="cfg-alert cfg-alert--error"   role="alert">{{ saveError }}</div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="cfg-de-loading" role="status" aria-live="polite">
+    <span class="cfg-spinner"></span> Caricamento snapshot…
+  </div>
+
+  <ng-container *ngIf="!isLoading && grid">
+
+    <!-- Filters -->
+    <div class="cfg-de-filtri" *ngIf="layoutFilters.length > 0">
+      <span class="cfg-de-filtri__label">Filters:</span>
+      <label *ngFor="let f of layoutFilters; trackBy: trackByField" class="cfg-de-filtri__item">
+        <span class="cfg-de-filtri__name">{{ f.label }}</span>
+        <select class="cfg-select cfg-de-filtri__select"
+                [(ngModel)]="selectedFiltri[f.fieldName]"
+                [attr.aria-label]="'Filtro ' + f.label">
+          <option value="">— tutti —</option>
+          <option *ngFor="let v of getFiltriValues(f.fieldName)" [value]="v">{{ v }}</option>
+        </select>
+      </label>
+    </div>
+
+    <!-- Grid -->
+    <div class="cfg-sv-grid-wrap" role="region" aria-label="Snapshot data grid">
+      <table class="cfg-de-grid cfg-sv-grid" aria-label="Snapshot grid">
+        <thead>
+          <tr>
+            <th class="cfg-de-th cfg-de-th--corner" scope="col">
+              {{ layoutRows[0]?.label || 'Row' }}
+            </th>
+            <ng-container *ngIf="!noColonnaMode">
+              <th *ngFor="let cc of columnCombinations; trackBy: trackByCol"
+                  class="cfg-de-th cfg-de-th--val"
+                  scope="col">
+                <ng-container *ngFor="let vf of layoutValues; trackBy: trackByVf">
+                  <div>{{ cc.value }}</div>
+                  <div class="cfg-de-th__vf-label" *ngIf="layoutValues.length > 1">{{ vf.label }}</div>
+                </ng-container>
+              </th>
+            </ng-container>
+            <ng-container *ngIf="noColonnaMode">
+              <th *ngFor="let vf of layoutValues; trackBy: trackByVf"
+                  class="cfg-de-th cfg-de-th--val"
+                  scope="col">
+                {{ vf.label }}
+              </th>
+            </ng-container>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let riga of visibleRows; trackBy: trackByRow"
+              class="cfg-de-grid__row">
+            <td class="cfg-de-td cfg-de-td--riga">{{ riga.label }}</td>
+
+            <!-- Columns mode -->
+            <ng-container *ngIf="!noColonnaMode">
+              <ng-container *ngFor="let cc of columnCombinations; trackBy: trackByCol">
+                <td *ngFor="let vf of layoutValues; trackBy: trackByVf"
+                    class="cfg-de-td cfg-de-td--cell"
+                    (click)="startEdit(riga, cc.fieldName, cc.value, vf.fieldName)"
+                    [attr.aria-label]="'Valore ' + riga.label + ' / ' + cc.value + ' / ' + vf.label"
+                    role="gridcell">
+                  <ng-container *ngIf="!isEditing(riga, cc.fieldName, cc.value, vf.fieldName)">
+                    {{ getCellValue(riga, cc.fieldName, cc.value, vf.fieldName) }}
+                  </ng-container>
+                  <input *ngIf="isEditing(riga, cc.fieldName, cc.value, vf.fieldName)"
+                         class="cfg-de-cell-input"
+                         type="text"
+                         [value]="editing!.current"
+                         (keydown.enter)="confirmEdit($any($event.target).value)"
+                         (keydown.escape)="cancelEdit()"
+                         (blur)="confirmEdit($any($event.target).value)"
+                         aria-label="Modifica valore"
+                         autofocus />
+                </td>
+              </ng-container>
+            </ng-container>
+
+            <!-- No-column mode -->
+            <ng-container *ngIf="noColonnaMode">
+              <td *ngFor="let vf of layoutValues; trackBy: trackByVf"
+                  class="cfg-de-td cfg-de-td--cell"
+                  (click)="startEdit(riga, '', '', vf.fieldName)"
+                  [attr.aria-label]="'Valore ' + riga.label + ' / ' + vf.label"
+                  role="gridcell">
+                <ng-container *ngIf="!isEditing(riga, '', '', vf.fieldName)">
+                  {{ getCellValue(riga, '', '', vf.fieldName) }}
+                </ng-container>
+                <input *ngIf="isEditing(riga, '', '', vf.fieldName)"
+                       class="cfg-de-cell-input"
+                       type="text"
+                       [value]="editing!.current"
+                       (keydown.enter)="confirmEdit($any($event.target).value)"
+                       (keydown.escape)="cancelEdit()"
+                       (blur)="confirmEdit($any($event.target).value)"
+                       aria-label="Modifica valore"
+                       autofocus />
+              </td>
+            </ng-container>
+          </tr>
+
+          <tr *ngIf="visibleRows.length === 0">
+            <td [attr.colspan]="(noColonnaMode ? 0 : columnCombinations.length * layoutValues.length) + layoutValues.length + 1"
+                class="cfg-de-td--empty">
+              Nessuna riga trovata.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </ng-container>
+
+</div>

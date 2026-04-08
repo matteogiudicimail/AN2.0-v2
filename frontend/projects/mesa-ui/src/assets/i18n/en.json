@@ -1,0 +1,49 @@
+{
+  "SIDEBAR": {
+    "HOME": "Home",
+    "SEARCH": "Search",
+    "QUICK_ACTIONS": "Quick Actions",
+    "NOTIFICATIONS": "Notifications",
+    "ESG_REPORTS": "ESG Reports",
+    "LANGUAGE": "Language",
+    "DARK_MODE": "Dark mode",
+    "LIGHT_MODE": "Light mode",
+    "LOGOUT": "Logout"
+  },
+  "USERS": {
+    "TITLE": "User Management",
+    "SUBTITLE": "Create, edit and manage user accounts",
+    "NEW_USER": "New user",
+    "LOADING": "Loading…",
+    "USER": "User",
+    "USERNAME": "Username",
+    "EMAIL": "Email",
+    "ROLES": "Roles",
+    "STATUS": "Status",
+    "ACTIVE": "Active",
+    "INACTIVE": "Inactive",
+    "NONE_FOUND": "No users found",
+    "EDIT_USER": "Edit user",
+    "CANCEL": "Cancel",
+    "SAVING": "Saving…",
+    "SAVE_CHANGES": "Save changes",
+    "CREATE_USER": "Create user"
+  },
+  "MODULES": {
+    "TITLE": "Module Management",
+    "SUBTITLE": "Add, edit or remove application modules",
+    "NEW_MODULE": "New module",
+    "MODULE": "Module",
+    "CODE": "Code",
+    "TYPE": "Type",
+    "VERSION": "Version",
+    "NONE_FOUND": "No modules configured",
+    "EDIT_MODULE": "Edit module",
+    "CREATE_MODULE": "Create module"
+  },
+  "REPORTS": {
+    "LOADING": "Loading reports…",
+    "NONE_FOUND": "No HR reports available.",
+    "FILTER": "Filter"
+  }
+}

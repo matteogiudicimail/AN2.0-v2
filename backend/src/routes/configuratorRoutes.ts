@@ -10,6 +10,7 @@ import * as cfg from '../services/configuratorService';
 import * as audit from '../services/configAuditService';
 import * as taskSvc from '../services/taskService';
 import * as dimTable from '../services/dimTableService';
+import * as snapshotSvc from '../services/snapshotService';
 
 const router = Router();
 router.use(authJwt);
@@ -266,6 +267,16 @@ router.get('/db/tables/:schema/:table/columns', async (req: Request, res: Respon
 });
 
 // ── Tasks (Publish step) ──────────────────────────────────────────────────────
+
+router.get('/tasks/:taskId/snapshot/active', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const taskId = intParam(req.params['taskId']);
+    if (!taskId) { res.status(400).json({ error: 'Invalid taskId' }); return; }
+    const snap = await snapshotSvc.getActiveSnapshot(taskId);
+    if (!snap) { res.status(404).json({ error: 'No active snapshot for this task' }); return; }
+    res.json(snap);
+  } catch (e) { next(e); }
+});
 
 router.get('/reports/:id/tasks', async (req: Request, res: Response, next: NextFunction) => {
   try {

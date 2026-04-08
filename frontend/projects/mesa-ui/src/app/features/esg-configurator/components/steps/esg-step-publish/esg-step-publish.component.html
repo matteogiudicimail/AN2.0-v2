@@ -1,0 +1,111 @@
+<div class="cfg-pub-shell">
+
+  <!-- Header -->
+  <div class="cfg-pub-shell__header">
+    <h3 class="cfg-pub-shell__title">Published Reports</h3>
+    <button class="cfg-btn cfg-btn--primary" (click)="openNew()">+ New Published Report</button>
+  </div>
+
+  <!-- Alerts -->
+  <div *ngIf="errorMsg"   class="cfg-alert cfg-alert--error"   role="alert">{{ errorMsg }}</div>
+  <div *ngIf="successMsg" class="cfg-alert cfg-alert--success"  role="status">{{ successMsg }}</div>
+
+  <!-- Loading -->
+  <div *ngIf="isLoading" class="cfg-pub-shell__loading" role="status" aria-live="polite">
+    <span class="cfg-spinner"></span> Loading…
+  </div>
+
+  <!-- Task list -->
+  <ng-container *ngIf="!isLoading">
+
+    <div *ngIf="tasks.length === 0" class="cfg-pub-shell__empty">
+      No published reports yet. Click <strong>+ New Published Report</strong> to create one.
+    </div>
+
+    <table *ngIf="tasks.length > 0" class="cfg-table" aria-label="Published reports">
+      <thead>
+        <tr>
+          <th scope="col">Label</th>
+          <th scope="col">Menu Location</th>
+          <th scope="col">Status</th>
+          <th scope="col" aria-label="Actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let t of tasks; trackBy: trackByTask">
+          <td>{{ t.label }}</td>
+          <td>
+            <span *ngIf="t.parentMenuCode" class="cfg-text-muted">{{ t.parentMenuCode }}</span>
+            <span *ngIf="!t.parentMenuCode" class="cfg-text-muted">—</span>
+          </td>
+          <td>
+            <span class="cfg-badge" [ngClass]="statusBadgeClass(t.status)">{{ t.status }}</span>
+          </td>
+          <td class="cfg-table__actions">
+            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                    (click)="openEdit(t)"
+                    [attr.aria-label]="'Edit ' + t.label">
+              Edit
+            </button>
+            <button *ngIf="t.status === 'Draft'"
+                    class="cfg-btn cfg-btn--secondary cfg-btn--sm"
+                    (click)="activate(t)"
+                    [attr.aria-label]="'Activate ' + t.label">
+              Activate
+            </button>
+            <button *ngIf="t.status === 'Active'"
+                    class="cfg-btn cfg-btn--primary cfg-btn--sm"
+                    (click)="openViewer(t)"
+                    [attr.aria-label]="'Apri snapshot per ' + t.label"
+                    title="Apri la griglia snapshot (layout congelato)">
+              📊 Apri
+            </button>
+            <button *ngIf="t.status === 'Active'"
+                    class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                    (click)="archive(t)"
+                    [attr.aria-label]="'Archive ' + t.label">
+              Archive
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+  </ng-container>
+
+  <!-- Publish dialog overlay -->
+  <div *ngIf="dialogOpen" class="cfg-pub-overlay" role="presentation" (click)="closeDialog()"></div>
+  <div *ngIf="dialogOpen" class="cfg-pub-overlay-content">
+    <publish-dialog
+      [reportId]="reportId"
+      [task]="dialogTask ?? null"
+      (saved)="onDialogSaved($event)"
+      (cancelled)="closeDialog()">
+    </publish-dialog>
+  </div>
+
+  <!-- Footer nav -->
+  <div class="cfg-kpi-footer">
+    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
+  </div>
+
+</div>
+
+<!-- Snapshot Viewer overlay -->
+<ng-container *ngIf="viewerSnapshotId">
+  <div class="cfg-sv-overlay"
+       role="presentation"
+       (click)="closeViewer()">
+    <div class="cfg-sv-panel"
+         role="dialog"
+         aria-modal="true"
+         [attr.aria-label]="'Snapshot — ' + viewerTaskLabel"
+         (click)="$event.stopPropagation()">
+      <snapshot-viewer
+        [snapshotId]="viewerSnapshotId"
+        [taskLabel]="viewerTaskLabel"
+        (closed)="closeViewer()">
+      </snapshot-viewer>
+    </div>
+  </div>
+</ng-container>

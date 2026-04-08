@@ -1,0 +1,51 @@
+<div style="padding:12px;overflow:auto;flex:1;" role="main" id="main-content">
+  <h1 style="font-size:14px;font-weight:700;margin-bottom:12px;">Audit Trail</h1>
+
+  <div *ngIf="loading" role="status" aria-live="polite" style="color:#888;font-size:12px;">
+    Caricamento...
+  </div>
+
+  <table *ngIf="!loading" style="width:100%;border-collapse:collapse;font-size:11px;" role="grid"
+         aria-label="Log delle modifiche">
+    <thead>
+      <tr style="background:#8BC34A;color:#fff;">
+        <th style="padding:6px 8px;text-align:left;" scope="col">Data/Ora</th>
+        <th style="padding:6px 8px;text-align:left;" scope="col">Utente</th>
+        <th style="padding:6px 8px;text-align:left;" scope="col">Sezione</th>
+        <th style="padding:6px 8px;text-align:left;" scope="col">KPI</th>
+        <th style="padding:6px 8px;text-align:left;" scope="col">Entità</th>
+        <th style="padding:6px 8px;text-align:right;" scope="col">Da</th>
+        <th style="padding:6px 8px;text-align:right;" scope="col">A</th>
+        <th style="padding:6px 8px;text-align:center;" scope="col">Fonte</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr *ngFor="let e of entries" style="border-bottom:1px solid #eee;">
+        <td style="padding:4px 8px;white-space:nowrap;">{{ e.changedAt | date:'dd/MM/yyyy HH:mm:ss' }}</td>
+        <td style="padding:4px 8px;">{{ e.userDisplayName ?? '—' }}</td>
+        <td style="padding:4px 8px;">{{ e.sectionName ?? '—' }}</td>
+        <td style="padding:4px 8px;">{{ e.kpiName ?? '—' }}</td>
+        <td style="padding:4px 8px;font-weight:600;">{{ e.dimensionValueCode ?? '—' }}</td>
+        <td style="padding:4px 8px;text-align:right;color:#888;">{{ e.oldValue ?? '—' }}</td>
+        <td style="padding:4px 8px;text-align:right;font-weight:600;">{{ e.newValue ?? '—' }}</td>
+        <td style="padding:4px 8px;text-align:center;">
+          <span style="font-size:9px;padding:2px 6px;border-radius:2px;"
+                [style.background]="e.source === 'EXCEL' ? '#e8f5e9' : '#f5f5f5'"
+                [style.color]="e.source === 'EXCEL' ? '#558b2f' : '#666'">
+            {{ e.source }}
+          </span>
+        </td>
+      </tr>
+      <tr *ngIf="entries.length === 0">
+        <td colspan="8" style="padding:20px;text-align:center;color:#aaa;">Nessuna modifica registrata.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Pagination -->
+  <div *ngIf="total > limit" style="margin-top:12px;display:flex;align-items:center;gap:12px;font-size:11px;">
+    <button class="btn" (click)="prevPage()" [disabled]="page === 1" aria-label="Pagina precedente">‹ Prec.</button>
+    <span>Pagina {{ page }} — {{ total }} totali</span>
+    <button class="btn" (click)="nextPage()" [disabled]="page * limit >= total" aria-label="Pagina successiva">Succ. ›</button>
+  </div>
+</div>

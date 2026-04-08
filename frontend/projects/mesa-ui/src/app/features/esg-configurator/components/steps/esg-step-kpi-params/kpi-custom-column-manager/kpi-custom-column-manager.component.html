@@ -1,0 +1,90 @@
+<div class="cfg-kpi-custom-cols" role="region" aria-label="Custom column management">
+  <div class="cfg-kpi-custom-cols__header">
+    <h4 class="cfg-kpi-custom-cols__title">Custom Columns</h4>
+    <button class="cfg-btn cfg-btn--secondary" (click)="showAddForm = !showAddForm"
+            [attr.aria-expanded]="showAddForm">
+      + Add Column
+    </button>
+  </div>
+
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+
+  <!-- Add column form -->
+  <form *ngIf="showAddForm" [formGroup]="addForm" (ngSubmit)="addColumn()" novalidate
+        class="cfg-kpi-custom-cols__add-form" aria-label="Add custom column">
+    <div class="cfg-form-row">
+      <div class="cfg-field">
+        <label for="cc-name" class="cfg-label">Name (alphanumeric) *</label>
+        <input id="cc-name" class="cfg-input" formControlName="name" placeholder="e.g. unit_of_measure"
+               [class.cfg-input--error]="addForm.get('name')?.invalid && addForm.get('name')?.touched" />
+        <span *ngIf="addForm.get('name')?.errors?.['required'] && addForm.get('name')?.touched"
+              class="cfg-field__error" role="alert">Required</span>
+        <span *ngIf="addForm.get('name')?.errors?.['pattern'] && addForm.get('name')?.touched"
+              class="cfg-field__error" role="alert">Only letters, digits and underscores</span>
+      </div>
+      <div class="cfg-field">
+        <label for="cc-label" class="cfg-label">UI Label *</label>
+        <input id="cc-label" class="cfg-input" formControlName="label" placeholder="e.g. Unit of Measure"
+               [class.cfg-input--error]="addForm.get('label')?.invalid && addForm.get('label')?.touched" />
+        <span *ngIf="addForm.get('label')?.invalid && addForm.get('label')?.touched"
+              class="cfg-field__error" role="alert">Required</span>
+      </div>
+      <div class="cfg-field">
+        <label for="cc-type" class="cfg-label">Data Type</label>
+        <select id="cc-type" class="cfg-select" formControlName="dataType">
+          <option value="text">Text</option>
+          <option value="number">Number</option>
+          <option value="boolean">Boolean</option>
+          <option value="date">Date</option>
+        </select>
+      </div>
+      <div class="cfg-field cfg-field--sm">
+        <label for="cc-width" class="cfg-label">Width (px)</label>
+        <input id="cc-width" class="cfg-input" formControlName="width" type="number" min="40" max="600"
+               placeholder="e.g. 120" />
+      </div>
+    </div>
+    <div class="cfg-kpi-custom-cols__form-actions">
+      <button type="submit" class="cfg-btn cfg-btn--primary">Add</button>
+      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="showAddForm = false">Cancel</button>
+    </div>
+  </form>
+
+  <!-- Column list -->
+  <div *ngIf="defs.length > 0" class="cfg-kpi-custom-cols__list">
+    <table class="cfg-table" aria-label="Defined custom columns">
+      <thead>
+        <tr>
+          <th scope="col">Name</th>
+          <th scope="col">Label</th>
+          <th scope="col">Type</th>
+          <th scope="col">Width</th>
+          <th scope="col" aria-label="Actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let d of defs; let i = index; trackBy: trackByName">
+          <td><code>{{ d.name }}</code></td>
+          <td>{{ d.label }}</td>
+          <td>{{ d.dataType }}</td>
+          <td>{{ d.width ?? '—' }}</td>
+          <td>
+            <button class="cfg-btn-icon cfg-btn-icon--danger" (click)="removeColumn(i)"
+                    [attr.aria-label]="'Remove column ' + d.label">🗑</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div *ngIf="defs.length === 0" class="cfg-kpi-custom-cols__empty">
+    No custom columns defined.
+  </div>
+
+  <div class="cfg-kpi-custom-cols__footer">
+    <button class="cfg-btn cfg-btn--primary" [disabled]="isSaving" (click)="save()">
+      {{ isSaving ? 'Saving…' : 'Save Columns' }}
+    </button>
+    <button class="cfg-btn cfg-btn--ghost" (click)="cancelled.emit()">Cancel</button>
+  </div>
+</div>

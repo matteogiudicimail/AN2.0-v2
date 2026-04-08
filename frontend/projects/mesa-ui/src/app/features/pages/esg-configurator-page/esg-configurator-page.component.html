@@ -1,0 +1,13 @@
+<div class="esg-host">
+  <esg-report-list
+    *ngIf="view === 'list'"
+    (openWizard)="openWizard($event)">
+  </esg-report-list>
+
+  <esg-report-wizard
+    *ngIf="view === 'wizard'"
+    [reportId]="activeReportId"
+    [initialStep]="$any(activeStep)"
+    (back)="backToList()">
+  </esg-report-wizard>
+</div>

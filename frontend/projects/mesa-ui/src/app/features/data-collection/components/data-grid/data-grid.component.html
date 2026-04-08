@@ -1,0 +1,117 @@
+<div class="scroll-area" *ngIf="gridData; else emptyGrid" role="region" aria-label="Griglia dati">
+  <table class="dtbl" role="grid">
+
+    <!-- ===== STICKY HEADER ===== -->
+    <thead>
+      <tr>
+        <!-- Frozen col 1: KPI -->
+        <th class="fc kc-h" scope="col">KPI</th>
+        <!-- Frozen col 2: u.m. -->
+        <th class="fc uc-h" scope="col">u.m.</th>
+        <!-- Frozen col 3: metadata -->
+        <th class="fc mc-h" scope="col">
+          <span class="sr-only">Note</span>
+        </th>
+        <!-- Dynamic entity columns (filtered) -->
+        <th *ngFor="let col of visibleColumns; trackBy: trackByColumn"
+            class="ec"
+            scope="col"
+            [title]="col.name">
+          {{ col.code }}
+        </th>
+      </tr>
+    </thead>
+
+    <!-- ===== SUB-SECTIONS ===== -->
+    <ng-container *ngFor="let ss of gridData.subSections; let si = index; trackBy: trackBySubSection">
+
+      <!-- Sub-section header row (collapsible) -->
+      <tr class="sub-hdr"
+          (click)="toggleSubSection(si)"
+          (keydown.enter)="toggleSubSection(si)"
+          (keydown.space)="toggleSubSection(si); $event.preventDefault()"
+          tabindex="0"
+          role="rowgroup"
+          [attr.aria-expanded]="!collapsedSections[si]"
+          [attr.aria-label]="ss.name + (collapsedSections[si] ? ' (compressa)' : ' (espansa)')">
+        <!-- Spanning frozen cell -->
+        <td class="fc" colspan="3">
+          <span class="sc" [class.open]="!collapsedSections[si]" aria-hidden="true">&#9654;</span>
+          {{ ss.name }}
+        </td>
+        <!-- Empty cells for each visible column -->
+        <td *ngFor="let col of visibleColumns; trackBy: trackByColumn"
+            class="vc" aria-hidden="true"></td>
+      </tr>
+
+      <!-- Data rows -->
+      <tbody [class.collapsed]="collapsedSections[si]"
+             [attr.aria-hidden]="collapsedSections[si]">
+        <tr *ngFor="let row of ss.rows; trackBy: trackByRow"
+            [class.dr-p]="row.isBold"
+            role="row">
+
+          <!-- Frozen col 1: KPI name -->
+          <td class="fc kc"
+              [class.dr-kpi-indent]="row.indentLevel > 0"
+              [attr.data-kpi-id]="row.kpiId"
+              scope="row">
+            <span class="kn">
+              <b *ngIf="row.isBold">{{ row.kpiName }}</b>
+              <span *ngIf="!row.isBold">{{ row.kpiName }}</span>
+            </span>
+            <span *ngIf="row.formulaTag" class="ftag" [attr.aria-label]="'Formula: ' + row.formulaTag">
+              {{ row.formulaTag }}
+            </span>
+          </td>
+
+          <!-- Frozen col 2: unit -->
+          <td class="fc uc" [attr.aria-label]="'Unità: ' + row.unit">{{ row.unit }}</td>
+
+          <!-- Frozen col 3: comment indicator -->
+          <td class="fc mc-td">
+            <button class="mc"
+                    [attr.aria-label]="row.hasComment ? 'Note presenti' : 'Aggiungi nota'"
+                    [title]="row.hasComment ? 'Note presenti' : 'Aggiungi nota'"
+                    type="button"
+                    (click)="commentClicked.emit(row)">
+              <svg viewBox="0 0 16 16" class="msvg" aria-hidden="true">
+                <circle cx="7" cy="7" r="4"/>
+                <line x1="10" y1="10" x2="14" y2="14"/>
+              </svg>
+              <div *ngIf="row.hasComment" class="mc-dot" aria-hidden="true"></div>
+            </button>
+          </td>
+
+          <!-- Value cells (filtered by visibleColumnIds) -->
+          <td *ngFor="let cell of visibleCells(row); trackBy: trackByCell"
+              class="vc"
+              role="gridcell"
+              [attr.aria-label]="row.kpiName + ' — ' + colLabel(cell)">
+            <input
+              type="text"
+              inputmode="decimal"
+              [value]="formatValue(cell.numericValue, cell.isEmpty)"
+              [class]="cellClass(row, cell)"
+              [title]="cellTitle(row, cell)"
+              [attr.readonly]="row.isCalculated || null"
+              [attr.aria-readonly]="row.isCalculated"
+              [attr.aria-label]="row.kpiName + ' per ' + colLabel(cell)"
+              (focus)="onCellFocus($event, row, cell)"
+              (blur)="onCellBlur($event, row, cell)"
+              (keydown)="onCellKeydown($event)"
+            />
+          </td>
+        </tr>
+      </tbody>
+
+    </ng-container>
+  </table>
+</div>
+
+<!-- Empty state -->
+<ng-template #emptyGrid>
+  <div class="section-empty" role="status">
+    <p>Seleziona una sezione dalla barra laterale per visualizzare i dati.</p>
+  </div>
+</ng-template>
