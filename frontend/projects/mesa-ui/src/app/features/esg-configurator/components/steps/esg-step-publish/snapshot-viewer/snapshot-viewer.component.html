@@ -124,7 +124,7 @@
             <div class="cfg-sv-filter-group">
               <select class="cfg-select cfg-de-filtri__select cfg-sv-filter-select"
                       [(ngModel)]="selectedFiltri[f.fieldName]"
-                      (change)="rebuildRollupCache()"
+                      (change)="selectFiltro(f.fieldName, $any($event.target).value)"
                       [attr.aria-label]="'Filtro ' + f.label">
                 <option value="">— tutti —</option>
                 <option *ngFor="let v of getFiltriValues(f.fieldName)" [value]="v">{{ v }}</option>

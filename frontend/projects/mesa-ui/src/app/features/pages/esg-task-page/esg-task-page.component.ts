@@ -16,9 +16,10 @@ import { EsgConfiguratorService } from '../../esg-configurator/services/esg-conf
 })
 export class EsgTaskPageComponent implements OnChanges {
   /** The published task to display. */
-  @Input() taskId:      number | null = null;
-  @Input() taskLabel  = '';
-  @Input() breadcrumbs: Array<{ label: string; action?: () => void }> = [];
+  @Input() taskId:         number | null = null;
+  @Input() taskLabel     = '';
+  @Input() defaultFilters: string | null = null;
+  @Input() breadcrumbs:    Array<{ label: string; action?: () => void }> = [];
 
   snapshotId: number | null = null;
   loading  = false;
