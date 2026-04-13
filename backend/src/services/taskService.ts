@@ -21,6 +21,17 @@ type TaskRow = {
   ReportLabel: string | null;
 };
 
+/** Cached result of whether HiddenFilters column exists (null = not yet checked). */
+let _hasHiddenFilters: boolean | null = null;
+async function hasHiddenFiltersCol(): Promise<boolean> {
+  if (_hasHiddenFilters !== null) return _hasHiddenFilters;
+  const r = await dbGet<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM sys.columns WHERE object_id = OBJECT_ID('cfg_Task') AND name = 'HiddenFilters'`
+  );
+  _hasHiddenFilters = (r?.n ?? 0) > 0;
+  return _hasHiddenFilters;
+}
+
 function mapTask(r: TaskRow): TaskDef {
   return {
     taskId:          r.TaskId,
@@ -59,6 +70,8 @@ export async function listTasks(options?: {
   if (options?.domain)   { conditions.push('r.Domain=?');   params.push(options.domain); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const hf = await hasHiddenFiltersCol();
+  const hfSelect = hf ? 't.HiddenFilters' : 'NULL AS HiddenFilters';
 
   const rows = await dbAll<TaskRow>(
     `SELECT t.TaskId, t.TaskCode, t.Label, t.Description, t.ReportId, t.ReportVersion, t.Status,
@@ -66,7 +79,7 @@ export async function listTasks(options?: {
             t.AllowedRoles, t.AllowedEntities, t.DefaultFilters, t.AccessReaders, t.AccessWriters,
             t.CreatedBy, t.CreatedAt,
             r.Domain AS ReportDomain, r.ReportCode, r.ReportLabel,
-            CASE WHEN COL_LENGTH('cfg_Task','HiddenFilters') IS NOT NULL THEN t.HiddenFilters ELSE NULL END AS HiddenFilters
+            ${hfSelect}
        FROM cfg_Task t
   LEFT JOIN cfg_Report r ON r.ReportId = t.ReportId
      ${where} ORDER BY t.CreatedAt DESC`,
@@ -76,12 +89,14 @@ export async function listTasks(options?: {
 }
 
 export async function getTask(taskId: number): Promise<TaskDef | null> {
+  const hf = await hasHiddenFiltersCol();
+  const hfSelect = hf ? 'HiddenFilters' : 'NULL AS HiddenFilters';
   const row = await dbGet<Parameters<typeof mapTask>[0]>(
     `SELECT TOP 1 TaskId, TaskCode, Label, Description, ReportId, ReportVersion, Status,
             WritebackMode, ContextFilters, RouteUrl, MenuItemCode, ParentMenuCode,
             AllowedRoles, AllowedEntities, DefaultFilters, AccessReaders, AccessWriters,
             CreatedBy, CreatedAt,
-            CASE WHEN COL_LENGTH('cfg_Task','HiddenFilters') IS NOT NULL THEN HiddenFilters ELSE NULL END AS HiddenFilters
+            ${hfSelect}
      FROM cfg_Task WHERE TaskId=?`,
     taskId
   );
@@ -123,6 +138,7 @@ export async function createTask(dto: CreateTaskDto, userId: string): Promise<nu
   if (dto.hiddenFilters) {
     try {
       await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, dto.hiddenFilters, taskId);
+      _hasHiddenFilters = true; // column confirmed to exist
     } catch { /* column not yet migrated */ }
   }
 
@@ -171,7 +187,8 @@ export async function updateTask(taskId: number, dto: UpdateTaskDto, userId: str
   if (pendingHiddenFilters !== undefined) {
     try {
       await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, pendingHiddenFilters ?? null, taskId);
-    } catch { /* column not yet migrated — will take effect after migration adds HiddenFilters column */ }
+      _hasHiddenFilters = true; // column confirmed to exist
+    } catch { /* column not yet migrated */ }
   }
 
   const reportId = old?.reportId ?? null;

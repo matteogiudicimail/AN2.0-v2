@@ -73,7 +73,7 @@
 						"port": 4200,
 						"publicHost": "http://localhost:4200",
 						"extraWebpackConfig": "projects/cfs-report-shell/webpack.config.js",
-						"proxyConfig": "proxy.conf.json"
+						"proxyConfig": "proxy.conf.js"
 					}
 				},
 				"extract-i18n": {
@@ -160,7 +160,7 @@
 					"defaultConfiguration": "development",
 					"options": {
 						"port": 4201,
-						"proxyConfig": "projects/mesa-ui/proxy.conf.json"
+						"proxyConfig": "projects/mesa-ui/proxy.conf.js"
 					}
 				},
 				"test": {
