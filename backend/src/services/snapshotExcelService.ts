@@ -36,7 +36,7 @@ const C = {
 // ── Tipi interni ───────────────────────────────────────────────────────────────
 
 type Layout   = DataEntryGridResponse['layout'];
-type RigaOpt  = DataEntryGridResponse['rowOptions'][number];
+type RigaOpt  = DataEntryGridResponse['righeOptions'][number];
 
 interface RowMeta {
   excelRow:   number;
@@ -105,7 +105,7 @@ function filterRows(
   filters: Record<string, string>,
   dimMapping?: Record<string, Record<string, string[]>>,
 ): RigaOpt[] {
-  const rowFields = new Set(layout.rows.map(r => r.fieldName));
+  const rowFields = new Set(layout.righe.map(r => r.fieldName));
   let result = [...allRows];
   for (const [field, val] of Object.entries(filters)) {
     if (!val) continue;
@@ -113,7 +113,7 @@ function filterRows(
       result = result.filter(r => r.pathValues[field] === undefined || r.pathValues[field] === val);
     } else if (dimMapping?.[field]) {
       const valid = new Set<string>(dimMapping[field][val] ?? []);
-      const pf = layout.rows[0]?.fieldName;
+      const pf = layout.righe[0]?.fieldName;
       if (pf) result = result.filter(r => r.pathValues[pf] === undefined || valid.has(r.pathValues[pf]));
     }
   }
@@ -143,14 +143,14 @@ export async function exportSnapshotExcel(opts: ExportOptions): Promise<Buffer> 
   const layout = grid.layout;
 
   // Risolvi colonne
-  const colonnaField = layout.columns[0]?.fieldName ?? '';
+  const colonnaField = layout.colonne[0]?.fieldName ?? '';
   const allColValues = (grid as any).colonneOptions?.[0]?.values
     ?? (grid as any).columnOptions?.[0]?.values
     ?? [];
   const colValues = allColValues.length
     ? filterColValues(allColValues, colonnaField, filters, (grid as any).filtriColonneMapping)
     : [''];
-  const valFields   = layout.values.map(v => v.fieldName);
+  const valFields   = layout.valori.map(v => v.fieldName);
   const numValCols  = colValues.length * valFields.length;
 
   // Risolvi righe (filtra + per pivot prendi solo le foglie)
@@ -183,7 +183,7 @@ export async function exportSnapshotExcel(opts: ExportOptions): Promise<Buffer> 
 
   // Riga 2: intestazioni colonne
   const h1 = ws.getCell(2, 1);
-  h1.value = layout.rows.map(r => r.label).join(' / ');
+  h1.value = layout.righe.map(r => r.label).join(' / ');
   applyStyle(h1, {
     font:      { bold: true, color: { argb: C.headerFg } },
     fill:      solid(C.headerBg),
@@ -195,7 +195,7 @@ export async function exportSnapshotExcel(opts: ExportOptions): Promise<Buffer> 
   let hc = 2;
   for (const cv of colValues) {
     for (const vf of valFields) {
-      const vLabel = layout.values.find(v => v.fieldName === vf)?.label ?? vf;
+      const vLabel = layout.valori.find(v => v.fieldName === vf)?.label ?? vf;
       const label  = valFields.length > 1
         ? `${cv || '—'}\n${vLabel}`
         : (cv || vLabel);
@@ -279,7 +279,21 @@ export async function exportSnapshotExcel(opts: ExportOptions): Promise<Buffer> 
         }
       }
 
-      rowMeta.push({ excelRow: excelRowNum, pathValues: r.pathValues, isLeaf: true });
+      // Enrich storedPathValues with filtro dimension values that are NOT in the
+      // active filters (e.g. Tempo when no Tempo filter is selected). These are
+      // extracted from the first matching writeRow so that import can reconstruct
+      // the full dimension set even when a filtro has no selected value.
+      const storedPathValues: Record<string, string> = { ...r.pathValues };
+      const baseDims: Record<string, string> = { ...filters, ...r.pathValues };
+      const matchedWriteRow = grid.writeRows.find(wr =>
+        Object.entries(baseDims).every(([k, v]) => wr.dimensionValues[k] === v),
+      );
+      if (matchedWriteRow) {
+        for (const [k, v] of Object.entries(matchedWriteRow.dimensionValues)) {
+          if (!(k in filters)) storedPathValues[k] = v;
+        }
+      }
+      rowMeta.push({ excelRow: excelRowNum, pathValues: storedPathValues, isLeaf: true });
       leafCount++;
     }
     excelRowNum++;
