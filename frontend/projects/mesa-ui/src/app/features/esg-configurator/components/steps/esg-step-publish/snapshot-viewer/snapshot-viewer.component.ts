@@ -279,8 +279,11 @@ export class SnapshotViewerComponent implements OnInit {
         this.buildColumnCombinations();
         this.buildRowFieldNames();
         this.invalidateCellValueCache();
-        this.rebuildRollupCache();
-        this.cdr.markForCheck();
+        // detectChanges() runs synchronously, ensuring the grid renders immediately
+        // regardless of whether the subscription runs inside or outside NgZone.
+        // Rollup subtotals are intentionally empty on first render; they are computed
+        // lazily the first time the user changes a filter or toggles showOnlyWithData.
+        this.cdr.detectChanges();
       },
       error: () => {
         this.errorMsg = 'Impossibile caricare lo snapshot.';
@@ -352,10 +355,11 @@ export class SnapshotViewerComponent implements OnInit {
   /** Select a filter value, rebuild rollup/column data caches and invalidate rows */
   selectFiltro(fieldName: string, value: string): void {
     this.selectedFiltri[fieldName] = value;
-    // rebuildRollupCache handles invalidateCellValueCache + _visibleRowsCache reset
-    // and also rebuilds nodesWithData + colsWithData for the new filter selection.
-    this.rebuildRollupCache();
+    this.invalidateCellValueCache();
+    this._visibleRowsCache = null;
     this.cdr.markForCheck();
+    // Rebuild rollup asynchronously to avoid blocking the UI on large datasets.
+    this.scheduleRollupRebuild();
   }
 
   get visibleRows(): DataEntryRowOption[] {
