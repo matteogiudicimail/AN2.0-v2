@@ -388,6 +388,9 @@ export class SnapshotViewerComponent implements OnInit {
     // NOT simply because their children happen to be collapsed right now.
     const applyFilters = (rows: DataEntryRowOption[]): DataEntryRowOption[] => {
       let result = rows.filter((r: DataEntryRowOption) => {
+        // Group headers (non-leaf) are never filtered here — step 4 prunes them
+        // based on groupsWithChildren, so they are only removed when truly childless.
+        if (!r.isLeaf) return true;
         if (this.showOnlyWithData && !this.nodesWithData.has(this.pathKey(r.pathValues))) return false;
         return true;
       });

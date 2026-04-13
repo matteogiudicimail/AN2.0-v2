@@ -4747,6 +4747,10 @@ app-esg-task-page {
 
 .cfg-sv-grid {
   min-width: max-content;
+  // border-collapse: collapse breaks position:sticky in the horizontal direction.
+  // separate + border-spacing:0 keeps cells flush while allowing sticky to work.
+  border-collapse: separate;
+  border-spacing: 0;
 
   td.cfg-de-td--empty {
     text-align: center;
@@ -5308,7 +5312,9 @@ app-esg-task-page {
   overflow: auto;
   flex: 1;
   min-height: 0;
-  padding: 0 12px 12px;
+  // No left padding: left padding on the scroll container shifts the sticky snap
+  // point inward, causing frozen columns to appear misaligned when scrolling.
+  padding: 0 12px 12px 0;
 }
 
 // ── Context menu ──────────────────────────────────────────────────────────────
