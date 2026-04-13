@@ -4747,10 +4747,6 @@ app-esg-task-page {
 
 .cfg-sv-grid {
   min-width: max-content;
-  // border-collapse: collapse breaks position:sticky in the horizontal direction.
-  // separate + border-spacing:0 keeps cells flush while allowing sticky to work.
-  border-collapse: separate;
-  border-spacing: 0;
 
   td.cfg-de-td--empty {
     text-align: center;
