@@ -403,12 +403,21 @@ export class SnapshotViewerComponent implements OnInit {
           const mapping = this.grid?.filtriDimMapping?.[f.fieldName];
           if (mapping) {
             const validRowKeys = new Set<string>(mapping[selVal] ?? []);
-            const primaryRigaField = righeLayout.find((r: any) => !!(r as any).dimTable && !(r as any).paramTableId)?.fieldName;
-            if (primaryRigaField) {
-              result = result.filter((r: DataEntryRowOption) => {
-                const rv = r.pathValues[primaryRigaField];
-                return rv === undefined || validRowKeys.has(rv);
-              });
+            // With multi-level rows from the same dimTable, the mapping values may
+            // correspond to a deeper row dimension (e.g. DescrizioneKPI) rather than
+            // the first one (e.g. Stakeholder). Accept a row if ANY of its dim-table
+            // row-field values is in validRowKeys, or is absent (group header with no
+            // value for that field yet — pruned by step 4 if childless).
+            const dimTableRigaFields = righeLayout
+              .filter((r: any) => !!(r as any).dimTable && !(r as any).paramTableId)
+              .map((r: any) => r.fieldName as string);
+            if (dimTableRigaFields.length > 0) {
+              result = result.filter((r: DataEntryRowOption) =>
+                dimTableRigaFields.some((fn) => {
+                  const rv = r.pathValues[fn];
+                  return rv === undefined || validRowKeys.has(rv);
+                }),
+              );
             }
           }
         }

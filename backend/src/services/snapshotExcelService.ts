@@ -113,8 +113,17 @@ function filterRows(
       result = result.filter(r => r.pathValues[field] === undefined || r.pathValues[field] === val);
     } else if (dimMapping?.[field]) {
       const valid = new Set<string>(dimMapping[field][val] ?? []);
-      const pf = layout.righe[0]?.fieldName;
-      if (pf) result = result.filter(r => r.pathValues[pf] === undefined || valid.has(r.pathValues[pf]));
+      // Use all non-grouping righe fields: with multi-level rows from the same
+      // dimTable the mapping may target a deeper field (e.g. DescrizioneKPI),
+      // not just the first (e.g. Stakeholder).
+      const dimTableFields = layout.righe
+        .filter((r: any) => !!(r as any).dimTable && !(r as any).paramTableId)
+        .map((r: any) => r.fieldName as string);
+      if (dimTableFields.length > 0) {
+        result = result.filter(r =>
+          dimTableFields.some(fn => r.pathValues[fn] === undefined || valid.has(r.pathValues[fn])),
+        );
+      }
     }
   }
   return result;
