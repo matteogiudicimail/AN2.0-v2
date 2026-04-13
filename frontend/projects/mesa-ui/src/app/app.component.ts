@@ -39,7 +39,7 @@ export class AppComponent implements OnInit {
   esgOpenReportId: number | null = null;
   activeEsgTaskId:    number | null = null;
   activeEsgTaskLabel = '';
-  activeEsgTaskBreadcrumbs: string[] = [];
+  activeEsgTaskBreadcrumbs: Array<{ label: string; action?: () => void }> = [];
 
   constructor(
     private api: ApiService,
@@ -98,11 +98,21 @@ export class AppComponent implements OnInit {
     this.esgOpenReportId = reportId;
     this.activeView = 'esg-configurator';
   }
-  /** Opens the published-report snapshot view for a specific task (legacy nav-tree items). */
-  onNavEsgTask(ev: { taskId: number; label: string; breadcrumbs?: string[] }): void {
-    this.activeEsgTaskId          = ev.taskId;
-    this.activeEsgTaskLabel       = ev.label;
-    this.activeEsgTaskBreadcrumbs = ev.breadcrumbs ?? [];
+  /** Opens the published-report snapshot view for a specific task. */
+  onNavEsgTask(ev: { taskId: number; label: string; breadcrumbs?: Array<{ label: string; action?: () => void }> }): void {
+    this.activeEsgTaskId    = ev.taskId;
+    this.activeEsgTaskLabel = ev.label;
+    // Inject back-navigation actions: 'Reports' → esg-reports, 'Data Models' → esg-configurator
+    this.activeEsgTaskBreadcrumbs = (ev.breadcrumbs ?? []).map((b) => ({
+      label:  b.label,
+      action: b.action ?? this._breadcrumbAction(b.label),
+    }));
     this.activeView = 'esg-task';
+  }
+
+  private _breadcrumbAction(label: string): (() => void) | undefined {
+    if (label === 'Reports')     return () => this.onNavEsgReports();
+    if (label === 'Data Models') return () => this.onNavEsgConfigurator();
+    return undefined;
   }
 }

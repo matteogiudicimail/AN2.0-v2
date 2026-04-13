@@ -17,7 +17,7 @@ export class EsgReportsPageComponent implements OnInit {
   /** Open configurator (optionally for a specific reportId). */
   @Output() openConfigurator = new EventEmitter<number | null>();
   /** Open a published task in the full-page snapshot viewer. */
-  @Output() openTask = new EventEmitter<{ taskId: number; label: string; breadcrumbs?: string[] }>();
+  @Output() openTask = new EventEmitter<{ taskId: number; label: string; breadcrumbs?: Array<{ label: string; action?: () => void }> }>();
 
   tasks:    TaskSummary[] = [];
   loading   = false;
@@ -116,7 +116,8 @@ export class EsgReportsPageComponent implements OnInit {
   // ── Open full-page ──────────────────────────────────────────────────────────
 
   openReport(t: TaskSummary): void {
-    this.openTask.emit({ taskId: t.taskId, label: t.label, breadcrumbs: ['Reports'] });
+    // No action attached here — the parent (app.component) will inject the back-navigation action.
+    this.openTask.emit({ taskId: t.taskId, label: t.label, breadcrumbs: [{ label: 'Reports' }] });
   }
 
   // ── Delete ──────────────────────────────────────────────────────────────────

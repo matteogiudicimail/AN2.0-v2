@@ -63,8 +63,8 @@ interface CellCtxMenu {
 export class SnapshotViewerComponent implements OnInit {
   @Input() snapshotId!: number;
   @Input() taskLabel = '';
-  /** Breadcrumb segments shown above the title, e.g. ['Reports'] */
-  @Input() breadcrumbs: string[] = [];
+  /** Breadcrumb segments — each with a label and optional click action. */
+  @Input() breadcrumbs: Array<{ label: string; action?: () => void }> = [];
   /** JSON string of default filter values from the task — applied on initial load. */
   @Input() taskDefaultFilters?: string | null;
 

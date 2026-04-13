@@ -1,18 +1,18 @@
 <div class="cfg-sv-shell">
 
-  <!-- Breadcrumb -->
-  <nav *ngIf="breadcrumbs.length > 0" class="cfg-sv-breadcrumb" aria-label="Breadcrumb">
-    <span *ngFor="let crumb of breadcrumbs; let last = last" class="cfg-sv-breadcrumb__item">
-      <span class="cfg-sv-breadcrumb__label">{{ crumb }}</span>
-      <span *ngIf="!last" class="cfg-sv-breadcrumb__sep" aria-hidden="true">›</span>
-    </span>
-    <span class="cfg-sv-breadcrumb__sep" aria-hidden="true">›</span>
-    <span class="cfg-sv-breadcrumb__current" aria-current="page">{{ taskLabel }}</span>
-  </nav>
-
-  <!-- Header -->
+  <!-- Header (breadcrumb + title on one line) -->
   <div class="cfg-sv-header">
     <h3 class="cfg-sv-header__title">
+      <ng-container *ngIf="breadcrumbs.length > 0">
+        <ng-container *ngFor="let crumb of breadcrumbs">
+          <button *ngIf="crumb.action"
+                  class="cfg-sv-breadcrumb__link"
+                  type="button"
+                  (click)="crumb.action()">{{ crumb.label }}</button>
+          <span *ngIf="!crumb.action" class="cfg-sv-breadcrumb__label">{{ crumb.label }}</span>
+          <span class="cfg-sv-breadcrumb__sep" aria-hidden="true">›</span>
+        </ng-container>
+      </ng-container>
       {{ taskLabel || 'Snapshot Viewer' }}
       <span class="cfg-badge cfg-badge--info" title="Snapshot ID">snap #{{ snapshotId }}</span>
     </h3>

@@ -207,8 +207,8 @@ export class SidebarComponent implements OnInit, OnChanges {
     if (route.startsWith('/admin/users') || key === 'users') return this.activeView === 'users';
     if (route.startsWith('/admin/nav') || key === 'nav') return this.activeView === 'nav-manager';
     if (route.startsWith('/cfs') || key === 'cfs-report') return this.activeView === 'cfs-report' && this.activeChildId === null;
-    if (route === '/esg-reports' || key === 'esg-reports') return this.activeView === 'esg-reports';
-    if (route.startsWith('/esg') || key === 'esg-configurator') return this.activeView === 'esg-configurator' || this.activeView === 'esg-task';
+    if (route === '/esg-reports' || key === 'esg-reports') return this.activeView === 'esg-reports' || this.activeView === 'esg-task';
+    if (route.startsWith('/esg') || key === 'esg-configurator') return this.activeView === 'esg-configurator';
     return false;
   }
 
