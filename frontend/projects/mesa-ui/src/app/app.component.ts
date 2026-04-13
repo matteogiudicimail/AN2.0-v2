@@ -39,6 +39,7 @@ export class AppComponent implements OnInit {
   esgOpenReportId: number | null = null;
   activeEsgTaskId:    number | null = null;
   activeEsgTaskLabel = '';
+  activeEsgTaskBreadcrumbs: string[] = [];
 
   constructor(
     private api: ApiService,
@@ -98,9 +99,10 @@ export class AppComponent implements OnInit {
     this.activeView = 'esg-configurator';
   }
   /** Opens the published-report snapshot view for a specific task (legacy nav-tree items). */
-  onNavEsgTask(ev: { taskId: number; label: string }): void {
-    this.activeEsgTaskId    = ev.taskId;
-    this.activeEsgTaskLabel = ev.label;
+  onNavEsgTask(ev: { taskId: number; label: string; breadcrumbs?: string[] }): void {
+    this.activeEsgTaskId          = ev.taskId;
+    this.activeEsgTaskLabel       = ev.label;
+    this.activeEsgTaskBreadcrumbs = ev.breadcrumbs ?? [];
     this.activeView = 'esg-task';
   }
 }

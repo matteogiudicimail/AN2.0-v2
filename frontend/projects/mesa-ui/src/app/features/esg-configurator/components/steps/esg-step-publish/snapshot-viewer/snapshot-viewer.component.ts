@@ -63,6 +63,8 @@ interface CellCtxMenu {
 export class SnapshotViewerComponent implements OnInit {
   @Input() snapshotId!: number;
   @Input() taskLabel = '';
+  /** Breadcrumb segments shown above the title, e.g. ['Reports'] */
+  @Input() breadcrumbs: string[] = [];
   /** JSON string of default filter values from the task — applied on initial load. */
   @Input() taskDefaultFilters?: string | null;
 
@@ -79,6 +81,9 @@ export class SnapshotViewerComponent implements OnInit {
 
   /** Toggle: hide rows that have no value (direct or rollup) */
   showOnlyWithData = false;
+
+  /** True while rebuildRollupCache is deferred (spinner shown on the grid) */
+  isComputingFilter = false;
 
   /** Collapsible params/filters section */
   paramsCollapsed = false;
@@ -259,6 +264,22 @@ export class SnapshotViewerComponent implements OnInit {
 
   /** Invalidate the visibleRows cache; call whenever filtri/expand/data changes */
   invalidateVisibleRows(): void { this._visibleRowsCache = null; }
+
+  /**
+   * Toggles showOnlyWithData, showing a spinner while the rollup cache
+   * (which drives both row and column filtering) is rebuilt.
+   * A brief setTimeout(0) lets Angular render the spinner before the CPU work.
+   */
+  toggleShowOnlyWithData(): void {
+    this.isComputingFilter = true;
+    this.cdr.markForCheck();
+    setTimeout(() => {
+      this.showOnlyWithData = !this.showOnlyWithData;
+      this.rebuildRollupCache(); // rebuilds nodesWithData, colsWithData, invalidates caches
+      this.isComputingFilter = false;
+      this.cdr.markForCheck();
+    }, 0);
+  }
 
   /** Select a filter value, rebuild rollup/column data caches and invalidate rows */
   selectFiltro(fieldName: string, value: string): void {

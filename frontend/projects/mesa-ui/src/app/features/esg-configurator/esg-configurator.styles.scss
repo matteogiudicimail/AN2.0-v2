@@ -4593,6 +4593,44 @@
   overflow: hidden;
 }
 
+// ── Snapshot viewer: breadcrumb ───────────────────────────────────────────────
+.cfg-sv-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 16px 0;
+  font-size: 12px;
+  color: var(--cfg-text-muted, #888);
+  flex-shrink: 0;
+
+  &__item {
+    display: contents;
+  }
+
+  &__label {
+    color: var(--cfg-primary, #4263eb);
+    font-weight: 500;
+    cursor: default;
+  }
+
+  &__sep {
+    color: var(--cfg-text-muted, #bbb);
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  &__current {
+    color: var(--cfg-text, #333);
+    font-weight: 600;
+  }
+}
+
+// ── Snapshot viewer: computing-filter overlay ─────────────────────────────────
+.cfg-sv-grid-wrap--computing {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
 // ── Full-page snapshot viewer (ESG sidebar report click) ──────────────────────
 // Chain: .content (flex col) → app-esg-task-page → .esg-task-page → snapshot-viewer → .cfg-sv-shell
 app-esg-task-page {

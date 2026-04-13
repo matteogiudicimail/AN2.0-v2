@@ -1,5 +1,15 @@
 <div class="cfg-sv-shell">
 
+  <!-- Breadcrumb -->
+  <nav *ngIf="breadcrumbs.length > 0" class="cfg-sv-breadcrumb" aria-label="Breadcrumb">
+    <span *ngFor="let crumb of breadcrumbs; let last = last" class="cfg-sv-breadcrumb__item">
+      <span class="cfg-sv-breadcrumb__label">{{ crumb }}</span>
+      <span *ngIf="!last" class="cfg-sv-breadcrumb__sep" aria-hidden="true">›</span>
+    </span>
+    <span class="cfg-sv-breadcrumb__sep" aria-hidden="true">›</span>
+    <span class="cfg-sv-breadcrumb__current" aria-current="page">{{ taskLabel }}</span>
+  </nav>
+
   <!-- Header -->
   <div class="cfg-sv-header">
     <h3 class="cfg-sv-header__title">
@@ -94,11 +104,15 @@
 
           <!-- Only-with-data toggle -->
           <label class="cfg-de-toggle cfg-de-toggle--sm" style="margin-left:auto"
-                 title="Nascondi righe e subtotali senza dati">
+                 title="Nascondi righe e colonne senza dati">
             <input type="checkbox" [checked]="showOnlyWithData"
-                   (change)="showOnlyWithData = !showOnlyWithData; invalidateVisibleRows()"
+                   [disabled]="isComputingFilter"
+                   (change)="toggleShowOnlyWithData()"
                    class="cfg-de-toggle__check" />
-            <span class="cfg-de-toggle__label">Solo con dati</span>
+            <span *ngIf="!isComputingFilter" class="cfg-de-toggle__label">Solo con dati</span>
+            <span *ngIf="isComputingFilter" class="cfg-de-toggle__label">
+              <span class="cfg-spinner cfg-spinner--xs"></span> Filtraggio…
+            </span>
           </label>
         </div>
 
@@ -154,7 +168,8 @@
     </div>
 
     <!-- Grid -->
-    <div class="cfg-sv-grid-wrap" role="region" aria-label="Snapshot data grid">
+    <div class="cfg-sv-grid-wrap" role="region" aria-label="Snapshot data grid"
+         [class.cfg-sv-grid-wrap--computing]="isComputingFilter">
       <table #svGridRef class="cfg-de-grid cfg-sv-grid" aria-label="Snapshot grid">
         <thead>
           <tr>
