@@ -391,6 +391,32 @@ export class EsgConfiguratorService {
     );
   }
 
+  exportSnapshotExcel(
+    snapshotId: number,
+    mode: 'grid' | 'pivot',
+    filters: Record<string, string>,
+  ): Observable<Blob> {
+    return this.http.post(
+      `${this.base}/snapshots/${snapshotId}/excel/export`,
+      { mode, filters },
+      { headers: this.headers(), responseType: 'blob' },
+    );
+  }
+
+  importSnapshotExcel(
+    snapshotId: number,
+    file: File,
+  ): Observable<{ imported: number; errors: string[] }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    // No Content-Type header: browser sets multipart/form-data + boundary automatically
+    return this.http.post<{ imported: number; errors: string[] }>(
+      `${this.base}/snapshots/${snapshotId}/excel/import`,
+      fd,
+      { headers: this.headers() },
+    );
+  }
+
   getMenuTree(): Observable<MenuTreeNode[]> {
     return this.http.get<MenuTreeNode[]>(
       `${this.base}/menu-tree`,

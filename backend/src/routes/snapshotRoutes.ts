@@ -8,11 +8,32 @@
  */
 
 import { Router, Request, Response, NextFunction } from 'express';
+import multer from 'multer';
 import { authJwt } from '../middleware/authJwt';
 import {
-  createSnapshot, getActiveSnapshot, getSnapshotGrid, saveSnapshotCell,
+  createSnapshot, getActiveSnapshot, getSnapshot, getSnapshotGrid, saveSnapshotCell,
 } from '../services/snapshotService';
+import { getTask } from '../services/taskService';
+import { exportSnapshotExcel, importSnapshotExcel } from '../services/snapshotExcelService';
 import { SaveCellDto } from '../models/dataEntry.models';
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },  // 10 MB
+  fileFilter: (_req, file, cb) => {
+    const validMime = file.mimetype === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+    const validExt  = file.originalname.toLowerCase().endsWith('.xlsx');
+    if (validMime || validExt) cb(null, true);
+    else cb(new Error('Solo file .xlsx accettati'));
+  },
+});
+
+/** Controlla se userId è fra i writers del task (lista CSV). Aperto a tutti se lista vuota. */
+function canWrite(accessWriters: string | null | undefined, userId: string): boolean {
+  if (!accessWriters) return true;
+  const writers = accessWriters.split(',').map(s => s.trim()).filter(Boolean);
+  return writers.length === 0 || writers.includes(userId);
+}
 
 const router = Router();
 
@@ -133,6 +154,81 @@ router.put(
       if (e.number && e.number >= 515 && e.number <= 550) {
         res.status(400).json({ error: `Vincolo database: ${e.message}` }); return;
       }
+      next(err);
+    }
+  },
+);
+
+// ── POST /snapshots/:id/excel/export ─────────────────────────────────────────
+// Genera un file .xlsx esportabile per la griglia dello snapshot.
+// Body: { mode: 'grid' | 'pivot', filters: Record<string, string> }
+
+router.post(
+  '/snapshots/:id/excel/export',
+  authJwt,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const snapshotId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(snapshotId) || snapshotId <= 0) {
+      res.status(400).json({ error: 'snapshotId non valido' }); return;
+    }
+    const body = req.body as { mode?: string; filters?: unknown };
+    const mode = body.mode === 'pivot' ? 'pivot' : 'grid';
+    const filters = (typeof body.filters === 'object' && body.filters && !Array.isArray(body.filters))
+      ? body.filters as Record<string, string>
+      : {};
+    try {
+      const snap = await getSnapshot(snapshotId);
+      if (!snap) { res.status(404).json({ error: 'Snapshot non trovato' }); return; }
+      const task  = await getTask(snap.taskId);
+      const label = task?.label ?? `Snapshot ${snapshotId}`;
+      const grid  = await getSnapshotGrid(snapshotId);
+      const buffer = await exportSnapshotExcel({ snapshotId, taskLabel: label, mode, filters, grid });
+      const safe   = label.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 40);
+      const modeTag = mode === 'pivot' ? 'Pivot' : 'Griglia';
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename="ESG_Snap${snapshotId}_${safe}_${modeTag}.xlsx"`);
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.send(buffer);
+    } catch (err) {
+      const code = (err as Error & { statusCode?: number }).statusCode;
+      if (code === 404) { res.status(404).json({ error: (err as Error).message }); return; }
+      next(err);
+    }
+  },
+);
+
+// ── POST /snapshots/:id/excel/import ─────────────────────────────────────────
+// Importa un file .xlsx precedentemente esportato dal sistema.
+// Riservato ai writers del task (accessWriters). [V2]
+
+router.post(
+  '/snapshots/:id/excel/import',
+  authJwt,
+  upload.single('file'),
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const snapshotId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(snapshotId) || snapshotId <= 0) {
+      res.status(400).json({ error: 'snapshotId non valido' }); return;
+    }
+    if (!req.file) { res.status(400).json({ error: 'File mancante (campo "file")' }); return; }
+    const userId = getUserId(req);
+    try {
+      const snap = await getSnapshot(snapshotId);
+      if (!snap) { res.status(404).json({ error: 'Snapshot non trovato' }); return; }
+      const task = await getTask(snap.taskId);
+      if (!canWrite(task?.accessWriters, userId)) {
+        res.status(403).json({ error: 'Non sei autorizzato a modificare questo report' }); return;
+      }
+      const result = await importSnapshotExcel(
+        snapshotId,
+        req.file.buffer,
+        (dto: SaveCellDto) => saveSnapshotCell(snapshotId, dto, userId),
+      );
+      res.json(result);
+    } catch (err) {
+      const code = (err as Error & { statusCode?: number }).statusCode;
+      if (code === 400) { res.status(400).json({ error: (err as Error).message }); return; }
+      if (code === 404) { res.status(404).json({ error: (err as Error).message }); return; }
       next(err);
     }
   },

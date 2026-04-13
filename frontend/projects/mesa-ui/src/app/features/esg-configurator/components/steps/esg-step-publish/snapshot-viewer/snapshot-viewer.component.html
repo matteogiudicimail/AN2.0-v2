@@ -173,7 +173,83 @@
             </div>
           </label>
         </div>
+
+        <!-- ── Excel toolbar ── -->
+        <div class="cfg-sv-excel-toolbar">
+          <span class="cfg-sv-excel-toolbar__label">Excel:</span>
+
+          <!-- Export Grid -->
+          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn"
+                  type="button"
+                  [disabled]="!!isExporting || isImporting"
+                  (click)="exportExcel('grid')"
+                  title="Esporta griglia gerarchica (.xlsx con filtri attivi)"
+                  aria-label="Esporta Excel modalità griglia">
+            <span *ngIf="isExporting === 'grid'"><span class="cfg-spinner cfg-spinner--xs"></span></span>
+            <span *ngIf="isExporting !== 'grid'">⬇</span>
+            Griglia
+          </button>
+
+          <!-- Export Pivot -->
+          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn"
+                  type="button"
+                  [disabled]="!!isExporting || isImporting"
+                  (click)="exportExcel('pivot')"
+                  title="Esporta tabella pivot flat (.xlsx con filtri attivi)"
+                  aria-label="Esporta Excel modalità pivot">
+            <span *ngIf="isExporting === 'pivot'"><span class="cfg-spinner cfg-spinner--xs"></span></span>
+            <span *ngIf="isExporting !== 'pivot'">⬇</span>
+            Pivot
+          </button>
+
+          <!-- Import -->
+          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn cfg-sv-excel-btn--import"
+                  type="button"
+                  [disabled]="!!isExporting || isImporting"
+                  (click)="triggerImportExcel()"
+                  title="Importa file .xlsx precedentemente esportato"
+                  aria-label="Importa Excel">
+            <span *ngIf="isImporting"><span class="cfg-spinner cfg-spinner--xs"></span> Importando…</span>
+            <span *ngIf="!isImporting">⬆ Importa</span>
+          </button>
+
+          <!-- Hidden file input -->
+          <input #svExcelImportRef
+                 type="file"
+                 accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                 style="display:none"
+                 aria-hidden="true"
+                 (change)="importExcel($event)" />
+        </div>
+
       </div>
+    </div>
+
+    <!-- Import result alert -->
+    <div *ngIf="importResult"
+         class="cfg-sv-import-result"
+         [class.cfg-sv-import-result--success]="importResult.errors.length === 0"
+         [class.cfg-sv-import-result--warn]="importResult.errors.length > 0"
+         role="alert">
+      <div class="cfg-sv-import-result__summary">
+        <span *ngIf="importResult.errors.length === 0">
+          ✅ Importazione completata: <strong>{{ importResult.imported }}</strong> celle aggiornate.
+        </span>
+        <span *ngIf="importResult.errors.length > 0 && importResult.imported > 0">
+          ⚠ Importazione parziale: <strong>{{ importResult.imported }}</strong> celle aggiornate,
+          {{ importResult.errors.length }} errori.
+        </span>
+        <span *ngIf="importResult.errors.length > 0 && importResult.imported === 0">
+          ❌ Importazione fallita: {{ importResult.errors.length }} errori.
+        </span>
+        <button class="cfg-btn-icon cfg-sv-import-result__close"
+                type="button"
+                aria-label="Chiudi risultato importazione"
+                (click)="dismissImportResult()">✕</button>
+      </div>
+      <ul *ngIf="importResult.errors.length > 0" class="cfg-sv-import-result__errors">
+        <li *ngFor="let e of importResult.errors">{{ e }}</li>
+      </ul>
     </div>
 
     <!-- Grid -->

@@ -132,6 +132,16 @@ export class SnapshotViewerComponent implements OnInit {
     });
   }
 
+  // ── Excel export / import ────────────────────────────────────────────────────
+  /** True while an export HTTP call is in flight */
+  isExporting: 'grid' | 'pivot' | null = null;
+
+  /** True while an import HTTP call is in flight */
+  isImporting = false;
+
+  /** Result of the last import attempt */
+  importResult: { imported: number; errors: string[] } | null = null;
+
   /** Filter search popup state */
   filterSearchField: string | null = null;
   filterSearchText = '';
@@ -178,8 +188,9 @@ export class SnapshotViewerComponent implements OnInit {
   approvedKeys = new Set<string>();
   approvalLoading = false;
 
-  @ViewChild('svCellInputRef') private svCellInputRef?: ElementRef<HTMLInputElement>;
-  @ViewChild('svGridRef')     private svGridRef?:     ElementRef<HTMLTableElement>;
+  @ViewChild('svCellInputRef')   private svCellInputRef?:   ElementRef<HTMLInputElement>;
+  @ViewChild('svGridRef')        private svGridRef?:        ElementRef<HTMLTableElement>;
+  @ViewChild('svExcelImportRef') private svExcelImportRef?: ElementRef<HTMLInputElement>;
 
   /** Bottom-up rollup sums: key = `pathKey||cf||cv||vf` → numeric sum */
   private rollupCache = new Map<string, number>();
@@ -892,6 +903,84 @@ export class SnapshotViewerComponent implements OnInit {
   stripHtml(html: string | null): string {
     if (!html) return '';
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
+  }
+
+  // ── Excel export / import ────────────────────────────────────────────────────
+
+  /** Exports the current grid to an .xlsx file and triggers a browser download. */
+  exportExcel(mode: 'grid' | 'pivot'): void {
+    if (this.isExporting) return;
+    this.isExporting = mode;
+    this.cdr.markForCheck();
+
+    // Build active filters map (only non-empty values)
+    const filters: Record<string, string> = {};
+    for (const [k, v] of Object.entries(this.selectedFiltri)) {
+      if (v) filters[k] = v;
+    }
+
+    this.svc.exportSnapshotExcel(this.snapshotId, mode, filters).subscribe({
+      next: (blob) => {
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        const safe = this.taskLabel.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 40);
+        const tag  = mode === 'pivot' ? 'Pivot' : 'Griglia';
+        a.download = `ESG_Snap${this.snapshotId}_${safe}_${tag}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.isExporting = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isExporting = null;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** Opens the hidden file input to trigger the import flow. */
+  triggerImportExcel(): void {
+    this.svExcelImportRef?.nativeElement.click();
+  }
+
+  /** Handles file selection from the hidden import input. */
+  importExcel(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    // Reset input so same file can be re-selected
+    input.value = '';
+    if (!file) return;
+
+    this.isImporting  = true;
+    this.importResult = null;
+    this.cdr.markForCheck();
+
+    this.svc.importSnapshotExcel(this.snapshotId, file).subscribe({
+      next: (result) => {
+        this.importResult = result;
+        this.isImporting  = false;
+        // Reload grid to show imported values
+        if (result.imported > 0) {
+          this.load();
+        } else {
+          this.cdr.markForCheck();
+        }
+      },
+      error: (err) => {
+        this.importResult = {
+          imported: 0,
+          errors: [err?.error?.error ?? 'Errore durante l\'importazione'],
+        };
+        this.isImporting = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  dismissImportResult(): void {
+    this.importResult = null;
+    this.cdr.markForCheck();
   }
 
   // ── Document events ─────────────────────────────────────────────────────────
