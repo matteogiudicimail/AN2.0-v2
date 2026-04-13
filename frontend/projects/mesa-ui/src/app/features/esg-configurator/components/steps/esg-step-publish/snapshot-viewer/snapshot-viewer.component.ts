@@ -138,6 +138,9 @@ export class SnapshotViewerComponent implements OnInit {
   /** Path keys of nodes that have at least one value (direct leaf or rollup) */
   private nodesWithData = new Set<string>();
 
+  /** Column combo keys (`${fieldName}||${value}`) that have at least one numeric value */
+  private colsWithData = new Set<string>();
+
   /** Debounce handle for rebuildRollupCache */
   private rollupDebounce: ReturnType<typeof setTimeout> | null = null;
 
@@ -257,11 +260,12 @@ export class SnapshotViewerComponent implements OnInit {
   /** Invalidate the visibleRows cache; call whenever filtri/expand/data changes */
   invalidateVisibleRows(): void { this._visibleRowsCache = null; }
 
-  /** Select a filter value and invalidate the row cache */
+  /** Select a filter value, rebuild rollup/column data caches and invalidate rows */
   selectFiltro(fieldName: string, value: string): void {
     this.selectedFiltri[fieldName] = value;
-    this._visibleRowsCache = null;
-    this.invalidateCellValueCache();
+    // rebuildRollupCache handles invalidateCellValueCache + _visibleRowsCache reset
+    // and also rebuilds nodesWithData + colsWithData for the new filter selection.
+    this.rebuildRollupCache();
     this.cdr.markForCheck();
   }
 
@@ -475,6 +479,9 @@ export class SnapshotViewerComponent implements OnInit {
 
   get columnCombinations(): Array<{ fieldName: string; value: string }> {
     return this._columnCombinations.filter((cc) => {
+      // "Solo con dati": hide columns with no numeric data in any row
+      if (this.showOnlyWithData && !this.colsWithData.has(`${cc.fieldName}||${cc.value}`)) return false;
+
       // Direct column-name filter (e.g. Entita is itself in filtri)
       const directSel = this.selectedFiltri[cc.fieldName];
       if (directSel && cc.value !== directSel) return false;
@@ -633,13 +640,17 @@ export class SnapshotViewerComponent implements OnInit {
     this.invalidateCellValueCache();
     this.rollupCache.clear();
     this.nodesWithData.clear();
+    this.colsWithData.clear();
     this._visibleRowsCache = null;
     if (!this.grid) return;
 
     const flat = this.grid.rowOptions ?? [];
-    const cols = this.noColonnaMode
+    // Read column options directly (not via noColonnaMode getter) to avoid circular
+    // dependency: noColonnaMode → columnCombinations → colsWithData (being built here).
+    const colOptions = this.grid.columnOptions ?? (this.grid as any).colonneOptions ?? [];
+    const cols = colOptions.length === 0
       ? [{ fieldName: '', values: [''] }]
-      : (this.grid.columnOptions ?? []);
+      : colOptions;
     const vals = this.layoutValues;
 
     for (const row of flat) {
@@ -655,6 +666,7 @@ export class SnapshotViewerComponent implements OnInit {
             const num = parseFloat(raw);
             if (isNaN(num)) continue;
             leafHasData = true;
+            this.colsWithData.add(`${cfName}||${cv}`);
             for (const ak of (row.ancestorKeys ?? [])) {
               const k = `${ak}||${cfName}||${cv}||${vf.fieldName}`;
               this.rollupCache.set(k, (this.rollupCache.get(k) ?? 0) + num);

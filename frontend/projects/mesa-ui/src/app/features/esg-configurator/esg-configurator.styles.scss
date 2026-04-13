@@ -2456,10 +2456,12 @@
 
   // Vertical freeze: entire thead sticks to the top of the scroll container.
   // Individual cells handle horizontal freeze via position:sticky + left.
+  // background ensures rows scrolling beneath the sticky header are fully obscured.
   thead {
     position: sticky;
     top: 0;
     z-index: 3;
+    background: #eef2f5;
   }
 
   &__head-row {
@@ -4641,12 +4643,6 @@ app-esg-task-page {
   }
 }
 
-.cfg-sv-grid-wrap {
-  flex: 1;
-  overflow: auto;
-  padding: 0 12px 12px;
-}
-
 .cfg-sv-grid {
   min-width: max-content;
 
@@ -5004,6 +5000,7 @@ app-esg-task-page {
   overflow: auto;
   flex: 1;
   min-height: 0;
+  padding: 0 12px 12px;
 }
 
 // ── Context menu ──────────────────────────────────────────────────────────────
