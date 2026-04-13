@@ -296,6 +296,8 @@ export interface DataEntryGridResponse {
    * Used by columnCombinations to hide/show columns based on the active filter selection.
    */
   filtriColonneMapping?: Record<string, Record<string, string[]>>;
+  /** SQL queries generated server-side during this grid build. Useful for debugging. */
+  debugSql?: string[];
   // legacy keys
   filtriOptions?:  DataEntryFilterOption[];
   righeOptions?:   DataEntryRowOption[];

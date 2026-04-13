@@ -296,6 +296,7 @@ export async function getMultiLevelRigheOptions(
 export async function loadWriteRows(
   schema: string, writeTable: string,
   _allDimFields: string[], valoriFields: string[],
+  sqlLog?: string[],
 ): Promise<WriteRow[]> {
   assertValidIdentifier(schema, 'schema');
   assertValidIdentifier(writeTable, 'writeTable');
@@ -311,9 +312,9 @@ export async function loadWriteRows(
   // SELECT * so we get every column the WRITE table has, regardless of what isFactDim
   // excludes. The table may have been created with more dimension columns than allDimFields
   // currently lists (e.g. dimTable fields are still real fact-table columns).
-  const rows = await dbAll<Record<string, unknown>>(
-    `SELECT * FROM [${schema}].[${writeTable}]`,
-  );
+  const writeSql = `SELECT * FROM [${schema}].[${writeTable}]`;
+  sqlLog?.push(`-- Write rows (WRITE table)\n${writeSql}`);
+  const rows = await dbAll<Record<string, unknown>>(writeSql);
 
   const valoriSet = new Set(valoriFields);
   const metaCols  = new Set(['UpdatedBy', 'UpdatedAt']);
@@ -600,6 +601,7 @@ export async function loadAggregatedFactRows(
   joinConfig: Array<{ leftKey: string; rightTable: string; rightKey?: string; joinType?: string }>,
   layout: DataEntryGridResponse['layout'],
   reportId: number,
+  sqlLog?: string[],
 ): Promise<WriteRow[]> {
   const valoriFields = layout.valori.map((v) => v.fieldName);
   if (valoriFields.length === 0) return [];
@@ -703,6 +705,7 @@ export async function loadAggregatedFactRows(
     `HAVING ${havingNonNull}`,
   ].join('\n');
 
+  sqlLog?.push(`-- Aggregated fact rows\n${sql}`);
   const rows = await dbAll<Record<string, unknown>>(sql);
 
   const allDimOut = [

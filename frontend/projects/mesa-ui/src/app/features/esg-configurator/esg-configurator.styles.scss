@@ -554,6 +554,11 @@
     background: transparent; color: var(--cfg-text);
     border-color: var(--cfg-border);
     &:hover:not(:disabled) { background: #f0f2f5; }
+    &.cfg-btn--active {
+      background: var(--cfg-primary);
+      color: #fff;
+      border-color: var(--cfg-primary);
+    }
   }
 
   &--secondary {
@@ -4701,6 +4706,82 @@ app-esg-task-page {
     text-align: center;
     color: var(--cfg-text-muted, #888);
     padding: 24px;
+  }
+}
+
+// ── SQL Debug Panel ─────────────────────────────────────────────────────────────
+
+.cfg-sv-sql-panel {
+  position: fixed;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 540px;
+  max-width: 90vw;
+  background: #1e1e2e;
+  color: #cdd6f4;
+  display: flex;
+  flex-direction: column;
+  z-index: 1200;
+  box-shadow: -4px 0 24px rgba(0,0,0,.4);
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: .03em;
+    color: #cba6f7;
+  }
+
+  .cfg-btn-icon {
+    color: #cdd6f4;
+    opacity: .7;
+    &:hover { opacity: 1; }
+  }
+
+  &__body {
+    overflow-y: auto;
+    flex: 1;
+    padding: 12px 16px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  &__query {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__query-index {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .06em;
+    color: #89b4fa;
+  }
+
+  &__pre {
+    margin: 0;
+    font-family: 'Consolas', 'Fira Code', 'Monaco', monospace;
+    font-size: 12px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-break: break-word;
+    background: rgba(255,255,255,.04);
+    border: 1px solid rgba(255,255,255,.08);
+    border-radius: 6px;
+    padding: 12px 14px;
+    color: #a6e3a1;
   }
 }
 

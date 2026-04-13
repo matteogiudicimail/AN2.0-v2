@@ -67,6 +67,8 @@ export interface DataEntryGridResponse {
    * Used by the frontend to filter visible rows when such a filter is active.
    */
   filtriDimMapping?: Record<string, Record<string, string[]>>;
+  /** SQL queries generated during this grid build — only populated for snapshot grid calls. */
+  debugSql?: string[];
   /**
    * For "pure dim-table-only" filtri fields whose dimTable matches a COLONNE field's dimTable:
    * maps filterValue → array of colonna field values visible under that filter.

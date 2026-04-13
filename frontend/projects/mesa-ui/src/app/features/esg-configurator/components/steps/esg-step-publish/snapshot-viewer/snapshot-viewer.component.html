@@ -23,6 +23,15 @@
       <span *ngIf="approvalLoading" class="cfg-de-header__saving">
         <span class="cfg-spinner cfg-spinner--xs"></span> Updating approval…
       </span>
+      <button *ngIf="grid?.debugSql?.length"
+              class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+              type="button"
+              [class.cfg-btn--active]="showSqlPanel"
+              (click)="showSqlPanel = !showSqlPanel"
+              title="Mostra query SQL generate sul server"
+              aria-label="Mostra/nascondi query SQL">
+        🛠 SQL
+      </button>
       <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
               type="button"
               (click)="load()"
@@ -431,6 +440,24 @@
   </div>
   <div class="cfg-de-ctx-menu__footer">
     <button class="cfg-btn cfg-btn--ghost cfg-btn--xs" type="button" (click)="closeAllMenus()">Chiudi</button>
+  </div>
+</div>
+
+<!-- ── SQL Debug Panel ── -->
+<div *ngIf="showSqlPanel && grid?.debugSql?.length"
+     class="cfg-sv-sql-panel"
+     role="dialog"
+     aria-modal="false"
+     aria-label="Query SQL generate sul server">
+  <div class="cfg-sv-sql-panel__header">
+    <span class="cfg-sv-sql-panel__title">🛠 Query SQL — snap #{{ snapshotId }}</span>
+    <button class="cfg-btn-icon" type="button" (click)="showSqlPanel = false" aria-label="Chiudi">✕</button>
+  </div>
+  <div class="cfg-sv-sql-panel__body">
+    <div *ngFor="let q of grid!.debugSql; let i = index" class="cfg-sv-sql-panel__query">
+      <div class="cfg-sv-sql-panel__query-index">Query {{ i + 1 }}</div>
+      <pre class="cfg-sv-sql-panel__pre">{{ q }}</pre>
+    </div>
   </div>
 </div>
 

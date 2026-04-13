@@ -203,8 +203,9 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
   const factColonneFields = normalized.colonne.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
   const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
 
-  let writeRows = await loadWriteRows(schemaName, writeTable, allDimFields, valoriFields);
-  const factRows = await loadAggregatedFactRows(schemaName, factTable, joinConfig, layout, snap.reportId);
+  const sqlLog: string[] = [];
+  let writeRows = await loadWriteRows(schemaName, writeTable, allDimFields, valoriFields, sqlLog);
+  const factRows = await loadAggregatedFactRows(schemaName, factTable, joinConfig, layout, snap.reportId, sqlLog);
   if (writeRows.length === 0) {
     writeRows = factRows;
   } else {
@@ -230,6 +231,7 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
     approvedRows: [],  // Snapshots don't participate in the approval workflow
     filtriDimMapping:     Object.keys(filtriDimMapping).length     > 0 ? filtriDimMapping     : undefined,
     filtriColonneMapping: Object.keys(filtriColonneMapping).length > 0 ? filtriColonneMapping : undefined,
+    debugSql: sqlLog.length > 0 ? sqlLog : undefined,
   };
 }
 

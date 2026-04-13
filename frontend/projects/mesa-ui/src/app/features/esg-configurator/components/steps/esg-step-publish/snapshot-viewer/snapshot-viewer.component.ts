@@ -88,6 +88,9 @@ export class SnapshotViewerComponent implements OnInit {
   /** Collapsible params/filters section */
   paramsCollapsed = false;
 
+  /** Show/hide the SQL debug panel */
+  showSqlPanel = false;
+
   /** Filter search popup state */
   filterSearchField: string | null = null;
   filterSearchText = '';
