@@ -31,6 +31,7 @@ interface RawReportSummary {
 
 interface RawReportDetail extends RawReportSummary {
   Description: string | null; Tags: string | null; Owner: string | null;
+  TrackingEnabled: number | null;
 }
 
 // ── Report CRUD ────────────────────────────────────────────────────────────────
@@ -59,31 +60,59 @@ export async function listReports(_userId: string): Promise<ReportSummary[]> {
 }
 
 export async function getReport(reportId: number): Promise<ReportDetail | null> {
-  const row = await dbGet<RawReportDetail>(
-    `SELECT TOP 1 ReportId, ReportCode, ReportLabel, Description, Domain, Category,
-            Tags, Owner, Status, Version, WritebackMode,
-            CreatedBy, CreatedAt, UpdatedAt, IsActive
-     FROM cfg_Report WHERE ReportId = ?`,
-    reportId
-  );
+  // Try to read TrackingEnabled. If the column doesn't exist yet (migration hasn't run),
+  // fall back to a query without it (defaults to false).
+  let row: RawReportDetail | undefined;
+  try {
+    row = await dbGet<RawReportDetail>(
+      `SELECT TOP 1 ReportId, ReportCode, ReportLabel, Description, Domain, Category,
+              Tags, Owner, Status, Version, WritebackMode,
+              CreatedBy, CreatedAt, UpdatedAt, IsActive,
+              ISNULL(TrackingEnabled, 0) AS TrackingEnabled
+       FROM cfg_Report WHERE ReportId = ?`,
+      reportId
+    );
+  } catch {
+    row = await dbGet<RawReportDetail>(
+      `SELECT TOP 1 ReportId, ReportCode, ReportLabel, Description, Domain, Category,
+              Tags, Owner, Status, Version, WritebackMode,
+              CreatedBy, CreatedAt, UpdatedAt, IsActive
+       FROM cfg_Report WHERE ReportId = ?`,
+      reportId
+    );
+  }
   if (!row) return null;
   return {
-    reportId:      row.ReportId,
-    reportCode:    row.ReportCode,
-    reportLabel:   row.ReportLabel,
-    description:   row.Description,
-    domain:        row.Domain,
-    category:      row.Category,
-    tags:          row.Tags,
-    owner:         row.Owner,
-    status:        row.Status        as ReportStatus,
-    version:       row.Version,
-    writebackMode: row.WritebackMode as WritebackMode,
-    createdBy:     row.CreatedBy,
-    createdAt:     row.CreatedAt,
-    updatedAt:     row.UpdatedAt,
-    isActive:      Boolean(row.IsActive),
+    reportId:        row.ReportId,
+    reportCode:      row.ReportCode,
+    reportLabel:     row.ReportLabel,
+    description:     row.Description,
+    domain:          row.Domain,
+    category:        row.Category,
+    tags:            row.Tags,
+    owner:           row.Owner,
+    status:          row.Status        as ReportStatus,
+    version:         row.Version,
+    writebackMode:   row.WritebackMode as WritebackMode,
+    createdBy:       row.CreatedBy,
+    createdAt:       row.CreatedAt,
+    updatedAt:       row.UpdatedAt,
+    isActive:        Boolean(row.IsActive),
+    trackingEnabled: Boolean(row.TrackingEnabled),
   };
+}
+
+export async function setReportTracking(reportId: number, enabled: boolean, userId: string): Promise<void> {
+  const now = new Date().toISOString();
+  try {
+    await dbRun(
+      `UPDATE cfg_Report SET TrackingEnabled = ?, UpdatedBy = ?, UpdatedAt = ? WHERE ReportId = ?`,
+      enabled ? 1 : 0, userId, now, reportId,
+    );
+  } catch (err) {
+    // Column may not exist pre-migration — silently ignore
+    console.warn('[configuratorService] setReportTracking: column not available:', (err as Error).message);
+  }
 }
 
 export async function createReport(dto: CreateReportDto, userId: string): Promise<number> {

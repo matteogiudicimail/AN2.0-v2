@@ -383,6 +383,22 @@ export class EsgConfiguratorService {
     ).pipe(map(r => this.normalizeGridResponse(r)));
   }
 
+  getSnapshotCellHistory(snapshotId: number, req: CellHistoryRequest): Observable<CellHistoryEntry[]> {
+    return this.http.post<CellHistoryEntry[]>(
+      `${this.base}/snapshots/${snapshotId}/cell-history`,
+      req,
+      { headers: this.headers() },
+    );
+  }
+
+  setReportTracking(reportId: number, enabled: boolean): Observable<DataModelDetail> {
+    return this.http.put<DataModelDetail>(
+      `${this.base}/reports/${reportId}/tracking`,
+      { enabled },
+      { headers: this.headers() },
+    );
+  }
+
   saveSnapshotCell(snapshotId: number, dto: SaveCellDto): Observable<{ ok: boolean }> {
     return this.http.put<{ ok: boolean }>(
       `${this.base}/snapshots/${snapshotId}/cell`,

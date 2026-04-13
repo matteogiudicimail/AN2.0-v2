@@ -42,9 +42,16 @@ export class KpiMetadataLensComponent implements OnInit {
 
   saveEdit(): void {
     const dto: UpsertParamRowDto = {
-      sourceValue:       this.row.sourceValue,
-      label:             this.row.label,
+      sourceValue:      this.row.sourceValue,
+      label:            this.row.label,
+      rowKind:          this.row.rowKind,
+      parentParamId:    this.row.parentParamId,
+      grouping:         this.row.grouping,
+      formula:          this.row.formula,
       compilationGuide: this.editValue || null,
+      isEditable:       this.row.isEditable,
+      isFormula:        this.row.isFormula,
+      isVisible:        this.row.isVisible,
     };
     this.isSaving  = true;
     this.errorMsg  = null;
@@ -56,7 +63,7 @@ export class KpiMetadataLensComponent implements OnInit {
         this.isSaving  = false;
         this.saved.emit(updated);
       },
-      error: () => { this.errorMsg = 'Could not save the guide.'; this.isSaving = false; },
+      error: () => { this.errorMsg = 'Impossibile salvare la guida.'; this.isSaving = false; },
     });
   }
 

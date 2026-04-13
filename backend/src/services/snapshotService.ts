@@ -203,6 +203,10 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
   const factColonneFields = normalized.colonne.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
   const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
 
+  // Repair WRITE table if it was created with stale PK columns (e.g. _Grouping fields).
+  // This is a no-op after the first repair; subsequent calls only run a fast sys-table check.
+  await ensureWriteTable(schemaName, writeTable, allDimFields, valoriFields);
+
   const sqlLog: string[] = [];
   let writeRows = await loadWriteRows(schemaName, writeTable, allDimFields, valoriFields, sqlLog);
   const factRows = await loadAggregatedFactRows(schemaName, factTable, joinConfig, layout, snap.reportId, sqlLog);
@@ -255,8 +259,9 @@ export async function saveSnapshotCell(
   const writeTable = `${factTable}_WRITE`;
 
   const valoriFields  = normalized2.valori.map((f: any) => f.fieldName);
-  // Include ALL non-grouping filtri (even dim-table-only like Owner); frontend sends '' as "tutti" sentinel
-  const allFiltriFields   = normalized2.filtri.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
+  // Exclude virtual grouping fields AND pure dim-table-only filtri (they filter the view, not stored per row).
+  // Consistent with isFactFiltro used in getSnapshotGrid and dataEntryCellService.saveCell.
+  const allFiltriFields   = normalized2.filtri.filter(isFactFiltro).map((f: any) => f.fieldName);
   const factRigheFields   = normalized2.righe.filter(isFactRiga).map((f: any) => f.fieldName);
   const factColonneFields = normalized2.colonne.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
   const allDimFields      = [...allFiltriFields, ...factRigheFields, ...factColonneFields];

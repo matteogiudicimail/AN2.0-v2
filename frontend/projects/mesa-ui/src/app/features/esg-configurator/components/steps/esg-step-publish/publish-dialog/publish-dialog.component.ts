@@ -4,7 +4,7 @@ import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { EsgConfiguratorService } from '../../../../services/esg-configurator.service';
 import {
-  TaskSummary, UpsertTaskDto, MenuTreeNode, EntryLayoutConfig,
+  TaskSummary, UpsertTaskDto, MenuTreeNode, EntryLayoutConfig, ViewerSettings,
 } from '../../../../models/esg-configurator.models';
 import { SearchableSelectItem } from '../../../shared/cfg-searchable-select/cfg-searchable-select.component';
 
@@ -44,6 +44,15 @@ export class PublishDialogComponent implements OnInit {
   /** Set of filter field names the admin wants to hide from the user */
   hiddenFilterFields = new Set<string>();
 
+  /** Viewer control settings — which toolbars are shown in the snapshot viewer */
+  viewerSettings: ViewerSettings = {
+    showSaveMode:       true,
+    defaultSaveMode:    'auto',
+    showExcelExport:    true,
+    showSoloConDati:    true,
+    defaultSoloConDati: false,
+  };
+
   get isNew(): boolean { return this.task === null; }
 
   constructor(private svc: EsgConfiguratorService, private fb: FormBuilder) {}
@@ -57,6 +66,17 @@ export class PublishDialogComponent implements OnInit {
       accessReaders:  [this.task?.accessReaders  ?? ''],
       accessWriters:  [this.task?.accessWriters  ?? ''],
     });
+
+    // Pre-populate viewer settings from existing task (before async load)
+    if (this.task?.viewerSettings) {
+      this.viewerSettings = {
+        showSaveMode:       this.task.viewerSettings.showSaveMode       ?? true,
+        defaultSaveMode:    this.task.viewerSettings.defaultSaveMode    ?? 'auto',
+        showExcelExport:    this.task.viewerSettings.showExcelExport    ?? true,
+        showSoloConDati:    this.task.viewerSettings.showSoloConDati    ?? true,
+        defaultSoloConDati: this.task.viewerSettings.defaultSoloConDati ?? false,
+      };
+    }
 
     forkJoin({
       menu:    this.svc.getMenuTree().pipe(catchError(() => of([] as MenuTreeNode[]))),
@@ -145,6 +165,7 @@ export class PublishDialogComponent implements OnInit {
       accessWriters:  v.accessWriters?.trim() || undefined,
       defaultFilters: this.buildDefaultFiltersJson(),
       hiddenFilters:  this.buildHiddenFiltersJson(),
+      viewerSettings: this.viewerSettings,
     };
 
     this.isSaving = true;
@@ -156,7 +177,7 @@ export class PublishDialogComponent implements OnInit {
 
     call$.subscribe({
       next:  (saved) => { this.isSaving = false; this.saved.emit(saved); },
-      error: ()      => { this.errorMsg = 'Could not save. Please try again.'; this.isSaving = false; },
+      error: ()      => { this.errorMsg = 'Impossibile salvare. Riprovare.'; this.isSaving = false; },
     });
   }
 

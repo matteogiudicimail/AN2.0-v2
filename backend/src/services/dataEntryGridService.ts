@@ -14,9 +14,10 @@ import {
   sortedJson, splitFact, getDistinctColValues, validateLayoutIdentifiers, columnExists,
 } from './dataEntryHelpers';
 import {
-  loadParamMap, buildDimTableHierarchy, buildParentChildHierarchy,
+  loadParamMap, loadParamRowsForField, buildDimTableHierarchy, buildParentChildHierarchy,
   getDistinctParamGroupings, buildGroupingParamHierarchy,
 } from './dataEntryHierarchyBuilderService';
+import { ensureWriteTable } from './dataEntryCellService';
 
 /** True when an axis item is a virtual param-grouping field (<col>_Grouping). */
 function isGroupingItem(item: { fieldName: string; paramTableId?: number | null }): boolean {
@@ -191,7 +192,30 @@ export async function getMultiLevelRigheOptions(
     }
 
     const hasOrder = await columnExists(dimSchema, dimTbl, 'InLevelOrder');
-    return buildDimTableHierarchy(dimSchema, dimTbl, righeLayout.map((r) => r.fieldName), hasOrder);
+    const dimResult = await buildDimTableHierarchy(dimSchema, dimTbl, righeLayout.map((r) => r.fieldName), hasOrder);
+    // Apply PARAM overlay for each level field so compilation guides / formula rows /
+    // custom labels are visible even when the righe uses a plain dim table (no paramTableId).
+    for (const rigaItem of righeLayout) {
+      const pRows = await loadParamRowsForField(reportId, rigaItem.fieldName);
+      if (pRows.length === 0) continue;
+      // Index only nodes belonging to this field level
+      const nodeByValue = new Map<string, DataEntryRigaOption>(
+        dimResult.filter((n) => n.fieldName === rigaItem.fieldName).map((n) => [n.value, n]),
+      );
+      for (const pr of pRows) {
+        const node = nodeByValue.get(pr.sourceValue);
+        if (node) {
+          node.label    = pr.label || node.label;
+          node.paramRow = {
+            rowKind: pr.rowKind, indentLevel: pr.indentLevel,
+            grouping: pr.grouping, formula: pr.formula,
+            compilationGuide: pr.compilationGuide,
+            isEditable: pr.isEditable, isFormula: pr.isFormula,
+          };
+        }
+      }
+    }
+    return dimResult;
   }
 
   // Fact-based path
@@ -827,6 +851,9 @@ export async function getDataEntryGrid(reportId: number): Promise<DataEntryGridR
   const factColonneFields = layout.colonne.filter((f) => !isGroupingItem(f)).map((f) => f.fieldName);
   const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
 
+  // Repair WRITE table if it was created with stale PK columns (e.g. _Grouping fields).
+  await ensureWriteTable(schemaName, writeTable, allDimFields, valoriFields);
+
   let writeRows = await loadWriteRows(schemaName, writeTable, allDimFields, valoriFields);
 
   const factRows = await loadAggregatedFactRows(schemaName, factTable, joinConfig, layout, reportId);
@@ -852,7 +879,7 @@ export async function getDataEntryGrid(reportId: number): Promise<DataEntryGridR
       const pMap = await loadParamMap(item.paramTableId!);
       const sourceCol = item.fieldName.slice(0, -'_Grouping'.length);
       const gMap = new Map<string, string>();
-      for (const [sv, info] of pMap) gMap.set(sv, info.paramRow.raggruppamento ?? '');
+      for (const [sv, info] of pMap) gMap.set(sv, info.paramRow.grouping ?? '');
       resolutions.set(item.fieldName, { sourceCol, map: gMap });
     }
     for (const row of writeRows) {

@@ -11,7 +11,7 @@
 
   <!-- No layout configured -->
   <div *ngIf="!isLoadingFilters && !grid" class="cfg-alert cfg-alert--info" role="status">
-    Configure the layout in Step 4 (Report Designer) before opening the preview.
+    Configura il layout nello Step 4 (Report Designer) prima di aprire l'anteprima.
   </div>
 
   <ng-container *ngIf="!isLoadingFilters && grid">
@@ -23,21 +23,21 @@
           📋 <code>{{ grid.bindingInfo.schemaName }}.{{ grid.bindingInfo.writeTable }}</code>
         </span>
         <span *ngIf="isSaving" class="cfg-de-header__saving">
-          <span class="cfg-spinner cfg-spinner--xs"></span> Saving…
+          <span class="cfg-spinner cfg-spinner--xs"></span> Salvataggio…
         </span>
         <span *ngIf="adjLoading" class="cfg-de-header__saving">
-          <span class="cfg-spinner cfg-spinner--xs"></span> Creating adjustment…
+          <span class="cfg-spinner cfg-spinner--xs"></span> Creazione rettifica…
         </span>
       </div>
 
       <!-- Only-with-data toggle (always visible) -->
       <label class="cfg-de-header__toggle"
-             title="Hide rows and subtotals with no data">
+             title="Nascondi righe e subtotali senza dati">
         <input type="checkbox"
                class="cfg-de-toggle__check"
                [checked]="showOnlyWithData"
                (change)="onShowOnlyWithDataChange($event)" />
-        <span class="cfg-de-toggle__label">Only with data</span>
+        <span class="cfg-de-toggle__label">Solo con dati</span>
         <span *ngIf="isRefiltering" class="cfg-spinner cfg-spinner--xs cfg-de-toggle__spinner"></span>
       </label>
 
@@ -56,7 +56,7 @@
               class="cfg-btn cfg-btn--ghost cfg-btn--xs"
               type="button"
               (click)="paramsCollapsed = !paramsCollapsed"
-              [title]="paramsCollapsed ? 'Expand parameters and filters' : 'Collapse parameters and filters'">
+              [title]="paramsCollapsed ? 'Espandi parametri e filtri' : 'Comprimi parametri e filtri'">
         {{ paramsCollapsed ? '▼ Parametri e filtri' : '▲ Parametri e filtri' }}
       </button>
     </div>
@@ -70,7 +70,7 @@
            (click)="paramsCollapsed = false"
            role="button"
            tabindex="0"
-           title="Click to expand parameters and filters">
+           title="Clicca per espandere parametri e filtri">
         <span class="cfg-de-params-collapsed__label">Parametri e filtri</span>
         <span class="cfg-de-params-collapsed__expand">▼</span>
       </div>
@@ -81,14 +81,14 @@
         <!-- ── Save mode + actions bar ── -->
         <div class="cfg-de-actions-bar">
           <!-- Save mode toggle -->
-          <div class="cfg-de-save-toggle" role="group" aria-label="Save mode">
-            <span class="cfg-de-save-toggle__label">Save:</span>
+          <div class="cfg-de-save-toggle" role="group" aria-label="Modalità salvataggio">
+            <span class="cfg-de-save-toggle__label">Salva:</span>
             <button class="cfg-de-save-toggle__btn"
                     [class.cfg-de-save-toggle__btn--active]="saveMode === 'auto'"
                     (click)="setSaveMode('auto')"
                     type="button"
                     [attr.aria-pressed]="saveMode === 'auto'"
-                    title="Save automatically on each change">
+                    title="Salva automaticamente ad ogni modifica">
               Auto
             </button>
             <button class="cfg-de-save-toggle__btn"
@@ -96,8 +96,8 @@
                     (click)="setSaveMode('manual')"
                     type="button"
                     [attr.aria-pressed]="saveMode === 'manual'"
-                    title="Accumulate changes and save with the button">
-              Manual
+                    title="Accumula le modifiche e salva con il pulsante">
+              Manuale
             </button>
           </div>
 
@@ -107,20 +107,20 @@
                   [disabled]="isSavingPending"
                   (click)="savePending()"
                   type="button"
-                  [attr.aria-label]="'Save ' + pendingCount + ' pending changes'">
+                  [attr.aria-label]="'Salva ' + pendingCount + ' modifiche in sospeso'">
             <span *ngIf="isSavingPending"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-            💾 Save ({{ pendingCount }})
+            💾 Salva ({{ pendingCount }})
           </button>
 
           <!-- Reload from DB -->
           <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                   (click)="requestReloadDiscard()"
-                  title="Reload data from database"
+                  title="Ricarica dati dal database"
                   type="button"
                   [attr.aria-label]="saveMode === 'manual' && pendingCount > 0
-                    ? 'Reload from DB (warning: ' + pendingCount + ' unsaved changes will be discarded)'
-                    : 'Reload data from database'">
-            ↻ Reload
+                    ? 'Ricarica da DB (attenzione: ' + pendingCount + ' modifiche non salvate saranno perse)'
+                    : 'Ricarica dati dal database'">
+            ↻ Ricarica
           </button>
         </div>
 
@@ -129,20 +129,20 @@
              class="cfg-de-reload-confirm"
              role="alertdialog"
              aria-live="assertive"
-             [attr.aria-label]="'Confirm discard of ' + pendingCount + ' unsaved changes'">
+             [attr.aria-label]="'Conferma eliminazione di ' + pendingCount + ' modifiche non salvate'">
           <span class="cfg-de-reload-confirm__msg">
-            ⚠️ You are about to discard <strong>{{ pendingCount }}</strong> unsaved change(s). Data will be reloaded from the database.
+            ⚠️ Stai per eliminare <strong>{{ pendingCount }}</strong> modifica/modifiche non salvate. I dati verranno ricaricati dal database.
           </span>
           <div class="cfg-de-reload-confirm__actions">
             <button class="cfg-btn cfg-btn--danger cfg-btn--sm"
                     (click)="confirmReloadDiscard()"
                     type="button">
-              🗑 Yes, discard and reload
+              🗑 Sì, elimina e ricarica
             </button>
             <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                     (click)="cancelReloadDiscard()"
                     type="button">
-              Cancel
+              Annulla
             </button>
           </div>
         </div>
@@ -161,8 +161,8 @@
                         class="cfg-select cfg-de-filtri__select"
                         [(ngModel)]="selectedFiltri[f.fieldName]"
                         (change)="onFiltroChange()"
-                        [attr.aria-label]="'Filter by ' + getHierarchyFilterLabel(f.fieldName)">
-                  <option value="">— All —</option>
+                        [attr.aria-label]="'Filtra per ' + getHierarchyFilterLabel(f.fieldName)">
+                  <option value="">— Tutti —</option>
                   <option *ngFor="let opt of getHierarchyFilterOptions(f.fieldName)" [value]="opt.value">
                     {{ opt.label }}
                   </option>
@@ -171,8 +171,8 @@
                         class="cfg-select cfg-de-filtri__select"
                         [(ngModel)]="selectedFiltri[f.fieldName]"
                         (change)="onFiltroChange()"
-                        [attr.aria-label]="'Filter by ' + f.label">
-                  <option value="">— All —</option>
+                        [attr.aria-label]="'Filtra per ' + f.label">
+                  <option value="">— Tutti —</option>
                   <option *ngFor="let v of getFiltriValues(f.fieldName)" [value]="v">{{ v }}</option>
                 </select>
                 <button *ngIf="!embedded"
@@ -205,8 +205,8 @@
                       class="cfg-select cfg-de-filtri__select"
                       [(ngModel)]="selectedFiltri[f.fieldName]"
                       (change)="onFiltroChange()"
-                      [attr.aria-label]="'Filter by ' + getHierarchyFilterLabel(f.fieldName)">
-                <option value="">— All —</option>
+                      [attr.aria-label]="'Filtra per ' + getHierarchyFilterLabel(f.fieldName)">
+                <option value="">— Tutti —</option>
                 <option *ngFor="let opt of getHierarchyFilterOptions(f.fieldName)" [value]="opt.value">
                   {{ opt.label }}
                 </option>
@@ -215,8 +215,8 @@
                       class="cfg-select cfg-de-filtri__select"
                       [(ngModel)]="selectedFiltri[f.fieldName]"
                       (change)="onFiltroChange()"
-                      [attr.aria-label]="'Filter by ' + f.label">
-                <option value="">— All —</option>
+                      [attr.aria-label]="'Filtra per ' + f.label">
+                <option value="">— Tutti —</option>
                 <option *ngFor="let v of getFiltriValues(f.fieldName)" [value]="v">{{ v }}</option>
               </select>
             </div>
@@ -233,18 +233,18 @@
         <span class="cfg-de-filter-popup__title">
           {{ isHierarchyFilter(filterSearchField) ? getHierarchyFilterLabel(filterSearchField) : filterSearchField }}
         </span>
-        <button class="cfg-de-ctx__close" (click)="closeFilterSearch()" aria-label="Close" type="button">✕</button>
+        <button class="cfg-de-ctx__close" (click)="closeFilterSearch()" aria-label="Chiudi" type="button">✕</button>
       </div>
       <input class="cfg-de-filter-popup__search"
              type="search"
-             placeholder="Search…"
+             placeholder="Cerca…"
              [(ngModel)]="filterSearchText"
              (click)="$event.stopPropagation()" />
       <div class="cfg-de-filter-popup__list">
         <div class="cfg-de-filter-popup__option"
              [class.cfg-de-filter-popup__option--selected]="selectedFiltri[filterSearchField] === ''"
              (click)="selectFilterValue(filterSearchField, '')">
-          — All —
+          — Tutti —
         </div>
         <div *ngFor="let v of filteredFilterValues"
              class="cfg-de-filter-popup__option"
@@ -260,7 +260,7 @@
     <div *ngIf="!embedded && saveMode === 'manual' && pendingCount > 0"
          class="cfg-de-pending-notice"
          role="status" aria-live="polite">
-      ⚠️ {{ pendingCount }} unsaved change(s) — highlighted in yellow. Click <strong>💾 Save ({{ pendingCount }})</strong> to persist.
+      ⚠️ {{ pendingCount }} modifica/modifiche non salvate — evidenziate in giallo. Clicca <strong>💾 Salva ({{ pendingCount }})</strong> per salvarle.
     </div>
 
     <!-- Phase 2 loading: grid table preparation -->
@@ -319,12 +319,12 @@
                 <ng-container *ngFor="let vf of grid.layout.values; trackBy: trackByValore">
                   <th class="cfg-de-th cfg-de-th--val"
                       [class.cfg-de-th--locked]="isColumnMemberLocked(cf.fieldName, cv)"
-                      [attr.title]="isColumnMemberLocked(cf.fieldName, cv) ? 'Locked column' : null">
+                      [attr.title]="isColumnMemberLocked(cf.fieldName, cv) ? 'Colonna bloccata' : null">
                     <div class="cfg-de-th__colval">
                       {{ cv }}
                       <span *ngIf="isColumnMemberLocked(cf.fieldName, cv)"
                             class="cfg-de-th__lock-icon"
-                            aria-label="Locked">🔒</span>
+                            aria-label="Bloccata">🔒</span>
                     </div>
                     <div *ngIf="grid.layout.values.length > 1" class="cfg-de-th__valfn">{{ vf.label }}</div>
                   </th>
@@ -335,15 +335,15 @@
 
           <!-- Row 3: column search filter inputs -->
           <tr class="cfg-de-grid__head-row cfg-de-grid__head-row--search"
-              aria-label="Column search filters">
+              aria-label="Filtri di ricerca colonne">
             <!-- Row-label search input (sticky) -->
             <th class="cfg-de-th cfg-de-th--corner cfg-de-th--search-corner">
               <input class="cfg-de-search-input"
                      type="search"
-                     placeholder="Search rows…"
+                     placeholder="Cerca righe…"
                      [(ngModel)]="columnSearchFilters['__riga']"
                      (input)="onSearchChange()"
-                     aria-label="Search row labels" />
+                     aria-label="Cerca etichette righe" />
             </th>
             <!-- One search cell per data column (no-op placeholder for layout alignment) -->
             <ng-container *ngIf="!noColonnaMode">
@@ -385,7 +385,7 @@
                           class="cfg-de-td__toggle" type="button"
                           (click)="$event.stopPropagation(); toggleGroup(riga)"
                           [attr.aria-expanded]="isExpanded(riga)"
-                          [attr.aria-label]="(isExpanded(riga) ? 'Collapse ' : 'Expand ') + riga.label">
+                          [attr.aria-label]="(isExpanded(riga) ? 'Comprimi ' : 'Espandi ') + riga.label">
                     {{ isExpanded(riga) ? '▼' : '▶' }}
                   </button>
                   <!-- Detail role: fixed indent marker (no toggle) -->
@@ -398,8 +398,8 @@
                           class="cfg-de-td__guida-icon"
                           type="button"
                           (click)="openGuida($event, riga)"
-                          [attr.aria-label]="'Compilation guide for ' + riga.label"
-                          title="Compilation guide">
+                          [attr.aria-label]="'Guida compilazione per ' + riga.label"
+                          title="Guida compilazione">
                     🔍
                   </button>
                 </div>
@@ -415,8 +415,8 @@
                           [class.cfg-de-td--pending]="isPending(riga, cf.fieldName, cv, vf.fieldName)"
                           [class.cfg-de-td--rollup]="isRollupValue(riga, cf.fieldName, cv, vf.fieldName)"
                           [class.cfg-de-td--locked]="isColumnMemberLocked(cf.fieldName, cv)"
-                          [title]="isColumnMemberLocked(cf.fieldName, cv) ? 'Locked column' :
-                                   isRollupValue(riga, cf.fieldName, cv, vf.fieldName) ? 'Subtotal (sum of children)' : 'Click to enter a value'"
+                          [title]="isColumnMemberLocked(cf.fieldName, cv) ? 'Colonna bloccata' :
+                                   isRollupValue(riga, cf.fieldName, cv, vf.fieldName) ? 'Subtotale (somma dei figli)' : 'Clicca per inserire un valore'"
                           (click)="onGroupCellClick($event, riga, cf.fieldName, cv, vf.fieldName)"
                           (contextmenu)="onCellRightClick($event, riga, cf.fieldName, cv, vf)">
                         <span *ngIf="!isEditing(riga, cf.fieldName, cv, vf.fieldName)"
@@ -435,7 +435,7 @@
                                (keydown.arrowdown)="$event.preventDefault(); navigateAfterCommit('down')"
                                (keydown.arrowup)="$event.preventDefault(); navigateAfterCommit('up')"
                                (keydown.escape)="cancelEdit()"
-                               [attr.aria-label]="'Value ' + vf.label + ' for ' + riga.label + ' / ' + cv" />
+                               [attr.aria-label]="'Valore ' + vf.label + ' per ' + riga.label + ' / ' + cv" />
                       </td>
                     </ng-container>
                   </ng-container>
@@ -449,7 +449,7 @@
                       [class.cfg-de-td--editing]="isEditing(riga, '', '', vf.fieldName)"
                       [class.cfg-de-td--pending]="isPending(riga, '', '', vf.fieldName)"
                       [class.cfg-de-td--rollup]="isRollupValue(riga, '', '', vf.fieldName)"
-                      [title]="isRollupValue(riga, '', '', vf.fieldName) ? 'Subtotal (sum of children)' : 'Click to enter a value'"
+                      [title]="isRollupValue(riga, '', '', vf.fieldName) ? 'Subtotale (somma dei figli)' : 'Clicca per inserire un valore'"
                       (click)="onGroupCellClick($event, riga, '', '', vf.fieldName)"
                       (contextmenu)="onCellRightClick($event, riga, '', '', vf)">
                     <span *ngIf="!isEditing(riga, '', '', vf.fieldName)"
@@ -468,7 +468,7 @@
                            (keydown.arrowdown)="$event.preventDefault(); navigateAfterCommit('down')"
                            (keydown.arrowup)="$event.preventDefault(); navigateAfterCommit('up')"
                            (keydown.escape)="cancelEdit()"
-                           [attr.aria-label]="'Value ' + vf.label + ' for ' + riga.label" />
+                           [attr.aria-label]="'Valore ' + vf.label + ' per ' + riga.label" />
                   </td>
                 </ng-container>
               </ng-container>
@@ -488,20 +488,20 @@
                   [class.cfg-de-td--adj-trigger]="riga.paramRow?.rowKind === 'Aggregato'"
                   [style.paddingLeft.px]="(isMultiLevel ? riga.depth * 20 : ((riga.paramRow?.indentLevel ?? 1) - 1) * 18) + 4"
                   [title]="riga.paramRow?.rowKind === 'Aggregato'
-                            ? 'Click a cell to add a Manual Adjustment'
-                            : (riga.paramRow ? 'Right-click for details' : '')">
+                            ? 'Clicca su una cella per aggiungere una rettifica manuale'
+                            : (riga.paramRow ? 'Tasto destro per dettagli' : '')">
                 <div class="cfg-de-td__riga-inner">
                   <span class="cfg-de-td__label">
                     <span *ngIf="riga.paramRow?.rowKind === 'Aggregato'" class="cfg-de-td__bullet">■ </span>
-                    <span *ngIf="isFormulaRow(riga)" class="cfg-de-td__formula-icon" aria-label="Formula row" title="Computed by formula">ƒ</span>
+                    <span *ngIf="isFormulaRow(riga)" class="cfg-de-td__formula-icon" aria-label="Riga formula" title="Calcolato dalla formula">ƒ</span>
                     {{ riga.label || 'N/A' }}
                   </span>
                   <button *ngIf="riga.paramRow?.compilationGuide"
                           class="cfg-de-td__guida-icon"
                           type="button"
                           (click)="openGuida($event, riga)"
-                          [attr.aria-label]="'Compilation guide for ' + riga.label"
-                          title="Compilation guide">
+                          [attr.aria-label]="'Guida compilazione per ' + riga.label"
+                          title="Guida compilazione">
                     🔍
                   </button>
                   <span *ngIf="riga.paramRow && !riga.paramRow.compilationGuide" class="cfg-de-td__ctx-hint">⋮</span>
@@ -521,12 +521,12 @@
                           [class.cfg-de-td--written]="hasWrittenValue(riga, cf.fieldName, cv, vf.fieldName)"
                           [class.cfg-de-td--pending]="isPending(riga, cf.fieldName, cv, vf.fieldName)"
                           [class.cfg-de-td--adj-trigger]="riga.paramRow?.rowKind === 'Aggregato'"
-                          [title]="isColumnMemberLocked(cf.fieldName, cv) ? 'Locked column' :
-                                   isFormulaRow(riga) ? 'Computed by formula: ' + (riga.paramRow?.formula ?? '') :
-                                   riga.paramRow?.rowKind === 'Aggregato' ? '+ Add manual adjustment' : ''"
+                          [title]="isColumnMemberLocked(cf.fieldName, cv) ? 'Colonna bloccata' :
+                                   isFormulaRow(riga) ? 'Calcolato dalla formula: ' + (riga.paramRow?.formula ?? '') :
+                                   riga.paramRow?.rowKind === 'Aggregato' ? '+ Aggiungi rettifica manuale' : ''"
                           (click)="startEdit(riga, cf.fieldName, cv, vf.fieldName)"
                           (contextmenu)="onCellRightClick($event, riga, cf.fieldName, cv, vf)"
-                          [attr.aria-label]="vf.label + ' for ' + riga.label + (cv ? ' / ' + cv : '')"
+                          [attr.aria-label]="vf.label + ' per ' + riga.label + (cv ? ' / ' + cv : '')"
                           [attr.aria-readonly]="isColumnMemberLocked(cf.fieldName, cv) || isFormulaRow(riga)">
                         <span *ngIf="!isEditing(riga, cf.fieldName, cv, vf.fieldName)"
                               class="cfg-de-td__val"
@@ -553,7 +553,7 @@
                                (keydown.arrowdown)="$event.preventDefault(); navigateAfterCommit('down')"
                                (keydown.arrowup)="$event.preventDefault(); navigateAfterCommit('up')"
                                (keydown.escape)="cancelEdit()"
-                               [attr.aria-label]="'Value ' + vf.label + ' for ' + riga.label + ' / ' + cv" />
+                               [attr.aria-label]="'Valore ' + vf.label + ' per ' + riga.label + ' / ' + cv" />
                       </td>
                     </ng-container>
                   </ng-container>
@@ -570,8 +570,8 @@
                       [class.cfg-de-td--written]="hasWrittenValue(riga, '', '', vf.fieldName)"
                       [class.cfg-de-td--pending]="isPending(riga, '', '', vf.fieldName)"
                       [class.cfg-de-td--adj-trigger]="riga.paramRow?.rowKind === 'Aggregato'"
-                      [title]="isFormulaRow(riga) ? 'Computed by formula: ' + (riga.paramRow?.formula ?? '') :
-                               riga.paramRow?.rowKind === 'Aggregato' ? '+ Add manual adjustment' : ''"
+                      [title]="isFormulaRow(riga) ? 'Calcolato dalla formula: ' + (riga.paramRow?.formula ?? '') :
+                               riga.paramRow?.rowKind === 'Aggregato' ? '+ Aggiungi rettifica manuale' : ''"
                       (click)="startEdit(riga, '', '', vf.fieldName)"
                       (contextmenu)="onCellRightClick($event, riga, '', '', vf)"
                       [attr.aria-readonly]="isFormulaRow(riga)">
@@ -600,7 +600,7 @@
                            (keydown.arrowdown)="$event.preventDefault(); navigateAfterCommit('down')"
                            (keydown.arrowup)="$event.preventDefault(); navigateAfterCommit('up')"
                            (keydown.escape)="cancelEdit()"
-                           [attr.aria-label]="'Value ' + vf.label + ' for ' + riga.label" />
+                           [attr.aria-label]="'Valore ' + vf.label + ' per ' + riga.label" />
                   </td>
                 </ng-container>
               </ng-container>
@@ -610,7 +610,7 @@
 
           <tr *ngIf="visibleRighe.length === 0">
             <td class="cfg-de-td cfg-de-td--empty" [attr.colspan]="totalColspan">
-              No rows available. Configure Step 3 (Parameters) or the binding in Step 2.
+              Nessuna riga disponibile. Configura lo Step 3 (Parametri) o il binding nello Step 2.
             </td>
           </tr>
         </tbody>
@@ -623,21 +623,21 @@
          class="cfg-de-ctx"
          [style.top.px]="rowCtxMenu.y"
          [style.left.px]="rowCtxMenu.x"
-         role="dialog" aria-label="Row details"
+         role="dialog" aria-label="Dettagli riga"
          (click)="$event.stopPropagation()">
 
       <div class="cfg-de-ctx__header">
         <strong>{{ rowCtxMenu.riga.label }}</strong>
-        <button class="cfg-de-ctx__close" (click)="closeAllMenus()" aria-label="Close" type="button">✕</button>
+        <button class="cfg-de-ctx__close" (click)="closeAllMenus()" aria-label="Chiudi" type="button">✕</button>
       </div>
 
       <ng-container *ngIf="rowCtxMenu.riga.paramRow; else noParamTpl">
         <dl class="cfg-de-ctx__meta">
           <div *ngIf="rowCtxMenu.riga.paramRow.grouping" class="cfg-de-ctx__row">
-            <dt>Group</dt><dd>{{ rowCtxMenu.riga.paramRow.grouping }}</dd>
+            <dt>Gruppo</dt><dd>{{ rowCtxMenu.riga.paramRow.grouping }}</dd>
           </div>
           <div class="cfg-de-ctx__row">
-            <dt>Type</dt>
+            <dt>Tipo</dt>
             <dd>
               <span class="cfg-badge"
                     [class.cfg-badge--agg]="rowCtxMenu.riga.paramRow.rowKind === 'Aggregato'"
@@ -650,19 +650,19 @@
             <dt>Formula</dt><dd><code>{{ rowCtxMenu.riga.paramRow.formula }}</code></dd>
           </div>
           <div class="cfg-de-ctx__row">
-            <dt>Editable</dt>
-            <dd>{{ rowCtxMenu.riga.paramRow.isEditable ? 'Yes' : 'No' }}</dd>
+            <dt>Modificabile</dt>
+            <dd>{{ rowCtxMenu.riga.paramRow.isEditable ? 'Sì' : 'No' }}</dd>
           </div>
         </dl>
         <div *ngIf="rowCtxMenu.riga.paramRow.compilationGuide" class="cfg-de-ctx__guida">
-          <div class="cfg-de-ctx__guida-label">📖 Guide:</div>
+          <div class="cfg-de-ctx__guida-label">📖 Guida:</div>
           <div class="cfg-de-ctx__guida-text">
             {{ stripHtml(rowCtxMenu.riga.paramRow.compilationGuide) }}
           </div>
         </div>
       </ng-container>
       <ng-template #noParamTpl>
-        <p class="cfg-de-ctx__no-param">No parameter details available for this row.</p>
+        <p class="cfg-de-ctx__no-param">Nessun dettaglio parametro disponibile per questa riga.</p>
       </ng-template>
     </div>
 
@@ -671,12 +671,12 @@
          class="cfg-de-ctx cfg-de-ctx--history"
          [style.top.px]="cellCtxMenu.y"
          [style.left.px]="cellCtxMenu.x"
-         role="dialog" aria-label="Write history"
+         role="dialog" aria-label="Storico inserimenti"
          (click)="$event.stopPropagation()">
 
       <div class="cfg-de-ctx__header">
         <div class="cfg-de-ctx__header-info">
-          <span class="cfg-de-ctx__hist-title">📋 History</span>
+          <span class="cfg-de-ctx__hist-title">📋 Storico</span>
           <span class="cfg-de-ctx__hist-cell">
             {{ cellCtxMenu.riga.label }}<ng-container *ngIf="cellCtxMenu.colonnaValue"> / {{ cellCtxMenu.colonnaValue }}</ng-container>
           </span>
@@ -684,18 +684,18 @@
             · {{ cellCtxMenu.valoreLabel }}
           </span>
         </div>
-        <button class="cfg-de-ctx__close" (click)="closeAllMenus()" aria-label="Close" type="button">✕</button>
+        <button class="cfg-de-ctx__close" (click)="closeAllMenus()" aria-label="Chiudi" type="button">✕</button>
       </div>
 
       <div *ngIf="historyLoading" class="cfg-de-ctx__hist-loading">
-        <span class="cfg-spinner cfg-spinner--xs"></span> Loading…
+        <span class="cfg-spinner cfg-spinner--xs"></span> Caricamento…
       </div>
       <div *ngIf="historyError && !historyLoading" class="cfg-de-ctx__hist-error">
         {{ historyError }}
       </div>
       <div *ngIf="!historyLoading && !historyError && historyEntries.length === 0"
            class="cfg-de-ctx__hist-empty">
-        No entries recorded for this cell.
+        Nessuna voce registrata per questa cella.
       </div>
       <ul *ngIf="!historyLoading && historyEntries.length > 0"
           class="cfg-de-ctx__hist-list" role="list">
@@ -711,7 +711,7 @@
               <span class="cfg-de-ctx__hist-arrow">←</span>
               <span class="cfg-de-ctx__hist-old">{{ e.oldValue }}</span>
             </ng-container>
-            <span *ngIf="e.oldValue === null" class="cfg-de-ctx__hist-first">first entry</span>
+            <span *ngIf="e.oldValue === null" class="cfg-de-ctx__hist-first">primo inserimento</span>
           </div>
         </li>
       </ul>
@@ -766,8 +766,8 @@
 
   <!-- Footer nav (hidden when embedded in split-pane) -->
   <div class="cfg-kpi-footer" *ngIf="!embedded">
-    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()" type="button">← Back</button>
-    <button class="cfg-btn cfg-btn--primary" (click)="next.emit()" type="button">Next: Publish →</button>
+    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()" type="button">← Indietro</button>
+    <button class="cfg-btn cfg-btn--primary" (click)="next.emit()" type="button">Avanti: Pubblica →</button>
   </div>
 
 </div>

@@ -1,9 +1,9 @@
-<div class="cfg-kpi-custom-cols" role="region" aria-label="Custom column management">
+<div class="cfg-kpi-custom-cols" role="region" aria-label="Gestione colonne personalizzate">
   <div class="cfg-kpi-custom-cols__header">
-    <h4 class="cfg-kpi-custom-cols__title">Custom Columns</h4>
+    <h4 class="cfg-kpi-custom-cols__title">Colonne Personalizzate</h4>
     <button class="cfg-btn cfg-btn--secondary" (click)="showAddForm = !showAddForm"
             [attr.aria-expanded]="showAddForm">
-      + Add Column
+      + Aggiungi Colonna
     </button>
   </div>
 
@@ -11,55 +11,55 @@
 
   <!-- Add column form -->
   <form *ngIf="showAddForm" [formGroup]="addForm" (ngSubmit)="addColumn()" novalidate
-        class="cfg-kpi-custom-cols__add-form" aria-label="Add custom column">
+        class="cfg-kpi-custom-cols__add-form" aria-label="Aggiungi colonna personalizzata">
     <div class="cfg-form-row">
       <div class="cfg-field">
-        <label for="cc-name" class="cfg-label">Name (alphanumeric) *</label>
-        <input id="cc-name" class="cfg-input" formControlName="name" placeholder="e.g. unit_of_measure"
+        <label for="cc-name" class="cfg-label">Nome (alfanumerico) *</label>
+        <input id="cc-name" class="cfg-input" formControlName="name" placeholder="es. unita_di_misura"
                [class.cfg-input--error]="addForm.get('name')?.invalid && addForm.get('name')?.touched" />
         <span *ngIf="addForm.get('name')?.errors?.['required'] && addForm.get('name')?.touched"
-              class="cfg-field__error" role="alert">Required</span>
+              class="cfg-field__error" role="alert">Obbligatorio</span>
         <span *ngIf="addForm.get('name')?.errors?.['pattern'] && addForm.get('name')?.touched"
-              class="cfg-field__error" role="alert">Only letters, digits and underscores</span>
+              class="cfg-field__error" role="alert">Solo lettere, cifre e underscore</span>
       </div>
       <div class="cfg-field">
-        <label for="cc-label" class="cfg-label">UI Label *</label>
-        <input id="cc-label" class="cfg-input" formControlName="label" placeholder="e.g. Unit of Measure"
+        <label for="cc-label" class="cfg-label">Etichetta *</label>
+        <input id="cc-label" class="cfg-input" formControlName="label" placeholder="es. Unità di Misura"
                [class.cfg-input--error]="addForm.get('label')?.invalid && addForm.get('label')?.touched" />
         <span *ngIf="addForm.get('label')?.invalid && addForm.get('label')?.touched"
-              class="cfg-field__error" role="alert">Required</span>
+              class="cfg-field__error" role="alert">Obbligatorio</span>
       </div>
       <div class="cfg-field">
-        <label for="cc-type" class="cfg-label">Data Type</label>
+        <label for="cc-type" class="cfg-label">Tipo dato</label>
         <select id="cc-type" class="cfg-select" formControlName="dataType">
-          <option value="text">Text</option>
-          <option value="number">Number</option>
-          <option value="boolean">Boolean</option>
-          <option value="date">Date</option>
+          <option value="text">Testo</option>
+          <option value="number">Numero</option>
+          <option value="boolean">Booleano</option>
+          <option value="date">Data</option>
         </select>
       </div>
       <div class="cfg-field cfg-field--sm">
-        <label for="cc-width" class="cfg-label">Width (px)</label>
+        <label for="cc-width" class="cfg-label">Larghezza (px)</label>
         <input id="cc-width" class="cfg-input" formControlName="width" type="number" min="40" max="600"
-               placeholder="e.g. 120" />
+               placeholder="es. 120" />
       </div>
     </div>
     <div class="cfg-kpi-custom-cols__form-actions">
-      <button type="submit" class="cfg-btn cfg-btn--primary">Add</button>
-      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="showAddForm = false">Cancel</button>
+      <button type="submit" class="cfg-btn cfg-btn--primary">Aggiungi</button>
+      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="showAddForm = false">Annulla</button>
     </div>
   </form>
 
   <!-- Column list -->
   <div *ngIf="defs.length > 0" class="cfg-kpi-custom-cols__list">
-    <table class="cfg-table" aria-label="Defined custom columns">
+    <table class="cfg-table" aria-label="Colonne personalizzate definite">
       <thead>
         <tr>
-          <th scope="col">Name</th>
-          <th scope="col">Label</th>
-          <th scope="col">Type</th>
-          <th scope="col">Width</th>
-          <th scope="col" aria-label="Actions"></th>
+          <th scope="col">Nome</th>
+          <th scope="col">Etichetta</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Larghezza</th>
+          <th scope="col" aria-label="Azioni"></th>
         </tr>
       </thead>
       <tbody>
@@ -70,7 +70,7 @@
           <td>{{ d.width ?? '—' }}</td>
           <td>
             <button class="cfg-btn-icon cfg-btn-icon--danger" (click)="removeColumn(i)"
-                    [attr.aria-label]="'Remove column ' + d.label">🗑</button>
+                    [attr.aria-label]="'Rimuovi colonna ' + d.label">🗑</button>
           </td>
         </tr>
       </tbody>
@@ -78,13 +78,13 @@
   </div>
 
   <div *ngIf="defs.length === 0" class="cfg-kpi-custom-cols__empty">
-    No custom columns defined.
+    Nessuna colonna personalizzata definita.
   </div>
 
   <div class="cfg-kpi-custom-cols__footer">
     <button class="cfg-btn cfg-btn--primary" [disabled]="isSaving" (click)="save()">
-      {{ isSaving ? 'Saving…' : 'Save Columns' }}
+      {{ isSaving ? 'Salvataggio…' : 'Salva Colonne' }}
     </button>
-    <button class="cfg-btn cfg-btn--ghost" (click)="cancelled.emit()">Cancel</button>
+    <button class="cfg-btn cfg-btn--ghost" (click)="cancelled.emit()">Annulla</button>
   </div>
 </div>

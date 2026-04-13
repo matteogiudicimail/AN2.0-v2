@@ -80,6 +80,22 @@ ${valColsDdl},
     END`;
 
   const pool = await getPool();
+
+  // 0. Clean up any leftover _STALE_ tables from previous failed repairs.
+  //    These may also carry an orphaned PK constraint with the same name.
+  //    We DROP them entirely so the constraint name is freed before step 1.
+  const staleRes = await pool.request().query<{ tname: string }>(`
+    SELECT t.name AS tname
+    FROM   sys.tables  t
+    JOIN   sys.schemas s ON s.schema_id = t.schema_id
+    WHERE  s.name = '${schema}'
+      AND  t.name LIKE '${writeTable}_STALE_%'`);
+  for (const row of staleRes.recordset ?? []) {
+    console.info(`[ensureWriteTable] Dropping leftover stale table [${schema}].[${row.tname}]`);
+    await pool.request().query(`DROP TABLE [${schema}].[${row.tname}]`);
+  }
+
+  // 1. Create table if it does not exist yet (full schema with PK)
   await pool.request().query(createDdl);
 
   // 2. If the table already existed, add any missing dim or value columns.
@@ -97,6 +113,36 @@ ${valColsDdl},
         ALTER TABLE [${schema}].[${writeTable}] ADD [${col}] ${type} NULL;
       END`;
     await pool.request().query(alterDdl);
+  }
+
+  // 3. Detect stale PK columns (e.g. _Grouping fields mistakenly added at creation time).
+  //    If found, DROP the table entirely and recreate with the correct PK.
+  //    Data is lost, but it was keyed incorrectly and cannot be reliably migrated.
+  const pkColsRes = await pool.request().query<{ name: string }>(`
+    SELECT c.name
+    FROM sys.key_constraints kc
+    JOIN sys.index_columns ic
+      ON ic.object_id = kc.parent_object_id AND ic.index_id = kc.unique_index_id
+    JOIN sys.columns c
+      ON c.object_id = ic.object_id AND c.column_id = ic.column_id
+    WHERE kc.type = 'PK'
+      AND kc.parent_object_id = OBJECT_ID('[${schema}].[${writeTable}]')
+    ORDER BY ic.key_ordinal`);
+
+  const actualPkCols: string[] = (pkColsRes.recordset ?? []).map((r) => r.name);
+  const expectedPkSet = new Set(allDimFields);
+  const stalePkCols = actualPkCols.filter((c) => !expectedPkSet.has(c));
+
+  if (stalePkCols.length > 0) {
+    console.warn(
+      `[ensureWriteTable] ${schema}.${writeTable} PK contains stale columns ` +
+      `[${stalePkCols.join(', ')}] — dropping and recreating table`,
+    );
+    // DROP the table (this also drops its PK constraint, freeing the name).
+    await pool.request().query(`DROP TABLE [${schema}].[${writeTable}]`);
+    // Recreate with the correct PK (createDdl is IF NOT EXISTS so runs the CREATE).
+    await pool.request().query(createDdl);
+    console.info(`[ensureWriteTable] Rebuilt ${schema}.${writeTable} with correct PK`);
   }
 }
 
@@ -137,8 +183,10 @@ export async function saveCell(
   const valoriFields  = layout.valori.map((f) => f.fieldName);
 
   // Virtual _Grouping fields are excluded from the write table (they don't exist as columns).
+  // A field is a virtual grouping field when it HAS a paramTableId AND ends with '_Grouping'.
+  // (Consistent with dataEntryGridService.ts isGroupingItem.)
   const isGroupingField = (f: { fieldName: string; paramTableId?: number | null }) =>
-    f.fieldName.endsWith('_Grouping') && !(f as any).paramTableId;
+    !!(f as any).paramTableId && f.fieldName.endsWith('_Grouping');
 
   // FILTRI: exclude pure dim-table-only fields (they filter the view, not stored per row).
   const isFactFiltro = (f: { fieldName: string; paramTableId?: number | null }) =>

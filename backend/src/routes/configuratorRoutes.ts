@@ -57,6 +57,22 @@ router.patch('/reports/:id', async (req: Request, res: Response, next: NextFunct
   } catch (e) { next(e); }
 });
 
+// ── Tracking toggle ───────────────────────────────────────────────────────────
+// PUT /reports/:id/tracking — { enabled: boolean }
+
+router.put('/reports/:id/tracking', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = intParam(req.params['id']);
+    if (!id) { res.status(400).json({ error: 'Invalid reportId' }); return; }
+    const { enabled } = req.body as { enabled?: unknown };
+    if (typeof enabled !== 'boolean') {
+      res.status(400).json({ error: 'enabled must be a boolean' }); return;
+    }
+    await cfg.setReportTracking(id, enabled, uid(req));
+    res.json(await cfg.getReport(id));
+  } catch (e) { next(e); }
+});
+
 router.post('/reports/:id/publish', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = intParam(req.params['id']);

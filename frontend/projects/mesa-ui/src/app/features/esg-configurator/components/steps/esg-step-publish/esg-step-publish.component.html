@@ -2,8 +2,8 @@
 
   <!-- Header -->
   <div class="cfg-pub-shell__header">
-    <h3 class="cfg-pub-shell__title">Published Reports</h3>
-    <button class="cfg-btn cfg-btn--primary" (click)="openNew()">+ New Published Report</button>
+    <h3 class="cfg-pub-shell__title">Report Pubblicati</h3>
+    <button class="cfg-btn cfg-btn--primary" (click)="openNew()">+ Nuovo Report Pubblicato</button>
   </div>
 
   <!-- Alerts -->
@@ -12,46 +12,66 @@
 
   <!-- Loading -->
   <div *ngIf="isLoading" class="cfg-pub-shell__loading" role="status" aria-live="polite">
-    <span class="cfg-spinner"></span> Loading…
+    <span class="cfg-spinner"></span> Caricamento…
   </div>
 
   <!-- Task list -->
   <ng-container *ngIf="!isLoading">
 
     <div *ngIf="tasks.length === 0" class="cfg-pub-shell__empty">
-      No published reports yet. Click <strong>+ New Published Report</strong> to create one.
+      Nessun report pubblicato. Clicca <strong>+ Nuovo Report Pubblicato</strong> per crearne uno.
     </div>
 
-    <table *ngIf="tasks.length > 0" class="cfg-table" aria-label="Published reports">
+    <ng-container *ngIf="tasks.length > 0">
+
+      <!-- Filter input -->
+      <div class="cfg-pub-shell__filter">
+        <input class="cfg-input"
+               type="search"
+               [(ngModel)]="taskFilter"
+               placeholder="Cerca report per nome…"
+               aria-label="Filtra report per nome" />
+        <span *ngIf="taskFilter && filteredTasks.length === 0" class="cfg-pub-shell__filter-empty">
+          Nessun report corrisponde a "{{ taskFilter }}"
+        </span>
+      </div>
+
+    <table class="cfg-table" aria-label="Report pubblicati">
       <thead>
         <tr>
-          <th scope="col">Label</th>
-          <th scope="col">Menu Location</th>
-          <th scope="col">Status</th>
-          <th scope="col" aria-label="Actions"></th>
+          <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('label')" style="cursor:pointer">
+            Etichetta
+            <span *ngIf="sortCol === 'label'">{{ sortAsc ? '▲' : '▼' }}</span>
+          </th>
+          <th scope="col">Posizione Menu</th>
+          <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('status')" style="cursor:pointer">
+            Stato
+            <span *ngIf="sortCol === 'status'">{{ sortAsc ? '▲' : '▼' }}</span>
+          </th>
+          <th scope="col" aria-label="Azioni"></th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let t of tasks; trackBy: trackByTask">
+        <tr *ngFor="let t of filteredTasks; trackBy: trackByTask">
           <td>{{ t.label }}</td>
           <td>
             <span *ngIf="t.parentMenuCode" class="cfg-text-muted">{{ t.parentMenuCode }}</span>
             <span *ngIf="!t.parentMenuCode" class="cfg-text-muted">—</span>
           </td>
           <td>
-            <span class="cfg-badge" [ngClass]="statusBadgeClass(t.status)">{{ t.status }}</span>
+            <span class="cfg-badge" [ngClass]="statusBadgeClass(t.status)">{{ t.status === 'Active' ? 'Attivo' : t.status === 'Archived' ? 'Archiviato' : 'Bozza' }}</span>
           </td>
           <td class="cfg-table__actions">
             <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                     (click)="openEdit(t)"
-                    [attr.aria-label]="'Edit ' + t.label">
-              Edit
+                    [attr.aria-label]="'Modifica ' + t.label">
+              Modifica
             </button>
             <button *ngIf="t.status === 'Draft'"
                     class="cfg-btn cfg-btn--secondary cfg-btn--sm"
                     (click)="activate(t)"
-                    [attr.aria-label]="'Activate ' + t.label">
-              Activate
+                    [attr.aria-label]="'Attiva ' + t.label">
+              Attiva
             </button>
             <button *ngIf="t.status === 'Active'"
                     class="cfg-btn cfg-btn--primary cfg-btn--sm"
@@ -71,8 +91,8 @@
             <button *ngIf="t.status === 'Active'"
                     class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                     (click)="archive(t)"
-                    [attr.aria-label]="'Archive ' + t.label">
-              Archive
+                    [attr.aria-label]="'Archivia ' + t.label">
+              Archivia
             </button>
             <button class="cfg-btn cfg-btn--danger cfg-btn--sm"
                     (click)="deleteTask(t)"
@@ -85,7 +105,9 @@
       </tbody>
     </table>
 
-  </ng-container>
+    </ng-container><!-- /tasks.length > 0 -->
+
+  </ng-container><!-- /!isLoading -->
 
   <!-- Publish dialog overlay -->
   <div *ngIf="dialogOpen" class="cfg-pub-overlay" role="presentation" (click)="closeDialog()"></div>
@@ -100,7 +122,7 @@
 
   <!-- Footer nav -->
   <div class="cfg-kpi-footer">
-    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
+    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Indietro</button>
   </div>
 
 </div>
@@ -120,6 +142,8 @@
         [taskLabel]="viewerTaskLabel"
         [taskDefaultFilters]="viewerDefaultFilters"
         [taskHiddenFilters]="viewerHiddenFilters"
+        [taskViewerSettings]="viewerSettings"
+        [trackingEnabled]="reportTrackingEnabled"
         (closed)="closeViewer()">
       </snapshot-viewer>
     </div>

@@ -13,15 +13,15 @@
           <span class="cfg-sv-breadcrumb__sep" aria-hidden="true">›</span>
         </ng-container>
       </ng-container>
-      {{ taskLabel || 'Snapshot Viewer' }}
+      {{ taskLabel || 'Visualizzatore Snapshot' }}
       <span class="cfg-badge cfg-badge--info" title="Snapshot ID">snap #{{ snapshotId }}</span>
     </h3>
     <div class="cfg-sv-header__actions">
       <span *ngIf="isSaving" class="cfg-de-header__saving">
-        <span class="cfg-spinner cfg-spinner--xs"></span> Saving…
+        <span class="cfg-spinner cfg-spinner--xs"></span> Salvataggio…
       </span>
       <span *ngIf="approvalLoading" class="cfg-de-header__saving">
-        <span class="cfg-spinner cfg-spinner--xs"></span> Updating approval…
+        <span class="cfg-spinner cfg-spinner--xs"></span> Aggiornamento approvazione…
       </span>
       <button *ngIf="grid?.debugSql?.length"
               class="cfg-btn cfg-btn--ghost cfg-btn--sm"
@@ -36,7 +36,7 @@
               type="button"
               (click)="load()"
               aria-label="Ricarica griglia">
-        ↻ Reload
+        ↻ Ricarica
       </button>
       <button class="cfg-btn-icon"
               type="button"
@@ -74,7 +74,7 @@
         <div class="cfg-sv-save-toolbar">
 
           <!-- Save mode toggle -->
-          <div class="cfg-de-save-toggle" role="group" aria-label="Modalità salvataggio">
+          <div *ngIf="showSaveMode" class="cfg-de-save-toggle" role="group" aria-label="Modalità salvataggio">
             <span class="cfg-de-save-toggle__label">Salva:</span>
             <button class="cfg-de-save-toggle__btn"
                     [class.cfg-de-save-toggle__btn--active]="saveMode === 'auto'"
@@ -111,8 +111,49 @@
             ⚠ {{ pendingCount }} modifica/modifiche non salvate
           </span>
 
+          <!-- Excel export/import buttons -->
+          <div *ngIf="showExcelExport" class="cfg-sv-excel-inline">
+            <span class="cfg-sv-excel-toolbar__label">Excel:</span>
+            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn"
+                    type="button"
+                    [disabled]="!!isExporting || isImporting"
+                    (click)="exportExcel('grid')"
+                    title="Esporta griglia gerarchica (.xlsx con filtri attivi)"
+                    aria-label="Esporta Excel modalità griglia">
+              <span *ngIf="isExporting === 'grid'"><span class="cfg-spinner cfg-spinner--xs"></span></span>
+              <span *ngIf="isExporting !== 'grid'">⬇</span>
+              Griglia
+            </button>
+            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn"
+                    type="button"
+                    [disabled]="!!isExporting || isImporting"
+                    (click)="exportExcel('pivot')"
+                    title="Esporta tabella pivot flat (.xlsx con filtri attivi)"
+                    aria-label="Esporta Excel modalità pivot">
+              <span *ngIf="isExporting === 'pivot'"><span class="cfg-spinner cfg-spinner--xs"></span></span>
+              <span *ngIf="isExporting !== 'pivot'">⬇</span>
+              Pivot
+            </button>
+            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn cfg-sv-excel-btn--import"
+                    type="button"
+                    [disabled]="!!isExporting || isImporting"
+                    (click)="triggerImportExcel()"
+                    title="Importa file .xlsx precedentemente esportato"
+                    aria-label="Importa Excel">
+              <span *ngIf="isImporting"><span class="cfg-spinner cfg-spinner--xs"></span> Importando…</span>
+              <span *ngIf="!isImporting">⬆ Importa</span>
+            </button>
+            <!-- Hidden file input -->
+            <input #svExcelImportRef
+                   type="file"
+                   accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                   style="display:none"
+                   aria-hidden="true"
+                   (change)="importExcel($event)" />
+          </div>
+
           <!-- Only-with-data toggle -->
-          <label class="cfg-de-toggle cfg-de-toggle--sm" style="margin-left:auto"
+          <label *ngIf="showSoloConDati" class="cfg-de-toggle cfg-de-toggle--sm" style="margin-left:auto"
                  title="Nascondi righe e colonne senza dati">
             <input type="checkbox" [checked]="showOnlyWithData"
                    [disabled]="isComputingFilter"
@@ -126,102 +167,75 @@
         </div>
 
         <!-- Filters — hidden ones are still applied (via selectedFiltri) but not shown to the user -->
-        <div class="cfg-de-filtri" *ngIf="visibleLayoutFilters.length > 0">
-          <span class="cfg-de-filtri__label">Filtri:</span>
-          <ng-container *ngFor="let f of layoutFilters; trackBy: trackByField">
-          <label *ngIf="!hiddenFilterSet.has(f.fieldName)"
-                 class="cfg-de-filtri__item">
-            <span class="cfg-de-filtri__name">{{ f.label }}</span>
-            <div class="cfg-sv-filter-group">
-              <select class="cfg-select cfg-de-filtri__select cfg-sv-filter-select"
-                      [(ngModel)]="selectedFiltri[f.fieldName]"
-                      (change)="selectFiltro(f.fieldName, $any($event.target).value)"
-                      [attr.aria-label]="'Filtro ' + f.label">
-                <option value="">— tutti —</option>
-                <option *ngFor="let v of getFiltriValues(f.fieldName)" [value]="v">{{ v }}</option>
-              </select>
-              <button class="cfg-btn-icon cfg-sv-filter-search-btn"
-                      type="button"
-                      [attr.aria-label]="'Cerca valori ' + f.label"
-                      title="Cerca valori"
-                      (click)="openFilterSearch(f.fieldName); $event.stopPropagation()">
-                🔍
-              </button>
-            </div>
+        <div class="cfg-de-filtri">
 
-            <!-- Filter search popup -->
-            <div *ngIf="filterSearchField === f.fieldName"
-                 class="cfg-sv-filter-popup"
-                 (click)="$event.stopPropagation()">
-              <input class="cfg-sv-filter-popup__search"
-                     type="search"
-                     placeholder="Cerca…"
-                     [(ngModel)]="filterSearchText"
-                     aria-label="Cerca valori filtro" />
-              <ul class="cfg-sv-filter-popup__list">
-                <li class="cfg-sv-filter-popup__item"
-                    [class.cfg-sv-filter-popup__item--selected]="selectedFiltri[f.fieldName] === ''"
-                    (click)="selectFiltro(f.fieldName, ''); closeFilterSearch()">
-                  — tutti —
-                </li>
-                <li *ngFor="let v of filteredFilterValues"
-                    class="cfg-sv-filter-popup__item"
-                    [class.cfg-sv-filter-popup__item--selected]="selectedFiltri[f.fieldName] === v"
-                    (click)="selectFiltro(f.fieldName, v); closeFilterSearch()">
-                  {{ v }}
-                </li>
-              </ul>
-            </div>
+          <!-- Free-text search: rows and columns (always first) -->
+          <label class="cfg-de-filtri__item cfg-sv-search-item">
+            <span class="cfg-de-filtri__name">Cerca riga</span>
+            <input class="cfg-select cfg-sv-search-input"
+                   type="search"
+                   placeholder="Filtra righe…"
+                   [(ngModel)]="rowSearch"
+                   aria-label="Cerca riga" />
           </label>
+          <label class="cfg-de-filtri__item cfg-sv-search-item" *ngIf="!noColonnaMode">
+            <span class="cfg-de-filtri__name">Cerca colonna</span>
+            <input class="cfg-select cfg-sv-search-input"
+                   type="search"
+                   placeholder="Filtra colonne…"
+                   [(ngModel)]="colSearch"
+                   aria-label="Cerca colonna" />
+          </label>
+
+          <!-- Dropdown filters -->
+          <ng-container *ngIf="visibleLayoutFilters.length > 0">
+            <ng-container *ngFor="let f of layoutFilters; trackBy: trackByField">
+            <label *ngIf="!hiddenFilterSet.has(f.fieldName)"
+                   class="cfg-de-filtri__item">
+              <span class="cfg-de-filtri__name">{{ f.label }}</span>
+              <div class="cfg-sv-filter-group">
+                <select class="cfg-select cfg-de-filtri__select cfg-sv-filter-select"
+                        [(ngModel)]="selectedFiltri[f.fieldName]"
+                        (change)="selectFiltro(f.fieldName, $any($event.target).value)"
+                        [attr.aria-label]="'Filtro ' + f.label">
+                  <option value="">— tutti —</option>
+                  <option *ngFor="let v of getFiltriValues(f.fieldName)" [value]="v">{{ v }}</option>
+                </select>
+                <button class="cfg-btn-icon cfg-sv-filter-search-btn"
+                        type="button"
+                        [attr.aria-label]="'Cerca valori ' + f.label"
+                        title="Cerca valori"
+                        (click)="openFilterSearch(f.fieldName); $event.stopPropagation()">
+                  🔍
+                </button>
+              </div>
+
+              <!-- Filter search popup -->
+              <div *ngIf="filterSearchField === f.fieldName"
+                   class="cfg-sv-filter-popup"
+                   (click)="$event.stopPropagation()">
+                <input class="cfg-sv-filter-popup__search"
+                       type="search"
+                       placeholder="Cerca…"
+                       [(ngModel)]="filterSearchText"
+                       aria-label="Cerca valori filtro" />
+                <ul class="cfg-sv-filter-popup__list">
+                  <li class="cfg-sv-filter-popup__item"
+                      [class.cfg-sv-filter-popup__item--selected]="selectedFiltri[f.fieldName] === ''"
+                      (click)="selectFiltro(f.fieldName, ''); closeFilterSearch()">
+                    — tutti —
+                  </li>
+                  <li *ngFor="let v of filteredFilterValues"
+                      class="cfg-sv-filter-popup__item"
+                      [class.cfg-sv-filter-popup__item--selected]="selectedFiltri[f.fieldName] === v"
+                      (click)="selectFiltro(f.fieldName, v); closeFilterSearch()">
+                    {{ v }}
+                  </li>
+                </ul>
+              </div>
+            </label>
+            </ng-container>
           </ng-container>
-        </div>
-
-        <!-- ── Excel toolbar ── -->
-        <div class="cfg-sv-excel-toolbar">
-          <span class="cfg-sv-excel-toolbar__label">Excel:</span>
-
-          <!-- Export Grid -->
-          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn"
-                  type="button"
-                  [disabled]="!!isExporting || isImporting"
-                  (click)="exportExcel('grid')"
-                  title="Esporta griglia gerarchica (.xlsx con filtri attivi)"
-                  aria-label="Esporta Excel modalità griglia">
-            <span *ngIf="isExporting === 'grid'"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-            <span *ngIf="isExporting !== 'grid'">⬇</span>
-            Griglia
-          </button>
-
-          <!-- Export Pivot -->
-          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn"
-                  type="button"
-                  [disabled]="!!isExporting || isImporting"
-                  (click)="exportExcel('pivot')"
-                  title="Esporta tabella pivot flat (.xlsx con filtri attivi)"
-                  aria-label="Esporta Excel modalità pivot">
-            <span *ngIf="isExporting === 'pivot'"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-            <span *ngIf="isExporting !== 'pivot'">⬇</span>
-            Pivot
-          </button>
-
-          <!-- Import -->
-          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm cfg-sv-excel-btn cfg-sv-excel-btn--import"
-                  type="button"
-                  [disabled]="!!isExporting || isImporting"
-                  (click)="triggerImportExcel()"
-                  title="Importa file .xlsx precedentemente esportato"
-                  aria-label="Importa Excel">
-            <span *ngIf="isImporting"><span class="cfg-spinner cfg-spinner--xs"></span> Importando…</span>
-            <span *ngIf="!isImporting">⬆ Importa</span>
-          </button>
-
-          <!-- Hidden file input -->
-          <input #svExcelImportRef
-                 type="file"
-                 accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-                 style="display:none"
-                 aria-hidden="true"
-                 (change)="importExcel($event)" />
         </div>
 
       </div>
@@ -255,15 +269,15 @@
     </div>
 
     <!-- Grid -->
-    <div class="cfg-sv-grid-wrap" role="region" aria-label="Snapshot data grid"
+    <div class="cfg-sv-grid-wrap" role="region" aria-label="Griglia dati snapshot"
          [class.cfg-sv-grid-wrap--computing]="isComputingFilter">
       <table #svGridRef class="cfg-de-grid cfg-sv-grid" aria-label="Snapshot grid">
         <thead>
           <tr>
             <!-- Approval column header -->
             <th class="cfg-de-th cfg-de-th--approval"
-                title="Row approval"
-                aria-label="Approval">
+                title="Approvazione riga"
+                aria-label="Approvazione">
               ✓
             </th>
             <!-- Row label header (sticky corner) -->
@@ -273,7 +287,7 @@
 
             <!-- Column headers: with-columns mode -->
             <ng-container *ngIf="!noColonnaMode">
-              <ng-container *ngFor="let cc of columnCombinations; trackBy: trackByCol">
+              <ng-container *ngFor="let cc of filteredColumnCombinations; trackBy: trackByCol">
                 <th *ngFor="let vf of layoutValues; trackBy: trackByVf"
                     class="cfg-de-th cfg-de-th--val"
                     [class.cfg-de-th--locked]="isColumnMemberLocked(cc.fieldName, cc.value)"
@@ -300,12 +314,13 @@
         </thead>
 
         <tbody>
-          <tr *ngFor="let riga of visibleRows; trackBy: trackByRow"
+          <tr *ngFor="let riga of filteredVisibleRows; trackBy: trackByRow"
               class="cfg-de-grid__row"
               [class.cfg-de-grid__row--group]="!riga.isLeaf"
               [class.cfg-de-grid__row--detail]="isDetailRole(riga)"
               [class.cfg-de-grid__row--leaf]="riga.isLeaf"
               [class.cfg-de-grid__row--formula]="isFormulaRow(riga)"
+              [class.cfg-de-grid__row--aggregate]="isAggregateRow(riga)"
               [class.cfg-de-grid__row--approved]="isRowApproved(riga)">
 
             <!-- Approval checkbox td -->
@@ -359,25 +374,25 @@
 
             <!-- Data cells: with-columns mode -->
             <ng-container *ngIf="!noColonnaMode">
-              <ng-container *ngFor="let cc of columnCombinations; trackBy: trackByCol">
+              <ng-container *ngFor="let cc of filteredColumnCombinations; trackBy: trackByCol">
                 <td *ngFor="let vf of layoutValues; trackBy: trackByVf"
                     class="cfg-de-td cfg-de-td--cell"
                     [class.cfg-de-td--editing]="isEditing(riga, cc.fieldName, cc.value, vf.fieldName)"
                     [class.cfg-de-td--saving]="isCellSaving(riga, cc.fieldName, cc.value, vf.fieldName)"
                     [class.cfg-de-td--save-failed]="isCellFailed(riga, cc.fieldName, cc.value, vf.fieldName)"
                     [class.cfg-de-td--locked]="isColumnMemberLocked(cc.fieldName, cc.value)"
-                    [class.cfg-de-td--formula]="isFormulaRow(riga)"
+                    [class.cfg-de-td--formula]="isFormulaRow(riga) || isAggregateRow(riga)"
                     [class.cfg-de-td--rollup]="isRollupValue(riga, cc.fieldName, cc.value, vf.fieldName)"
                     [class.cfg-de-td--group]="!riga.isLeaf"
                     [class.cfg-de-td--approved]="isRowApproved(riga)"
-                    [class.cfg-de-td--readonly]="isRowApproved(riga) || isFormulaRow(riga)"
+                    [class.cfg-de-td--readonly]="isRowApproved(riga) || isFormulaRow(riga) || isAggregateRow(riga)"
                     tabindex="0"
                     (dblclick)="startEdit(riga, cc.fieldName, cc.value, vf.fieldName)"
                     (keydown)="onCellKeydown($event, riga, cc.fieldName, cc.value, vf.fieldName)"
                     (contextmenu)="onCellRightClick($event, riga, cc.fieldName, cc.value, vf)"
                     [attr.aria-label]="'Valore ' + riga.label + ' / ' + cc.value + ' / ' + vf.label"
-                    [attr.aria-readonly]="isRowApproved(riga) || isColumnMemberLocked(cc.fieldName, cc.value) || isFormulaRow(riga)"
-                    [title]="isRowApproved(riga) ? 'Riga approvata — sola lettura' : isColumnMemberLocked(cc.fieldName, cc.value) ? 'Colonna bloccata' : ''"
+                    [attr.aria-readonly]="isRowApproved(riga) || isColumnMemberLocked(cc.fieldName, cc.value) || isFormulaRow(riga) || isAggregateRow(riga)"
+                    [title]="isRowApproved(riga) ? 'Riga approvata — sola lettura' : isColumnMemberLocked(cc.fieldName, cc.value) ? 'Colonna bloccata' : isAggregateRow(riga) ? 'Valore aggregato — sola lettura' : ''"
                     role="gridcell">
                   <ng-container *ngIf="!isEditing(riga, cc.fieldName, cc.value, vf.fieldName)">
                     <span [class.cfg-de-rollup-val]="isRollupValue(riga, cc.fieldName, cc.value, vf.fieldName)">
@@ -408,18 +423,18 @@
                   [class.cfg-de-td--editing]="isEditing(riga, '', '', vf.fieldName)"
                   [class.cfg-de-td--saving]="isCellSaving(riga, '', '', vf.fieldName)"
                   [class.cfg-de-td--save-failed]="isCellFailed(riga, '', '', vf.fieldName)"
-                  [class.cfg-de-td--formula]="isFormulaRow(riga)"
+                  [class.cfg-de-td--formula]="isFormulaRow(riga) || isAggregateRow(riga)"
                   [class.cfg-de-td--rollup]="isRollupValue(riga, '', '', vf.fieldName)"
                   [class.cfg-de-td--group]="!riga.isLeaf"
                   [class.cfg-de-td--approved]="isRowApproved(riga)"
-                  [class.cfg-de-td--readonly]="isRowApproved(riga) || isFormulaRow(riga)"
+                  [class.cfg-de-td--readonly]="isRowApproved(riga) || isFormulaRow(riga) || isAggregateRow(riga)"
                   tabindex="0"
                   (dblclick)="startEdit(riga, '', '', vf.fieldName)"
                   (keydown)="onCellKeydown($event, riga, '', '', vf.fieldName)"
                   (contextmenu)="onCellRightClick($event, riga, '', '', vf)"
                   [attr.aria-label]="'Valore ' + riga.label + ' / ' + vf.label"
-                  [attr.aria-readonly]="isRowApproved(riga) || isFormulaRow(riga)"
-                  [title]="isRowApproved(riga) ? 'Riga approvata — sola lettura' : ''"
+                  [attr.aria-readonly]="isRowApproved(riga) || isFormulaRow(riga) || isAggregateRow(riga)"
+                  [title]="isRowApproved(riga) ? 'Riga approvata — sola lettura' : isAggregateRow(riga) ? 'Valore aggregato — sola lettura' : ''"
                   role="gridcell">
                 <ng-container *ngIf="!isEditing(riga, '', '', vf.fieldName)">
                   <span [class.cfg-de-rollup-val]="isRollupValue(riga, '', '', vf.fieldName)">
@@ -443,8 +458,8 @@
             </ng-container>
           </tr>
 
-          <tr *ngIf="visibleRows.length === 0">
-            <td [attr.colspan]="(noColonnaMode ? 0 : columnCombinations.length * layoutValues.length) + layoutValues.length + 2"
+          <tr *ngIf="filteredVisibleRows.length === 0">
+            <td [attr.colspan]="(noColonnaMode ? 0 : filteredColumnCombinations.length * layoutValues.length) + layoutValues.length + 2"
                 class="cfg-de-td--empty">
               Nessuna riga trovata.
             </td>
@@ -516,8 +531,81 @@
       </span>
     </div>
   </div>
+  <div *ngIf="trackingEnabled && cellCtxMenu.riga.isLeaf && !isFormulaRow(cellCtxMenu.riga) && !isAggregateRow(cellCtxMenu.riga)"
+       class="cfg-de-ctx-menu__actions">
+    <button class="cfg-btn cfg-btn--ghost cfg-btn--xs cfg-de-ctx-menu__action-btn"
+            type="button"
+            (click)="openCellHistory(cellCtxMenu.riga, cellCtxMenu.colonnaField, cellCtxMenu.colonnaValue, { fieldName: cellCtxMenu.valoreField, label: cellCtxMenu.valoreLabel })">
+      Storico inserimenti
+    </button>
+  </div>
   <div class="cfg-de-ctx-menu__footer">
     <button class="cfg-btn cfg-btn--ghost cfg-btn--xs" type="button" (click)="closeAllMenus()">Chiudi</button>
+  </div>
+</div>
+
+<!-- ── Cell history modal ── -->
+<div *ngIf="cellHistoryModal"
+     class="cfg-de-guida-backdrop"
+     (click)="closeCellHistory()"></div>
+<div *ngIf="cellHistoryModal"
+     class="cfg-de-guida-modal cfg-de-history-modal"
+     role="dialog"
+     aria-modal="true"
+     [attr.aria-label]="'Storico inserimenti — ' + cellHistoryModal.riga.label">
+  <div class="cfg-de-guida-modal__header">
+    <h4 class="cfg-de-guida-modal__title">Storico inserimenti</h4>
+    <div class="cfg-de-history-modal__subtitle">
+      <span>{{ cellHistoryModal.riga.label }}</span>
+      <span *ngIf="cellHistoryModal.colonnaValue"> · {{ cellHistoryModal.colonnaValue }}</span>
+      <span> · {{ cellHistoryModal.valoreLabel }}</span>
+    </div>
+    <button class="cfg-de-guida-modal__close cfg-btn cfg-btn--ghost"
+            type="button"
+            (click)="closeCellHistory()"
+            aria-label="Chiudi storico">✕</button>
+  </div>
+  <div class="cfg-de-guida-modal__body">
+
+    <div *ngIf="cellHistoryLoading" class="cfg-de-history-modal__loading" role="status">
+      <span class="cfg-spinner"></span> Caricamento storico…
+    </div>
+
+    <div *ngIf="cellHistoryError" class="cfg-alert cfg-alert--error" role="alert">
+      {{ cellHistoryError }}
+    </div>
+
+    <ng-container *ngIf="!cellHistoryLoading && !cellHistoryError">
+      <p *ngIf="cellHistoryEntries.length === 0" class="cfg-de-history-modal__empty">
+        Nessuna modifica registrata per questa cella.
+      </p>
+
+      <table *ngIf="cellHistoryEntries.length > 0"
+             class="cfg-de-history-modal__table"
+             aria-label="Storico inserimenti cella">
+        <thead>
+          <tr>
+            <th scope="col">Data</th>
+            <th scope="col">Utente</th>
+            <th scope="col">Valore precedente</th>
+            <th scope="col">Nuovo valore</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let entry of cellHistoryEntries">
+            <td>{{ formatHistoryDate(entry.writtenAt) }}</td>
+            <td>{{ entry.writtenBy }}</td>
+            <td class="cfg-de-history-modal__val cfg-de-history-modal__val--old">
+              {{ entry.oldValue !== null ? entry.oldValue : '—' }}
+            </td>
+            <td class="cfg-de-history-modal__val cfg-de-history-modal__val--new">
+              {{ entry.newValue }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </ng-container>
+
   </div>
 </div>
 

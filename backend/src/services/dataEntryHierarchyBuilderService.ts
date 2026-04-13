@@ -17,18 +17,18 @@ import { memPathKey } from './dataEntryHelpers';
 type ParamRowShape = DataEntryRigaOption['paramRow'];
 
 export interface LoadedParamRow {
-  paramId:           number;
-  sourceValue:       string;
-  label:             string;
-  rowKind:           'Aggregato' | 'Indicatore';
-  indentLevel:       number;
-  parentParamId:     number | null;
-  raggruppamento:    string | null;
-  formula:           string | null;
-  guidaCompilazione: string | null;
-  isEditable:        boolean;
-  isFormula:         boolean;
-  sortOrder:         number;
+  paramId:          number;
+  sourceValue:      string;
+  label:            string;
+  rowKind:          'Aggregato' | 'Indicatore';
+  indentLevel:      number;
+  parentParamId:    number | null;
+  grouping:         string | null;
+  formula:          string | null;
+  compilationGuide: string | null;
+  isEditable:       boolean;
+  isFormula:        boolean;
+  sortOrder:        number;
 }
 
 // ── loadParamMap ──────────────────────────────────────────────────────────────
@@ -60,13 +60,13 @@ export async function loadParamMap(
     map.set(r.SourceValue, {
       label: r.Label || r.SourceValue,
       paramRow: {
-        rowKind:           (r.RowKind ?? 'Indicatore') as 'Aggregato' | 'Indicatore',
-        indentLevel:       r.IndentLevel ?? 1,
-        raggruppamento:    r.Raggruppamento ?? null,
-        formula:           r.Formula ?? null,
-        guidaCompilazione: r.GuidaCompilazione ?? null,
-        isEditable:        !!r.IsEditable,
-        isFormula:         !!r.IsFormula,
+        rowKind:          (r.RowKind ?? 'Indicatore') as 'Aggregato' | 'Indicatore',
+        indentLevel:      r.IndentLevel ?? 1,
+        grouping:         r.Raggruppamento ?? null,
+        formula:          r.Formula ?? null,
+        compilationGuide: r.GuidaCompilazione ?? null,
+        isEditable:       !!r.IsEditable,
+        isFormula:        !!r.IsFormula,
       },
     });
   });
@@ -108,11 +108,11 @@ export async function loadParamRowsForField(
     rowKind:           (r['RowKind']            as 'Aggregato' | 'Indicatore') ?? 'Indicatore',
     indentLevel:       (r['IndentLevel']        as number) ?? 1,
     parentParamId:     (r['ParentParamId']      as number | null) ?? null,
-    raggruppamento:    r['Raggruppamento']       as string | null ?? null,
-    formula:           r['Formula']             as string | null ?? null,
-    guidaCompilazione: r['GuidaCompilazione']   as string | null ?? null,
-    isEditable:        (r['IsEditable']         as number) === 1,
-    isFormula:         (r['IsFormula']          as number) === 1,
+    grouping:         r['Raggruppamento']       as string | null ?? null,
+    formula:          r['Formula']             as string | null ?? null,
+    compilationGuide: r['GuidaCompilazione']   as string | null ?? null,
+    isEditable:        !!(r['IsEditable']),
+    isFormula:         !!(r['IsFormula']),
     sortOrder:         (r['SortOrder']          as number) ?? 0,
   }));
 }
@@ -283,8 +283,8 @@ export async function buildParentChildHierarchy(
         node.label = pr.label || node.label;
         node.paramRow = {
           rowKind: pr.rowKind, indentLevel: pr.indentLevel,
-          raggruppamento: pr.raggruppamento, formula: pr.formula,
-          guidaCompilazione: pr.guidaCompilazione,
+          grouping: pr.grouping, formula: pr.formula,
+          compilationGuide: pr.compilationGuide,
           isEditable: pr.isEditable, isFormula: pr.isFormula,
         };
       }
@@ -313,8 +313,8 @@ export async function buildParentChildHierarchy(
         ancestorKeys: parentNode ? [...parentAncKeys, memPathKey(parentNode.pathValues)] : [],
         paramRow: {
           rowKind: vr.rowKind, indentLevel: vr.indentLevel,
-          raggruppamento: vr.raggruppamento, formula: vr.formula,
-          guidaCompilazione: vr.guidaCompilazione,
+          grouping: vr.grouping, formula: vr.formula,
+          compilationGuide: vr.compilationGuide,
           isEditable: vr.isEditable, isFormula: vr.isFormula,
         },
       };
@@ -385,7 +385,7 @@ export async function buildGroupingParamHierarchy(
   const naItems: Array<{ value: string; label: string; pr: NonNullable<ParamRowShape> }> = [];
 
   for (const [sourceValue, info] of pMap) {
-    const g = info.paramRow.raggruppamento ?? '';
+    const g = info.paramRow.grouping ?? '';
     if (!g) {
       naItems.push({ value: sourceValue, label: info.label, pr: info.paramRow });
       continue;

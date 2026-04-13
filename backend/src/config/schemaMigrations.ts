@@ -15,6 +15,16 @@ const migrations: Array<{ name: string; sql: string }> = [
     sql: `IF COL_LENGTH('cfg_Task', 'HiddenFilters') IS NULL
           ALTER TABLE cfg_Task ADD HiddenFilters NVARCHAR(MAX) NULL`,
   },
+  {
+    name: '012_ViewerSettings',
+    sql: `IF COL_LENGTH('cfg_Task', 'ViewerSettings') IS NULL
+          ALTER TABLE cfg_Task ADD ViewerSettings NVARCHAR(MAX) NULL`,
+  },
+  {
+    name: '013_ReportTrackingEnabled',
+    sql: `IF COL_LENGTH('cfg_Report', 'TrackingEnabled') IS NULL
+          ALTER TABLE cfg_Report ADD TrackingEnabled BIT NOT NULL CONSTRAINT DF_cfg_Report_TrackingEnabled DEFAULT 0`,
+  },
 ];
 
 export async function runSchemaMigrations(): Promise<void> {

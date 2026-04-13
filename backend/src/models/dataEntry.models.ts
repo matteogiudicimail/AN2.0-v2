@@ -26,13 +26,13 @@ export interface DataEntryRigaOption {
    */
   ancestorKeys?: string[];
   paramRow: {
-    rowKind:           'Aggregato' | 'Indicatore';
-    indentLevel:       number;
-    raggruppamento:    string | null;
-    formula:           string | null;
-    guidaCompilazione: string | null;
-    isEditable:        boolean;
-    isFormula:         boolean;
+    rowKind:          'Aggregato' | 'Indicatore';
+    indentLevel:      number;
+    grouping:         string | null;
+    formula:          string | null;
+    compilationGuide: string | null;
+    isEditable:       boolean;
+    isFormula:        boolean;
   } | null;
 }
 

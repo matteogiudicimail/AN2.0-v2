@@ -5,49 +5,49 @@
   <div *ngIf="successMsg" class="cfg-alert cfg-alert--success" role="status">{{ successMsg }}</div>
 
   <!-- ════════════════════════════════════════════════════════════════════════
-       SECTION 1 — Fact Table
+       SEZIONE 1 — Tabella Fatto
   ════════════════════════════════════════════════════════════════════════════ -->
   <section class="cfg-section" aria-labelledby="fact-heading">
-    <h3 id="fact-heading" class="cfg-section__title">Fact Table</h3>
+    <h3 id="fact-heading" class="cfg-section__title">Tabella Fatto</h3>
 
-    <div *ngIf="isLoadingTables" class="cfg-loading" aria-live="polite">Loading tables…</div>
+    <div *ngIf="isLoadingTables" class="cfg-loading" aria-live="polite">Caricamento tabelle…</div>
 
     <div class="cfg-form-row" *ngIf="!isLoadingTables">
       <div class="cfg-form-group cfg-form-group--wide">
-        <label class="cfg-label">Table / View</label>
+        <label class="cfg-label">Tabella / Vista</label>
         <cfg-searchable-select
           [items]="tableSelectItems"
           [value]="selectedFactTable"
-          placeholder="Search and select a fact table…"
+          placeholder="Cerca e seleziona una tabella fatto…"
           (selectionChange)="onFactTableSelect($event)">
         </cfg-searchable-select>
       </div>
 
       <div class="cfg-form-group">
-        <label class="cfg-label" for="fact-smart-name">Smart Name <span class="cfg-label--hint">(optional)</span></label>
+        <label class="cfg-label" for="fact-smart-name">Nome descrittivo <span class="cfg-label--hint">(opzionale)</span></label>
         <input id="fact-smart-name"
                class="cfg-input"
                type="text"
                [(ngModel)]="factTableSmartName"
-               placeholder="Friendly name for this table"
+               placeholder="Nome amichevole per questa tabella"
                maxlength="200">
       </div>
     </div>
 
     <!-- Column preview -->
     <ng-container *ngIf="selectedFactTable">
-      <div *ngIf="isLoadingColumns" class="cfg-loading" aria-live="polite">Loading columns…</div>
+      <div *ngIf="isLoadingColumns" class="cfg-loading" aria-live="polite">Caricamento colonne…</div>
 
       <div *ngIf="!isLoadingColumns && columns.length > 0" class="cfg-subsection">
-        <h4 class="cfg-subsection__title">Columns in <code>{{ selectedFactTable }}</code></h4>
+        <h4 class="cfg-subsection__title">Colonne di <code>{{ selectedFactTable }}</code></h4>
 
         <!-- Fields Pane — Power BI style -->
-        <div class="cfg-fields-pane" role="region" aria-label="Table columns">
+        <div class="cfg-fields-pane" role="region" aria-label="Colonne tabella">
           <input class="cfg-fields-pane__search"
                  type="search"
                  [(ngModel)]="columnSearchText"
-                 placeholder="Search columns…"
-                 aria-label="Search columns" />
+                 placeholder="Cerca colonne…"
+                 aria-label="Cerca colonne" />
           <div class="cfg-fields-pane__list" role="list">
             <button *ngFor="let c of filteredColumns; trackBy: trackByCol"
                     class="cfg-fields-pane__item"
@@ -55,20 +55,20 @@
                     [class.cfg-fields-pane__item--mapped]="isMapped(c.columnName)"
                     role="listitem"
                     type="button"
-                    [title]="'Click to create a mapping for ' + c.columnName"
+                    [title]="'Clicca per creare un mapping per ' + c.columnName"
                     (click)="selectColumnForMapping(c)">
               <span class="cfg-fields-pane__icon" aria-hidden="true">{{ getTypeIcon(c.dataType) }}</span>
               <span class="cfg-fields-pane__name">{{ c.columnName }}</span>
               <span class="cfg-fields-pane__type-badge">{{ c.dataType }}</span>
               <span *ngIf="c.isPrimaryKey"
                     class="cfg-fields-pane__pk-badge"
-                    aria-label="primary key">PK</span>
+                    aria-label="chiave primaria">PK</span>
               <span *ngIf="isMapped(c.columnName)"
                     class="cfg-fields-pane__mapped-badge"
-                    aria-label="already mapped">✓</span>
+                    aria-label="già mappato">✓</span>
             </button>
             <p *ngIf="filteredColumns.length === 0" class="cfg-fields-pane__empty">
-              No columns match "{{ columnSearchText }}"
+              Nessuna colonna corrisponde a "{{ columnSearchText }}"
             </p>
           </div>
         </div>
@@ -77,86 +77,86 @@
   </section>
 
   <!-- ════════════════════════════════════════════════════════════════════════
-       SECTION 2 — Field Mappings
+       SEZIONE 2 — Mapping Campi
   ════════════════════════════════════════════════════════════════════════════ -->
   <section class="cfg-section" aria-labelledby="mapping-heading">
     <div class="cfg-section__header">
-      <h3 id="mapping-heading" class="cfg-section__title">Field Mappings</h3>
+      <h3 id="mapping-heading" class="cfg-section__title">Mapping Campi</h3>
       <button class="cfg-btn cfg-btn--sm cfg-btn--secondary"
               type="button"
               [disabled]="!selectedFactTable"
               (click)="startAddMapping()">
-        + Add Mapping
+        + Aggiungi Mapping
       </button>
     </div>
 
     <!-- Inline form -->
-    <div *ngIf="showMappingForm" class="cfg-inline-form" role="form" aria-label="Field mapping form">
+    <div *ngIf="showMappingForm" class="cfg-inline-form" role="form" aria-label="Form mapping campo">
       <div [formGroup]="mappingForm" class="cfg-form-row">
 
         <div class="cfg-form-group">
-          <label class="cfg-label" for="map-dbField">DB Column</label>
+          <label class="cfg-label" for="map-dbField">Colonna DB</label>
           <input id="map-dbField"
                  class="cfg-input"
                  type="text"
                  formControlName="dbField"
                  readonly
                  aria-readonly="true"
-                 placeholder="Select from column list above">
+                 placeholder="Seleziona dalla lista colonne sopra">
           <span *ngIf="mappingForm.get('dbField')?.invalid && mappingForm.get('dbField')?.touched"
-                class="cfg-error" role="alert">Required</span>
+                class="cfg-error" role="alert">Obbligatorio</span>
         </div>
 
         <div class="cfg-form-group">
-          <label class="cfg-label" for="map-label">Business Label</label>
+          <label class="cfg-label" for="map-label">Etichetta business</label>
           <input id="map-label"
                  class="cfg-input"
                  type="text"
                  formControlName="businessLabel"
-                 placeholder="Friendly name"
+                 placeholder="Nome descrittivo"
                  maxlength="200">
           <span *ngIf="mappingForm.get('businessLabel')?.invalid && mappingForm.get('businessLabel')?.touched"
-                class="cfg-error" role="alert">Required</span>
+                class="cfg-error" role="alert">Obbligatorio</span>
         </div>
 
         <div class="cfg-form-group">
-          <label class="cfg-label" for="map-type">Field Type</label>
+          <label class="cfg-label" for="map-type">Tipo campo</label>
           <select id="map-type" class="cfg-select" formControlName="fieldType">
-            <option value="measure">Measure</option>
-            <option value="dimension">Dimension</option>
-            <option value="filter">Filter</option>
-            <option value="date">Date</option>
-            <option value="text">Text</option>
+            <option value="measure">Misura</option>
+            <option value="dimension">Dimensione</option>
+            <option value="filter">Filtro</option>
+            <option value="date">Data</option>
+            <option value="text">Testo</option>
           </select>
         </div>
 
         <div class="cfg-form-group cfg-form-group--checkbox">
           <label class="cfg-checkbox">
             <input type="checkbox" formControlName="editable">
-            <span>Editable</span>
+            <span>Modificabile</span>
           </label>
         </div>
 
         <div class="cfg-form-group cfg-form-group--actions">
           <button class="cfg-btn cfg-btn--sm cfg-btn--primary" type="button" (click)="submitMapping()">
-            {{ editingMappingIdx !== null ? 'Update' : 'Add' }}
+            {{ editingMappingIdx !== null ? 'Aggiorna' : 'Aggiungi' }}
           </button>
           <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" type="button" (click)="cancelMappingForm()">
-            Cancel
+            Annulla
           </button>
         </div>
       </div>
     </div>
 
     <!-- Mappings table -->
-    <table *ngIf="fieldMappings.length > 0" class="cfg-table cfg-table--sm" aria-label="Field mappings">
+    <table *ngIf="fieldMappings.length > 0" class="cfg-table cfg-table--sm" aria-label="Mapping campi">
       <thead>
         <tr>
-          <th scope="col">DB Column</th>
-          <th scope="col">Business Label</th>
-          <th scope="col">Type</th>
-          <th scope="col">Editable</th>
-          <th scope="col">Actions</th>
+          <th scope="col">Colonna DB</th>
+          <th scope="col">Etichetta business</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Modificabile</th>
+          <th scope="col">Azioni</th>
         </tr>
       </thead>
       <tbody>
@@ -165,7 +165,7 @@
             (click)="editMapping(i)"
             tabindex="0"
             (keydown.enter)="editMapping(i)"
-            [attr.aria-label]="'Edit mapping ' + m.dbField">
+            [attr.aria-label]="'Modifica mapping ' + m.dbField">
           <td><code>{{ m.dbField }}</code></td>
           <td>{{ m.businessLabel }}</td>
           <td>
@@ -173,20 +173,20 @@
           </td>
           <td>
             <span class="cfg-badge" [class.cfg-badge--yes]="m.editable" [class.cfg-badge--no]="!m.editable">
-              {{ m.editable ? 'Yes' : 'No' }}
+              {{ m.editable ? 'Sì' : 'No' }}
             </span>
           </td>
           <td class="cfg-table__actions" (click)="$event.stopPropagation()">
             <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
                     type="button"
                     (click)="editMapping(i)"
-                    [attr.aria-label]="'Edit mapping ' + m.dbField">
-              Edit
+                    [attr.aria-label]="'Modifica mapping ' + m.dbField">
+              Modifica
             </button>
             <button class="cfg-btn cfg-btn--sm cfg-btn--danger"
                     type="button"
                     (click)="removeMapping(i)"
-                    [attr.aria-label]="'Remove mapping ' + m.dbField">
+                    [attr.aria-label]="'Rimuovi mapping ' + m.dbField">
               ✕
             </button>
           </td>
@@ -195,43 +195,43 @@
     </table>
 
     <p *ngIf="fieldMappings.length === 0 && !showMappingForm" class="cfg-empty">
-      No field mappings yet. Click a column above or use <strong>+ Add Mapping</strong>.
+      Nessun mapping configurato. Clicca una colonna sopra oppure usa <strong>+ Aggiungi Mapping</strong>.
     </p>
   </section>
 
   <!-- ════════════════════════════════════════════════════════════════════════
-       SECTION 3 — Joined Dimension Tables
+       SEZIONE 3 — Tabelle Dimensione (JOIN)
   ════════════════════════════════════════════════════════════════════════════ -->
   <section class="cfg-section" aria-labelledby="join-heading">
     <div class="cfg-section__header">
-      <h3 id="join-heading" class="cfg-section__title">Joined Dimension Tables</h3>
+      <h3 id="join-heading" class="cfg-section__title">Tabelle Dimensione (JOIN)</h3>
       <button class="cfg-btn cfg-btn--sm cfg-btn--secondary"
               type="button"
               [disabled]="!selectedFactTable"
               (click)="startAddJoin()">
-        + Add JOIN
+        + Aggiungi JOIN
       </button>
     </div>
 
     <!-- JOIN form -->
-    <div *ngIf="showJoinForm" class="cfg-inline-form" role="form" aria-label="JOIN configuration form">
+    <div *ngIf="showJoinForm" class="cfg-inline-form" role="form" aria-label="Form configurazione JOIN">
       <div [formGroup]="joinForm">
 
         <div class="cfg-form-row">
           <div class="cfg-form-group cfg-form-group--wide">
-            <label class="cfg-label">Dimension Table</label>
+            <label class="cfg-label">Tabella Dimensione</label>
             <cfg-searchable-select
               [items]="tableSelectItems"
               [value]="joinForm.get('rightTable')?.value"
-              placeholder="Search dimension table…"
+              placeholder="Cerca tabella dimensione…"
               (selectionChange)="setJoinRightTable($event)">
             </cfg-searchable-select>
             <span *ngIf="joinForm.get('rightTable')?.invalid && joinForm.get('rightTable')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label" for="join-type">JOIN Type</label>
+            <label class="cfg-label" for="join-type">Tipo JOIN</label>
             <select id="join-type" class="cfg-select" formControlName="joinType">
               <option value="LEFT">LEFT JOIN</option>
               <option value="INNER">INNER JOIN</option>
@@ -239,65 +239,65 @@
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label" for="join-smart-name">Smart Name <span class="cfg-label--hint">(optional)</span></label>
+            <label class="cfg-label" for="join-smart-name">Nome descrittivo <span class="cfg-label--hint">(opzionale)</span></label>
             <input id="join-smart-name"
                    class="cfg-input"
                    type="text"
                    formControlName="smartName"
-                   placeholder="Friendly alias"
+                   placeholder="Alias descrittivo"
                    maxlength="200">
           </div>
         </div>
 
         <div class="cfg-form-row" *ngIf="joinForm.get('rightTable')?.value">
           <div class="cfg-form-group">
-            <label class="cfg-label">Fact Key <span class="cfg-label--hint">({{ selectedFactTable }})</span></label>
+            <label class="cfg-label">Chiave Fatto <span class="cfg-label--hint">({{ selectedFactTable }})</span></label>
             <cfg-searchable-select
               [items]="colSelectItems"
               [value]="joinForm.get('leftKey')?.value"
-              placeholder="Select fact column…"
+              placeholder="Seleziona colonna fatto…"
               (selectionChange)="setJoinLeftKey($event)">
             </cfg-searchable-select>
             <span *ngIf="joinForm.get('leftKey')?.invalid && joinForm.get('leftKey')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label">Dim Key <span class="cfg-label--hint">({{ joinForm.get('rightTable')?.value }})</span></label>
-            <div *ngIf="isLoadingDimColumns" class="cfg-loading cfg-loading--sm">Loading…</div>
+            <label class="cfg-label">Chiave Dim <span class="cfg-label--hint">({{ joinForm.get('rightTable')?.value }})</span></label>
+            <div *ngIf="isLoadingDimColumns" class="cfg-loading cfg-loading--sm">Caricamento…</div>
             <cfg-searchable-select
               *ngIf="!isLoadingDimColumns"
               [items]="dimColSelectItems"
               [value]="joinForm.get('rightKey')?.value"
-              placeholder="Select dim column…"
+              placeholder="Seleziona colonna dim…"
               (selectionChange)="setJoinRightKey($event)">
             </cfg-searchable-select>
             <span *ngIf="joinForm.get('rightKey')?.invalid && joinForm.get('rightKey')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
         </div>
 
         <div class="cfg-form-actions">
           <button class="cfg-btn cfg-btn--sm cfg-btn--primary" type="button" (click)="submitJoin()">
-            {{ editingJoinIdx !== null ? 'Update JOIN' : 'Add JOIN' }}
+            {{ editingJoinIdx !== null ? 'Aggiorna JOIN' : 'Aggiungi JOIN' }}
           </button>
           <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" type="button" (click)="cancelJoinForm()">
-            Cancel
+            Annulla
           </button>
         </div>
       </div>
     </div>
 
     <!-- JOIN list -->
-    <table *ngIf="joinConfig.length > 0" class="cfg-table cfg-table--sm" aria-label="JOIN configurations">
+    <table *ngIf="joinConfig.length > 0" class="cfg-table cfg-table--sm" aria-label="Configurazioni JOIN">
       <thead>
         <tr>
-          <th scope="col">Dim Table</th>
-          <th scope="col">Smart Name</th>
-          <th scope="col">Type</th>
-          <th scope="col">Fact Key</th>
-          <th scope="col">Dim Key</th>
-          <th scope="col">Actions</th>
+          <th scope="col">Tabella Dim</th>
+          <th scope="col">Nome descrittivo</th>
+          <th scope="col">Tipo</th>
+          <th scope="col">Chiave Fatto</th>
+          <th scope="col">Chiave Dim</th>
+          <th scope="col">Azioni</th>
         </tr>
       </thead>
       <tbody>
@@ -312,20 +312,20 @@
             <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
                     type="button"
                     (click)="editJoin(i)"
-                    [attr.aria-label]="'Edit join to ' + j.rightTable">
-              Edit
+                    [attr.aria-label]="'Modifica join a ' + j.rightTable">
+              Modifica
             </button>
             <button class="cfg-btn cfg-btn--sm cfg-btn--secondary"
                     type="button"
                     (click)="openMasterData(j.rightTable)"
-                    [attr.aria-label]="'Manage master data for ' + j.rightTable"
-                    title="Open Master Data editor for this dimension table">
+                    [attr.aria-label]="'Gestisci master data per ' + j.rightTable"
+                    title="Apri editor Master Data per questa tabella dimensione">
               🗂 Gestisci
             </button>
             <button class="cfg-btn cfg-btn--sm cfg-btn--danger"
                     type="button"
                     (click)="removeJoin(i)"
-                    [attr.aria-label]="'Remove join to ' + j.rightTable">
+                    [attr.aria-label]="'Rimuovi join a ' + j.rightTable">
               ✕
             </button>
           </td>
@@ -334,102 +334,102 @@
     </table>
 
     <p *ngIf="joinConfig.length === 0 && !showJoinForm" class="cfg-empty">
-      No JOINs configured. Use <strong>+ Add JOIN</strong> to link dimension tables.
+      Nessun JOIN configurato. Usa <strong>+ Aggiungi JOIN</strong> per collegare tabelle dimensione.
     </p>
   </section>
 
   <!-- ════════════════════════════════════════════════════════════════════════
-       SECTION 4 — Parent-Child Hierarchies
+       SEZIONE 4 — Gerarchie Parent-Child
   ════════════════════════════════════════════════════════════════════════════ -->
   <section class="cfg-section" aria-labelledby="hier-heading">
     <div class="cfg-section__header">
-      <h3 id="hier-heading" class="cfg-section__title">Parent-Child Hierarchies</h3>
+      <h3 id="hier-heading" class="cfg-section__title">Gerarchie Parent-Child</h3>
       <button class="cfg-btn cfg-btn--sm cfg-btn--secondary"
               type="button"
               [disabled]="joinConfig.length === 0"
               (click)="startAddHierarchy()"
-              [title]="joinConfig.length === 0 ? 'Add at least one JOIN first' : 'Add a parent-child hierarchy'">
-        + Add Hierarchy
+              [title]="joinConfig.length === 0 ? 'Aggiungi almeno un JOIN prima' : 'Aggiungi una gerarchia parent-child'">
+        + Aggiungi Gerarchia
       </button>
     </div>
 
     <p *ngIf="joinConfig.length === 0" class="cfg-hint">
-      Define at least one joined dimension table above to configure parent-child hierarchies.
+      Definisci almeno una tabella dimensione collegata sopra per configurare le gerarchie parent-child.
     </p>
 
     <!-- Hierarchy form -->
-    <div *ngIf="showHierarchyForm" class="cfg-inline-form" role="form" aria-label="Hierarchy definition form">
+    <div *ngIf="showHierarchyForm" class="cfg-inline-form" role="form" aria-label="Form definizione gerarchia">
       <div [formGroup]="hierarchyForm">
 
         <div class="cfg-form-row">
           <div class="cfg-form-group cfg-form-group--wide">
-            <label class="cfg-label">Dimension Table</label>
+            <label class="cfg-label">Tabella Dimensione</label>
             <cfg-searchable-select
               [items]="dimTableItems()"
               [value]="getHierDimTable()"
-              placeholder="Select a joined dim table…"
+              placeholder="Seleziona una tabella dim collegata…"
               (selectionChange)="setHierDimTable($event)">
             </cfg-searchable-select>
             <span *ngIf="hierarchyForm.get('dimTable')?.invalid && hierarchyForm.get('dimTable')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label" for="hier-smart-name">Smart Name <span class="cfg-label--hint">(optional)</span></label>
+            <label class="cfg-label" for="hier-smart-name">Nome descrittivo <span class="cfg-label--hint">(opzionale)</span></label>
             <input id="hier-smart-name"
                    class="cfg-input"
                    type="text"
                    formControlName="smartName"
-                   placeholder="e.g. Cost Centre Hierarchy"
+                   placeholder="es. Gerarchia Centro di Costo"
                    maxlength="200">
           </div>
         </div>
 
-        <div *ngIf="isLoadingHierCols" class="cfg-loading cfg-loading--sm" aria-live="polite">Loading columns…</div>
+        <div *ngIf="isLoadingHierCols" class="cfg-loading cfg-loading--sm" aria-live="polite">Caricamento colonne…</div>
 
         <div class="cfg-form-row" *ngIf="hierarchyForm.get('dimTable')?.value && !isLoadingHierCols">
           <div class="cfg-form-group">
-            <label class="cfg-label">Child Key Column</label>
+            <label class="cfg-label">Colonna Chiave Figlio</label>
             <cfg-searchable-select
               [items]="hierColSelectItems"
               [value]="getHierChildKey()"
-              placeholder="Column for child key…"
+              placeholder="Colonna per chiave figlio…"
               (selectionChange)="setHierChildKey($event)">
             </cfg-searchable-select>
             <span *ngIf="hierarchyForm.get('childKeyCol')?.invalid && hierarchyForm.get('childKeyCol')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label">Parent Key Column</label>
+            <label class="cfg-label">Colonna Chiave Padre</label>
             <cfg-searchable-select
               [items]="hierColSelectItems"
               [value]="getHierParentKey()"
-              placeholder="Column for parent key…"
+              placeholder="Colonna per chiave padre…"
               (selectionChange)="setHierParentKey($event)">
             </cfg-searchable-select>
             <span *ngIf="hierarchyForm.get('parentKeyCol')?.invalid && hierarchyForm.get('parentKeyCol')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label">Label Column</label>
+            <label class="cfg-label">Colonna Etichetta</label>
             <cfg-searchable-select
               [items]="hierColSelectItems"
               [value]="getHierLabelCol()"
-              placeholder="Column for display label…"
+              placeholder="Colonna per etichetta visualizzata…"
               (selectionChange)="setHierLabelCol($event)">
             </cfg-searchable-select>
             <span *ngIf="hierarchyForm.get('labelCol')?.invalid && hierarchyForm.get('labelCol')?.touched"
-                  class="cfg-error" role="alert">Required</span>
+                  class="cfg-error" role="alert">Obbligatorio</span>
           </div>
 
           <div class="cfg-form-group">
-            <label class="cfg-label">Order Column <span class="cfg-label--hint">(optional)</span></label>
+            <label class="cfg-label">Colonna Ordinamento <span class="cfg-label--hint">(opzionale)</span></label>
             <cfg-searchable-select
               [items]="hierColSelectItems"
               [value]="getHierOrderCol()"
-              placeholder="Column for sort order…"
+              placeholder="Colonna per ordinamento…"
               (selectionChange)="setHierOrderCol($event)">
             </cfg-searchable-select>
           </div>
@@ -437,26 +437,26 @@
 
         <div class="cfg-form-actions">
           <button class="cfg-btn cfg-btn--sm cfg-btn--primary" type="button" (click)="submitHierarchy()">
-            {{ editingHierarchyIdx !== null ? 'Update Hierarchy' : 'Add Hierarchy' }}
+            {{ editingHierarchyIdx !== null ? 'Aggiorna Gerarchia' : 'Aggiungi Gerarchia' }}
           </button>
           <button class="cfg-btn cfg-btn--sm cfg-btn--ghost" type="button" (click)="cancelHierarchyForm()">
-            Cancel
+            Annulla
           </button>
         </div>
       </div>
     </div>
 
     <!-- Hierarchy list -->
-    <table *ngIf="hierarchyDefs.length > 0" class="cfg-table cfg-table--sm" aria-label="Hierarchy definitions">
+    <table *ngIf="hierarchyDefs.length > 0" class="cfg-table cfg-table--sm" aria-label="Definizioni gerarchie">
       <thead>
         <tr>
-          <th scope="col">Dim Table</th>
-          <th scope="col">Smart Name</th>
-          <th scope="col">Child Key</th>
-          <th scope="col">Parent Key</th>
-          <th scope="col">Label Col</th>
-          <th scope="col">Order Col</th>
-          <th scope="col">Actions</th>
+          <th scope="col">Tabella Dim</th>
+          <th scope="col">Nome descrittivo</th>
+          <th scope="col">Chiave Figlio</th>
+          <th scope="col">Chiave Padre</th>
+          <th scope="col">Col. Etichetta</th>
+          <th scope="col">Col. Ordine</th>
+          <th scope="col">Azioni</th>
         </tr>
       </thead>
       <tbody>
@@ -471,13 +471,13 @@
             <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
                     type="button"
                     (click)="editHierarchy(i)"
-                    [attr.aria-label]="'Edit hierarchy for ' + h.dimTable">
-              Edit
+                    [attr.aria-label]="'Modifica gerarchia per ' + h.dimTable">
+              Modifica
             </button>
             <button class="cfg-btn cfg-btn--sm cfg-btn--danger"
                     type="button"
                     (click)="removeHierarchy(i)"
-                    [attr.aria-label]="'Remove hierarchy for ' + h.dimTable">
+                    [attr.aria-label]="'Rimuovi gerarchia per ' + h.dimTable">
               ✕
             </button>
           </td>
@@ -486,36 +486,128 @@
     </table>
 
     <p *ngIf="joinConfig.length > 0 && hierarchyDefs.length === 0 && !showHierarchyForm" class="cfg-empty">
-      No hierarchies defined. Use <strong>+ Add Hierarchy</strong> to configure parent-child structures.
+      Nessuna gerarchia definita. Usa <strong>+ Aggiungi Gerarchia</strong> per configurare strutture parent-child.
     </p>
   </section>
 
   <!-- ════════════════════════════════════════════════════════════════════════
-       ACTIONS
+       AZIONI
   ════════════════════════════════════════════════════════════════════════════ -->
   <div class="cfg-wizard__footer">
-    <button class="cfg-btn cfg-btn--ghost" type="button" (click)="back.emit()">← Back</button>
+    <button class="cfg-btn cfg-btn--ghost" type="button" (click)="back.emit()">← Indietro</button>
 
     <div class="cfg-wizard__footer-right">
       <button class="cfg-btn cfg-btn--secondary"
               type="button"
+              (click)="openDrawer()"
+              title="Visualizza e gestisci i report pubblicati per questo Data Model">
+        📋 Report Pubblicati
+      </button>
+
+      <button class="cfg-btn cfg-btn--secondary"
+              type="button"
               [disabled]="isSaving || !selectedFactTable"
               (click)="saveBinding()">
-        <span *ngIf="isSaving">Saving…</span>
-        <span *ngIf="!isSaving">Save</span>
+        <span *ngIf="isSaving">Salvataggio…</span>
+        <span *ngIf="!isSaving">Salva</span>
       </button>
 
       <button class="cfg-btn cfg-btn--primary"
               type="button"
               [disabled]="!binding"
               (click)="next.emit()"
-              [title]="!binding ? 'Save the binding first' : 'Go to Parameters'">
-        Next: Parameters →
+              [title]="!binding ? 'Salva prima il binding' : 'Vai ai Parametri'">
+        Avanti: Parametri →
       </button>
     </div>
   </div>
 
 </div>
+
+<!-- ── Report Pubblicati Drawer ───────────────────────────────────────────── -->
+<ng-container *ngIf="drawerOpen">
+  <!-- Backdrop -->
+  <div class="cfg-drawer-backdrop"
+       role="presentation"
+       (click)="closeDrawer()">
+  </div>
+
+  <!-- Drawer panel -->
+  <div class="cfg-drawer"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="cfg-drawer-title">
+
+    <!-- Header -->
+    <div class="cfg-drawer__header">
+      <h3 id="cfg-drawer-title" class="cfg-drawer__title">Report Pubblicati</h3>
+      <div class="cfg-drawer__header-actions">
+        <button class="cfg-btn cfg-btn--primary cfg-btn--sm"
+                type="button"
+                (click)="openNewTask()">
+          + Nuovo Report
+        </button>
+        <button class="cfg-btn-icon"
+                type="button"
+                aria-label="Chiudi pannello"
+                (click)="closeDrawer()">✕</button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="cfg-drawer__body">
+
+      <div *ngIf="tasksLoading" class="cfg-loading" aria-live="polite">
+        Caricamento…
+      </div>
+
+      <div *ngIf="tasksError" class="cfg-alert cfg-alert--error" role="alert">
+        {{ tasksError }}
+      </div>
+
+      <div *ngIf="!tasksLoading && !tasksError && tasks.length === 0" class="cfg-empty">
+        Nessun report pubblicato. Usa <strong>+ Nuovo Report</strong> per crearne uno.
+      </div>
+
+      <div *ngIf="!tasksLoading && tasks.length > 0" class="cfg-drawer__task-list">
+        <div *ngFor="let t of tasks; trackBy: trackByTask" class="cfg-drawer__task-card">
+          <div class="cfg-drawer__task-info">
+            <span class="cfg-drawer__task-label">{{ t.label }}</span>
+            <span *ngIf="t.description" class="cfg-drawer__task-desc">{{ t.description }}</span>
+            <span class="cfg-badge"
+                  [class.cfg-badge--success]="t.status === 'Active'"
+                  [class.cfg-badge--muted]="t.status === 'Archived'"
+                  [class.cfg-badge--info]="t.status === 'Draft'">
+              {{ t.status === 'Active' ? 'Attivo' : t.status === 'Archived' ? 'Archiviato' : 'Bozza' }}
+            </span>
+          </div>
+          <div class="cfg-drawer__task-actions">
+            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                    type="button"
+                    (click)="openEditTask(t)"
+                    [attr.aria-label]="'Modifica ' + t.label">
+              Modifica
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ng-container>
+
+<!-- Publish dialog overlay (rendered on top of drawer) -->
+<ng-container *ngIf="dialogOpen">
+  <div class="cfg-pub-overlay" role="presentation" (click)="closeDialog()"></div>
+  <div class="cfg-pub-overlay-content">
+    <publish-dialog
+      [reportId]="reportId"
+      [task]="dialogTask ?? null"
+      (saved)="onDialogSaved($event)"
+      (cancelled)="closeDialog()">
+    </publish-dialog>
+  </div>
+</ng-container>
 
 <!-- Master Data Modal — rendered outside main flow to avoid z-index issues -->
 <ng-container *ngIf="masterDataModalTable">

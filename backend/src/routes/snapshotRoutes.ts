@@ -15,6 +15,7 @@ import {
 } from '../services/snapshotService';
 import { getTask } from '../services/taskService';
 import { exportSnapshotExcel, importSnapshotExcel } from '../services/snapshotExcelService';
+import { getCellHistory } from '../services/dataEntryCellService';
 import { SaveCellDto } from '../models/dataEntry.models';
 
 const upload = multer({
@@ -228,6 +229,52 @@ router.post(
     } catch (err) {
       const code = (err as Error & { statusCode?: number }).statusCode;
       if (code === 400) { res.status(400).json({ error: (err as Error).message }); return; }
+      if (code === 404) { res.status(404).json({ error: (err as Error).message }); return; }
+      next(err);
+    }
+  },
+);
+
+// ── POST /snapshots/:id/cell-history ─────────────────────────────────────────
+// Restituisce lo storico degli inserimenti per una cella dello snapshot.
+
+router.post(
+  '/snapshots/:id/cell-history',
+  authJwt,
+  async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    const snapshotId = parseInt(req.params.id, 10);
+    if (!Number.isFinite(snapshotId) || snapshotId <= 0) {
+      res.status(400).json({ error: 'snapshotId non valido' }); return;
+    }
+
+    const body = req.body as Record<string, unknown>;
+
+    if (!body.dimensionValues || typeof body.dimensionValues !== 'object' || Array.isArray(body.dimensionValues)) {
+      res.status(400).json({ error: 'dimensionValues è obbligatorio' }); return;
+    }
+    const dimValues = body.dimensionValues as Record<string, unknown>;
+    for (const [k, v] of Object.entries(dimValues)) {
+      if (typeof k !== 'string' || k.length > 128 || typeof v !== 'string') {
+        res.status(400).json({ error: `Valore dimensione non valido per "${k}"` }); return;
+      }
+    }
+
+    if (!body.valoreField || typeof body.valoreField !== 'string' || body.valoreField.length > 128) {
+      res.status(400).json({ error: 'valoreField è obbligatorio' }); return;
+    }
+
+    try {
+      const snap = await getSnapshot(snapshotId);
+      if (!snap) { res.status(404).json({ error: 'Snapshot non trovato' }); return; }
+
+      const history = await getCellHistory(
+        snap.reportId,
+        dimValues as Record<string, string>,
+        body.valoreField as string,
+      );
+      res.json(history);
+    } catch (err) {
+      const code = (err as Error & { statusCode?: number }).statusCode;
       if (code === 404) { res.status(404).json({ error: (err as Error).message }); return; }
       next(err);
     }

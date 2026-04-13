@@ -2,7 +2,7 @@
 
   <!-- Binding not configured -->
   <div *ngIf="!isLoadingBinding && !binding" class="cfg-alert cfg-alert--info" role="status">
-    Configure the binding in Step 2 (Data Model) before using this step.
+    Configura il binding nello Step 2 (Modello Dati) prima di utilizzare questo step.
   </div>
 
   <!-- Alert banners -->
@@ -13,16 +13,16 @@
   <div *ngIf="binding" class="cfg-kpi-layout">
 
     <!-- LEFT PANEL: column list -->
-    <aside class="cfg-kpi-columns-panel" aria-label="Datamodel columns">
+    <aside class="cfg-kpi-columns-panel" aria-label="Colonne del Datamodel">
       <div class="cfg-kpi-columns-panel__header">
         <span class="cfg-kpi-columns-panel__title">Colonne Datamodel</span>
-        <span *ngIf="isLoadingBinding" class="cfg-spinner cfg-spinner--xs" aria-label="Loading"></span>
+        <span *ngIf="isLoadingBinding" class="cfg-spinner cfg-spinner--xs" aria-label="Caricamento"></span>
       </div>
       <input class="cfg-kpi-columns-panel__search"
              type="search"
              [(ngModel)]="columnListFilter"
              placeholder="Cerca colonna…"
-             aria-label="Filter columns" />
+             aria-label="Filtra colonne" />
 
       <div class="cfg-kpi-columns-panel__list" role="list">
         <ng-container *ngFor="let group of groupedColumns">
@@ -38,7 +38,7 @@
             <span class="cfg-kpi-columns-panel__item-label">{{ item.label }}</span>
             <span *ngIf="hasParamForColumn(item.value)"
                   class="cfg-kpi-columns-panel__badge"
-                  aria-label="PARAM table configured">PARAM</span>
+                  aria-label="Tabella PARAM configurata">PARAM</span>
           </button>
         </ng-container>
         <p *ngIf="groupedColumns.length === 0 && !isLoadingBinding"
@@ -59,28 +59,28 @@
     <div class="cfg-kpi-toolbar">
       <div class="cfg-kpi-toolbar__left">
         <span class="cfg-kpi-toolbar__name">{{ selectedColumn }}</span>
-        <span class="cfg-badge">{{ distinctTotal }} values</span>
+        <span class="cfg-badge">{{ distinctTotal }} valori</span>
         <span *ngIf="activeParamTable"
               class="cfg-badge cfg-badge--success"
               [title]="activeParamTable.paramTableName">
           ✓ PARAM
         </span>
-        <span *ngIf="isCreating" class="cfg-spinner cfg-spinner--sm" aria-label="Creating table…"></span>
+        <span *ngIf="isCreating" class="cfg-spinner cfg-spinner--sm" aria-label="Creazione tabella…"></span>
       </div>
       <div class="cfg-kpi-toolbar__right">
         <button *ngIf="activeParamTable"
                 class="cfg-btn cfg-btn--secondary cfg-btn--sm"
                 [disabled]="isSeeding"
                 (click)="seedTable()"
-                title="Populate table with DISTINCT values not yet present">
-          {{ isSeeding ? 'Seeding…' : 'Seed from DB' }}
+                title="Popola la tabella con valori DISTINCT non ancora presenti">
+          {{ isSeeding ? 'Popolamento…' : 'Popola da DB' }}
         </button>
         <button *ngIf="activeParamTable"
                 class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                 (click)="showCustomColumns = !showCustomColumns"
                 [attr.aria-expanded]="showCustomColumns"
-                title="Add or remove custom columns">
-          + Columns
+                title="Aggiungi o rimuovi colonne personalizzate">
+          + Colonne
         </button>
       </div>
     </div>
@@ -96,29 +96,29 @@
 
     <!-- Loading -->
     <div *ngIf="isLoadingMatrix" class="cfg-kpi-matrix__loading" role="status" aria-live="polite">
-      <span class="cfg-spinner"></span> Loading values…
+      <span class="cfg-spinner"></span> Caricamento valori…
     </div>
 
     <!-- Matrix table -->
     <div *ngIf="!isLoadingMatrix" class="cfg-kpi-matrix-wrap">
 
       <p *ngIf="!activeParamTable && matrixRows.length > 0" class="cfg-kpi-matrix__hint">
-        Click a cell to edit — the PARAM table will be created automatically on the first save.
+        Clicca su una cella per modificarla — la tabella PARAM verrà creata automaticamente al primo salvataggio.
       </p>
 
-      <table class="cfg-kpi-matrix" aria-label="Parameter matrix — click a cell to edit">
+      <table class="cfg-kpi-matrix" aria-label="Matrice parametri — clicca una cella per modificare">
         <thead>
           <tr>
-            <th class="cfg-kpi-matrix__th cfg-kpi-matrix__th--source" scope="col">Value</th>
-            <th class="cfg-kpi-matrix__th" scope="col">Grouping</th>
+            <th class="cfg-kpi-matrix__th cfg-kpi-matrix__th--source" scope="col">Valore</th>
+            <th class="cfg-kpi-matrix__th" scope="col">Raggruppamento</th>
             <th class="cfg-kpi-matrix__th" scope="col">Formula</th>
-            <th class="cfg-kpi-matrix__th cfg-kpi-matrix__th--guide" scope="col">Guide</th>
+            <th class="cfg-kpi-matrix__th cfg-kpi-matrix__th--guide" scope="col">Guida</th>
             <th *ngFor="let col of customCols; trackBy: trackByDef"
                 class="cfg-kpi-matrix__th" scope="col">
               {{ col.label }}
             </th>
             <th class="cfg-kpi-matrix__th cfg-kpi-matrix__th--saved" scope="col"
-                aria-label="Save status"></th>
+                aria-label="Stato salvataggio"></th>
           </tr>
           <!-- Text filter row -->
           <tr class="cfg-kpi-matrix__filter-row">
@@ -127,8 +127,8 @@
                      type="text"
                      [ngModel]="matrixFilter"
                      (ngModelChange)="onMatrixFilterChange($event)"
-                     placeholder="Filter… (cerca su tutti i {{ matrixRows.length }} valori)"
-                     aria-label="Filter by value" />
+                     placeholder="Filtra… (cerca su tutti i {{ matrixRows.length }} valori)"
+                     aria-label="Filtra per valore" />
             </th>
             <th class="cfg-kpi-matrix__th" [attr.colspan]="3 + customCols.length + 1">
               <span class="cfg-kpi-matrix__pager-info">
@@ -147,60 +147,50 @@
             <!-- Value (read-only) -->
             <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--source" [title]="row.sourceValue">
               {{ row.sourceValue }}
-              <span *ngIf="row.isSaving" class="cfg-spinner cfg-spinner--xs" aria-label="Saving"></span>
+              <span *ngIf="row.isSaving" class="cfg-spinner cfg-spinner--xs" aria-label="Salvataggio in corso"></span>
             </td>
 
-            <!-- Grouping (inline edit — disabled for formula rows) -->
-            <td class="cfg-kpi-matrix__td"
-                [class.cfg-kpi-matrix__td--editable]="!row.isFormula"
-                [class.cfg-kpi-matrix__td--active]="!row.isFormula && isEditing(matrixRows.indexOf(row), 'grouping')"
-                (click)="!row.isFormula && startEdit(matrixRows.indexOf(row), 'grouping')"
-                [attr.aria-label]="'Grouping: ' + row.grouping">
-              <span *ngIf="row.isFormula || !isEditing(matrixRows.indexOf(row), 'grouping')" class="cfg-kpi-matrix__cell-val">
+            <!-- Grouping (inline edit) -->
+            <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--editable"
+                [class.cfg-kpi-matrix__td--active]="isEditing(matrixRows.indexOf(row), 'grouping')"
+                (click)="startEdit(matrixRows.indexOf(row), 'grouping')"
+                [attr.aria-label]="'Raggruppamento: ' + row.grouping">
+              <span *ngIf="!isEditing(matrixRows.indexOf(row), 'grouping')" class="cfg-kpi-matrix__cell-val">
                 {{ row.grouping }}
               </span>
-              <input *ngIf="!row.isFormula && isEditing(matrixRows.indexOf(row), 'grouping')"
+              <input *ngIf="isEditing(matrixRows.indexOf(row), 'grouping')"
                      #activeInput
                      class="cfg-kpi-matrix__cell-input"
                      [(ngModel)]="pendingValue"
                      (keydown.enter)="commitEdit()"
                      (keydown.escape)="cancelEdit()"
                      (blur)="commitEdit()"
-                     aria-label="Edit grouping" />
+                     aria-label="Modifica raggruppamento" />
             </td>
 
-            <!-- Formula — read-only for formula rows, inline-edit + builder otherwise -->
-            <td class="cfg-kpi-matrix__td"
-                [class.cfg-kpi-matrix__td--editable]="!row.isFormula"
-                [class.cfg-kpi-matrix__td--active]="!row.isFormula && isEditing(matrixRows.indexOf(row), 'formula')"
+            <!-- Formula — inline-edit + builder for all rows -->
+            <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--editable"
+                [class.cfg-kpi-matrix__td--active]="isEditing(matrixRows.indexOf(row), 'formula')"
                 [attr.aria-label]="'Formula: ' + row.formula">
-              <!-- Formula row: read-only display with ƒ badge -->
-              <span *ngIf="row.isFormula" class="cfg-kpi-matrix__formula-ro">
-                <span class="cfg-kpi-matrix__formula-badge" title="Riga formula — non editabile">ƒ</span>
-                {{ row.formula }}
-              </span>
-              <!-- Normal row: inline edit + formula builder button -->
-              <ng-container *ngIf="!row.isFormula">
-                <div class="cfg-field__input-row" *ngIf="!isEditing(matrixRows.indexOf(row), 'formula')">
-                  <span class="cfg-kpi-matrix__cell-val cfg-input--flex"
-                        (click)="startEdit(matrixRows.indexOf(row), 'formula')">{{ row.formula }}</span>
-                  <button type="button"
-                          class="cfg-btn cfg-btn--ghost cfg-btn--sm"
-                          (click)="openFormulaBuilder(row); $event.stopPropagation()"
-                          title="Open Formula Builder"
-                          aria-label="Open Formula Builder">
-                    ƒ
-                  </button>
-                </div>
-                <input *ngIf="isEditing(matrixRows.indexOf(row), 'formula')"
-                       #activeInput
-                       class="cfg-kpi-matrix__cell-input"
-                       [(ngModel)]="pendingValue"
-                       (keydown.enter)="commitEdit()"
-                       (keydown.escape)="cancelEdit()"
-                       (blur)="commitEdit()"
-                       aria-label="Edit formula" />
-              </ng-container>
+              <div class="cfg-field__input-row" *ngIf="!isEditing(matrixRows.indexOf(row), 'formula')">
+                <span class="cfg-kpi-matrix__cell-val cfg-input--flex"
+                      (click)="startEdit(matrixRows.indexOf(row), 'formula')">{{ row.formula }}</span>
+                <button type="button"
+                        class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                        (click)="openFormulaBuilder(row); $event.stopPropagation()"
+                        title="Apri Formula Builder"
+                        aria-label="Apri Formula Builder">
+                  ƒ
+                </button>
+              </div>
+              <input *ngIf="isEditing(matrixRows.indexOf(row), 'formula')"
+                     #activeInput
+                     class="cfg-kpi-matrix__cell-input"
+                     [(ngModel)]="pendingValue"
+                     (keydown.enter)="commitEdit()"
+                     (keydown.escape)="cancelEdit()"
+                     (blur)="commitEdit()"
+                     aria-label="Modifica formula" />
             </td>
 
             <!-- Compilation guide (via lens modal) -->
@@ -211,37 +201,36 @@
               <button class="cfg-btn-icon cfg-kpi-matrix__lens-btn"
                       (mousedown)="$event.preventDefault()"
                       (click)="openLens(matrixRows.indexOf(row))"
-                      [title]="hasGuide(row) ? 'View / edit guide' : 'Add compilation guide'"
-                      [attr.aria-label]="hasGuide(row) ? 'Edit guide' : 'Add guide'">
+                      [title]="hasGuide(row) ? 'Visualizza / modifica guida' : 'Aggiungi guida alla compilazione'"
+                      [attr.aria-label]="hasGuide(row) ? 'Modifica guida' : 'Aggiungi guida'">
                 {{ hasGuide(row) ? '🔍' : '📝' }}
               </button>
             </td>
 
-            <!-- Custom columns (inline edit — disabled for formula rows) -->
+            <!-- Custom columns (inline edit) -->
             <td *ngFor="let col of customCols; trackBy: trackByDef"
-                class="cfg-kpi-matrix__td"
-                [class.cfg-kpi-matrix__td--editable]="!row.isFormula"
-                [class.cfg-kpi-matrix__td--active]="!row.isFormula && isEditing(matrixRows.indexOf(row), col.name)"
-                (click)="!row.isFormula && startEdit(matrixRows.indexOf(row), col.name)"
+                class="cfg-kpi-matrix__td cfg-kpi-matrix__td--editable"
+                [class.cfg-kpi-matrix__td--active]="isEditing(matrixRows.indexOf(row), col.name)"
+                (click)="startEdit(matrixRows.indexOf(row), col.name)"
                 [attr.aria-label]="col.label + ': ' + (row.customColumns[col.name] || '')">
-              <span *ngIf="row.isFormula || !isEditing(matrixRows.indexOf(row), col.name)" class="cfg-kpi-matrix__cell-val">
+              <span *ngIf="!isEditing(matrixRows.indexOf(row), col.name)" class="cfg-kpi-matrix__cell-val">
                 {{ row.customColumns[col.name] }}
               </span>
-              <input *ngIf="!row.isFormula && isEditing(matrixRows.indexOf(row), col.name)"
+              <input *ngIf="isEditing(matrixRows.indexOf(row), col.name)"
                      #activeInput
                      class="cfg-kpi-matrix__cell-input"
                      [(ngModel)]="pendingValue"
                      (keydown.enter)="commitEdit()"
                      (keydown.escape)="cancelEdit()"
                      (blur)="commitEdit()"
-                     [attr.aria-label]="'Edit ' + col.label" />
+                     [attr.aria-label]="'Modifica ' + col.label" />
             </td>
 
             <!-- Saved indicator -->
             <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--saved">
               <span *ngIf="row.paramId !== null"
                     class="cfg-badge cfg-badge--success"
-                    title="Row saved in database">✓</span>
+                    title="Riga salvata nel database">✓</span>
             </td>
 
           </tr>
@@ -249,7 +238,7 @@
           <!-- Empty state -->
           <tr *ngIf="matrixRows.length === 0">
             <td [attr.colspan]="4 + customCols.length + 1" class="cfg-kpi-matrix__empty">
-              No values found for this column.
+              Nessun valore trovato per questa colonna.
             </td>
           </tr>
         </tbody>
@@ -308,8 +297,8 @@
 
   <!-- Footer nav -->
   <div class="cfg-kpi-footer">
-    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
-    <button class="cfg-btn cfg-btn--primary" (click)="next.emit()">Next: Report Designer →</button>
+    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Indietro</button>
+    <button class="cfg-btn cfg-btn--primary" (click)="next.emit()">Avanti: Report Designer →</button>
   </div>
 
 </div>

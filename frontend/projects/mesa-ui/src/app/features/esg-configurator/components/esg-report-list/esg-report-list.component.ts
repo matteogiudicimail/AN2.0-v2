@@ -42,7 +42,7 @@ export class EsgReportListComponent implements OnInit {
         this.isLoading = false;
         this.loadTasks();
       },
-      error: () => { this.errorMsg = 'Could not load Data Models.'; this.isLoading = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare i Data Model.'; this.isLoading = false; },
     });
   }
 

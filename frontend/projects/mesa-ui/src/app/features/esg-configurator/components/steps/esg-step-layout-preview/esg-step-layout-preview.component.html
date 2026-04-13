@@ -114,7 +114,7 @@
           <div class="cfg-lp-task-card__header">
             <span class="cfg-lp-task-card__dot cfg-lp-task-card__dot--{{ t.status.toLowerCase() }}"></span>
             <span class="cfg-lp-task-card__label" [title]="t.label">{{ t.label }}</span>
-            <span class="cfg-badge cfg-badge--sm" [ngClass]="statusBadgeClass(t.status)">{{ t.status }}</span>
+            <span class="cfg-badge cfg-badge--sm" [ngClass]="statusBadgeClass(t.status)">{{ t.status === 'Active' ? 'Attivo' : t.status === 'Archived' ? 'Archiviato' : 'Bozza' }}</span>
           </div>
 
           <!-- Minimal meta: codice + menu -->

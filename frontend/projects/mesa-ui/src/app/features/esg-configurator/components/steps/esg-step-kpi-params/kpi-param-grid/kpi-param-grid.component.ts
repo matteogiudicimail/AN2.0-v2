@@ -90,7 +90,7 @@ export class KpiParamGridComponent implements OnInit, OnChanges {
     this.isLoading = true;
     this.svc.getParamRows(this.paramTableId).subscribe({
       next:  (r) => { this.rows = r; this.isLoading = false; },
-      error: ()  => { this.errorMsg = 'Could not load rows.'; this.isLoading = false; },
+      error: ()  => { this.errorMsg = 'Impossibile caricare le righe.'; this.isLoading = false; },
     });
   }
 
@@ -139,7 +139,7 @@ export class KpiParamGridComponent implements OnInit, OnChanges {
         this.showAddForm = false;
         this.isSaving = false;
       },
-      error: () => { this.errorMsg = 'Could not add row.'; this.isSaving = false; },
+      error: () => { this.errorMsg = 'Impossibile aggiungere la riga.'; this.isSaving = false; },
     });
   }
 
@@ -186,20 +186,20 @@ export class KpiParamGridComponent implements OnInit, OnChanges {
         this.editingRow = null;
         this.isSaving = false;
       },
-      error: () => { this.errorMsg = 'Could not update row.'; this.isSaving = false; },
+      error: () => { this.errorMsg = 'Impossibile aggiornare la riga.'; this.isSaving = false; },
     });
   }
 
   // ── Delete ─────────────────────────────────────────────────────────────────
 
   deleteRow(row: ParamRow): void {
-    if (!confirm(`Delete row "${row.label}"?`)) return;
+    if (!confirm(`Eliminare la riga "${row.label}"?`)) return;
     this.svc.deleteParamRow(this.paramTableId, row.paramId).subscribe({
       next: () => {
         this.rows = this.rows.filter((r) => r.paramId !== row.paramId);
         if (this.editingRow?.paramId === row.paramId) { this.editingRow = null; }
       },
-      error: () => { this.errorMsg = 'Could not delete row.'; },
+      error: () => { this.errorMsg = 'Impossibile eliminare la riga.'; },
     });
   }
 
@@ -208,7 +208,7 @@ export class KpiParamGridComponent implements OnInit, OnChanges {
   moveRow(row: ParamRow, direction: 'up' | 'down'): void {
     this.svc.moveParamRow(this.paramTableId, row.paramId, direction).subscribe({
       next: () => { this.loadRows(); },
-      error: () => { this.errorMsg = 'Could not reorder row.'; },
+      error: () => { this.errorMsg = 'Impossibile riordinare la riga.'; },
     });
   }
 

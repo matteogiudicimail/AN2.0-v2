@@ -154,7 +154,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
         this.isLoadingBinding = false;
         if (b) { this.buildColumnSelectItems(b); }
       },
-      error: () => { this.errorMsg = 'Could not load binding.'; this.isLoadingBinding = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare il binding.'; this.isLoadingBinding = false; },
     });
   }
 
@@ -313,7 +313,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
           this.isLoadingMatrix = false;
         }
       },
-      error: () => { this.errorMsg = 'Could not load values.'; this.isLoadingMatrix = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare i valori.'; this.isLoadingMatrix = false; },
     });
   }
 
@@ -375,7 +375,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
         setTimeout(() => { this.successMsg = null; }, 5000);
         this.loadMatrix();
       },
-      error: () => { this.errorMsg = 'Could not run seed.'; this.isSeeding = false; },
+      error: () => { this.errorMsg = 'Impossibile popolare la tabella.'; this.isSeeding = false; },
     });
   }
 
@@ -429,7 +429,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
     this.ensureParamTable().then((pt) => {
       this.persistCell(pt, row, rowIdx);
     }).catch(() => {
-      this.errorMsg = 'Could not create the PARAM table.';
+      this.errorMsg = 'Impossibile creare la tabella PARAM.';
       row.isSaving  = false;
     });
   }
@@ -451,7 +451,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
           this.paramRows.push(saved);
           row.isSaving = false;
         },
-        error: () => { this.errorMsg = 'Could not save cell.'; row.isSaving = false; },
+        error: () => { this.errorMsg = 'Impossibile salvare la cella.'; row.isSaving = false; },
       });
     } else {
       const paramId = row.paramId;
@@ -461,7 +461,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
           if (idx >= 0) { this.paramRows[idx] = saved; }
           row.isSaving = false;
         },
-        error: () => { this.errorMsg = 'Could not save cell.'; row.isSaving = false; },
+        error: () => { this.errorMsg = 'Impossibile salvare la cella.'; row.isSaving = false; },
       });
     }
   }
@@ -487,9 +487,9 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
           this.paramRows.push(saved);
           this.lensParamRow = saved;
         },
-        error: () => { this.errorMsg = 'Could not open guide editor.'; row.isSaving = false; },
+        error: () => { this.errorMsg = 'Impossibile aprire l\'editor della guida.'; row.isSaving = false; },
       });
-    }).catch(() => { this.errorMsg = 'Could not create the PARAM table.'; });
+    }).catch(() => { this.errorMsg = 'Impossibile creare la tabella PARAM.'; });
   }
 
   onLensSaved(updated: ParamRow): void {
@@ -540,7 +540,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
             const idx = this.paramRows.findIndex((r) => r.paramId === saved.paramId);
             if (idx >= 0) { this.paramRows[idx] = saved; }
           },
-          error: () => { this.errorMsg = 'Could not save formula.'; },
+          error: () => { this.errorMsg = 'Impossibile salvare la formula.'; },
         });
       } else {
         this.svc.addParamRow(pt.paramTableId, dto).subscribe({
@@ -549,10 +549,10 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
             row.formula = saved.formula ?? formula;
             this.paramRows.push(saved);
           },
-          error: () => { this.errorMsg = 'Could not save formula.'; },
+          error: () => { this.errorMsg = 'Impossibile salvare la formula.'; },
         });
       }
-    }).catch(() => { this.errorMsg = 'Could not create the PARAM table.'; });
+    }).catch(() => { this.errorMsg = 'Impossibile creare la tabella PARAM.'; });
   }
 
   onFormulaCancelled(): void { this.formulaBuilderRow = null; }

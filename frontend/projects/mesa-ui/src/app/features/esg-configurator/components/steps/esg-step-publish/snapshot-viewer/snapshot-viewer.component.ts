@@ -22,7 +22,7 @@ import { EsgConfiguratorService } from '../../../../services/esg-configurator.se
 import { evaluateFormula, extractReferences } from '../../../../services/formula-engine';
 import {
   DataEntryGridResponse, DataEntryRowOption, SaveCellDto,
-  RowApprovalDto, BulkRowApprovalDto,
+  RowApprovalDto, BulkRowApprovalDto, ViewerSettings, CellHistoryEntry,
 } from '../../../../models/esg-configurator.models';
 
 interface EditingCell {
@@ -69,6 +69,30 @@ export class SnapshotViewerComponent implements OnInit {
   @Input() taskDefaultFilters?: string | null;
   /** JSON array of filter field names the admin has hidden from the user. */
   @Input() taskHiddenFilters?: string | null;
+  /** Controls which toolbars are shown to the user (null = show all). */
+  @Input() taskViewerSettings?: ViewerSettings | null;
+  /** Whether insert-tracking is enabled for this report (controls right-click history). */
+  @Input() trackingEnabled = false;
+
+  /** Whether the save-mode toggle (Auto/Manual) is visible. Defaults to true. */
+  get showSaveMode():    boolean { return this.taskViewerSettings?.showSaveMode    ?? true; }
+  /** Whether the Excel export/import buttons are visible. Defaults to true. */
+  get showExcelExport(): boolean { return this.taskViewerSettings?.showExcelExport ?? true; }
+  /** Whether the "Solo con dati" checkbox is visible. Defaults to true. */
+  get showSoloConDati(): boolean { return this.taskViewerSettings?.showSoloConDati ?? true; }
+
+  /** Apply viewerSettings defaults once on first load. */
+  private _viewerDefaultsApplied = false;
+  private applyViewerDefaults(): void {
+    if (this._viewerDefaultsApplied) return;
+    this._viewerDefaultsApplied = true;
+    if (this.taskViewerSettings?.defaultSaveMode) {
+      this.saveMode = this.taskViewerSettings.defaultSaveMode;
+    }
+    if (this.taskViewerSettings?.defaultSoloConDati) {
+      this.showOnlyWithData = true;
+    }
+  }
 
   /** Parsed set of hidden filter field names (lazy, from taskHiddenFilters). */
   get hiddenFilterSet(): Set<string> {
@@ -97,6 +121,10 @@ export class SnapshotViewerComponent implements OnInit {
 
   /** True while rebuildRollupCache is deferred (spinner shown on the grid) */
   isComputingFilter = false;
+
+  /** Free-text search inputs for live row/column filtering */
+  rowSearch = '';
+  colSearch = '';
 
   /** Collapsible params/filters section */
   paramsCollapsed = false;
@@ -196,6 +224,20 @@ export class SnapshotViewerComponent implements OnInit {
   /** Cell right-click context menu */
   cellCtxMenu: CellCtxMenu | null = null;
 
+  // ── Cell History Modal ───────────────────────────────────────────────────────
+  cellHistoryModal: {
+    riga:         DataEntryRowOption;
+    colonnaField: string;
+    colonnaValue: string;
+    valoreField:  string;
+    valoreLabel:  string;
+    dimensionValues: Record<string, string>;
+  } | null = null;
+
+  cellHistoryEntries: CellHistoryEntry[] = [];
+  cellHistoryLoading = false;
+  cellHistoryError: string | null = null;
+
   // ── Row Approval ─────────────────────────────────────────────────────────────
   /** Set of sorted-JSON dimension keys for approved (locked) rows */
   approvedKeys = new Set<string>();
@@ -244,7 +286,7 @@ export class SnapshotViewerComponent implements OnInit {
     private ngZone: NgZone,
   ) {}
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void { this.applyViewerDefaults(); this.load(); }
 
   load(): void {
     this.isLoading = true;
@@ -366,6 +408,20 @@ export class SnapshotViewerComponent implements OnInit {
     if (this._visibleRowsCache !== null) return this._visibleRowsCache;
     this._visibleRowsCache = this._computeVisibleRows();
     return this._visibleRowsCache;
+  }
+
+  /** visibleRows further filtered by rowSearch (case-insensitive contains on label) */
+  get filteredVisibleRows(): DataEntryRowOption[] {
+    const term = this.rowSearch.trim().toLowerCase();
+    if (!term) return this.visibleRows;
+    return this.visibleRows.filter((r) => (r.label ?? '').toLowerCase().includes(term));
+  }
+
+  /** columnCombinations further filtered by colSearch (case-insensitive contains on value) */
+  get filteredColumnCombinations(): Array<{ fieldName: string; value: string }> {
+    const term = this.colSearch.trim().toLowerCase();
+    if (!term) return this.columnCombinations;
+    return this.columnCombinations.filter((cc) => cc.value.toLowerCase().includes(term));
   }
 
   private _computeVisibleRows(): DataEntryRowOption[] {
@@ -619,10 +675,22 @@ export class SnapshotViewerComponent implements OnInit {
   }
 
   getFormulaValue(riga: DataEntryRowOption, cf: string, cv: string, vf: string): string {
+    const result = this._computeFormulaNumber(riga, cf, cv, vf);
+    if (result === null) return '';
+    const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
+    return this.formatCellDisplay(String(result), vfDef?.aggregation ?? 'SUM');
+  }
+
+  /**
+   * Returns the raw numeric result of a formula row, or null if the formula
+   * cannot be resolved.  Used internally so sibling formula references stay
+   * as raw numbers without going through locale-formatted strings.
+   */
+  private _computeFormulaNumber(riga: DataEntryRowOption, cf: string, cv: string, vf: string): number | null {
     const formula = riga.paramRow?.formula;
-    if (!formula) return '';
+    if (!formula) return null;
     const refs = extractReferences(formula);
-    if (!refs.length) return '';
+    if (!refs.length) return null;
 
     const all = this.grid?.rowOptions ?? [];
     const parentPath = Object.fromEntries(
@@ -630,23 +698,93 @@ export class SnapshotViewerComponent implements OnInit {
     );
     const context: Record<string, number> = {};
     for (const ref of refs) {
+      // Match siblings by value (sourceValue) OR by label — formulas may reference
+      // either the raw source value or the human-readable display label.
       const sibling = all.find(
-        (r) => r.value === ref
+        (r) => (r.value === ref || r.label === ref)
           && r.fieldName === riga.fieldName
           && r.depth === riga.depth
           && r !== riga
           && Object.entries(parentPath).every(([k, v]) => r.pathValues[k] === v),
       );
       if (sibling) {
-        const raw = this.getCellValue(sibling, cf, cv, vf);
-        context[ref] = raw !== '' ? (parseFloat(raw) || 0) : 0;
+        // Resolve sibling value as a raw number to avoid locale-formatted string issues.
+        let num: number;
+        if (this.isFormulaRow(sibling)) {
+          num = this._computeFormulaNumber(sibling, cf, cv, vf) ?? 0;
+        } else if (this.isAggregateRow(sibling)) {
+          num = this._computeAggregateNumber(sibling, cf, cv, vf) ?? 0;
+        } else {
+          const raw = this.getCellValue(sibling, cf, cv, vf);
+          num = raw !== '' ? (parseFloat(raw) || 0) : 0;
+        }
+        context[ref] = num;
       }
     }
 
-    const result = evaluateFormula(formula, context);
-    if (result === null) return '';
+    return evaluateFormula(formula, context);
+  }
+
+  // ── Aggregate rows ───────────────────────────────────────────────────────────
+
+  isAggregateRow(riga: DataEntryRowOption): boolean {
+    const rk = riga.paramRow?.rowKind;
+    return rk === 'Aggregato' || rk === 'Aggregate';
+  }
+
+  /**
+   * Computes the sum of sibling leaf rows whose paramRow.grouping matches this
+   * aggregate row's value or label.  Used for flat param hierarchies where Aggregato
+   * rows are emitted as isLeaf=true and are not connected via the expand/rollup path.
+   */
+  getAggregateValue(riga: DataEntryRowOption, cf: string, cv: string, vf: string): string {
+    const sum = this._computeAggregateNumber(riga, cf, cv, vf);
+    if (sum === null) return '';
     const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
-    return this.formatCellDisplay(String(result), vfDef?.aggregation ?? 'SUM');
+    return this.formatCellDisplay(String(sum), vfDef?.aggregation ?? 'SUM');
+  }
+
+  /**
+   * Returns the raw numeric aggregate sum, or null if no child rows have data.
+   * Separated from getAggregateValue so formula rows can reference aggregate rows
+   * without going through locale-formatted strings.
+   */
+  private _computeAggregateNumber(riga: DataEntryRowOption, cf: string, cv: string, vf: string): number | null {
+    const all = this.grid?.rowOptions ?? [];
+    // The grouping tag that child rows carry to indicate they belong to this aggregate.
+    // Child rows store paramRow.grouping = <aggregato sourceValue or label>.
+    const aggValue = riga.value;
+    const aggLabel = riga.label;
+
+    // Collect sibling leaf rows (same fieldName, same depth, same parent path, not the aggregate itself)
+    // whose paramRow.grouping matches this aggregate's value or label.
+    const parentPath = Object.fromEntries(
+      Object.entries(riga.pathValues).filter(([k]) => k !== riga.fieldName),
+    );
+
+    const children = all.filter(
+      (r) => r !== riga
+        && r.fieldName === riga.fieldName
+        && r.depth === riga.depth
+        && !this.isAggregateRow(r)
+        && !this.isFormulaRow(r)
+        && Object.entries(parentPath).every(([k, v]) => r.pathValues[k] === v)
+        && (r.paramRow?.grouping === aggValue || r.paramRow?.grouping === aggLabel),
+    );
+
+    if (children.length === 0) return null;
+
+    let sum = 0;
+    let hasData = false;
+    for (const child of children) {
+      const raw = this.getCellValue(child, cf, cv, vf);
+      if (raw !== '') {
+        const num = parseFloat(raw);
+        if (!isNaN(num)) { sum += num; hasData = true; }
+      }
+    }
+
+    return hasData ? sum : null;
   }
 
   // ── Cell value lookup ───────────────────────────────────────────────────────
@@ -797,6 +935,19 @@ export class SnapshotViewerComponent implements OnInit {
 
   getDisplayValue(riga: DataEntryRowOption, cf: string, cv: string, vf: string): string {
     if (this.isFormulaRow(riga)) return this.getFormulaValue(riga, cf, cv, vf);
+    if (this.isAggregateRow(riga)) {
+      // For non-leaf aggregate rows the rollup cache already handles the sum.
+      // For leaf-flagged aggregate rows (flat param tables) compute client-side.
+      if (!riga.isLeaf) {
+        const k = `${this.getRowPathKey(riga)}||${cf}||${cv}||${vf}`;
+        const rollup = this.rollupCache.get(k);
+        if (rollup !== undefined) {
+          const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
+          return this.formatCellDisplay(String(rollup), vfDef?.aggregation ?? 'SUM');
+        }
+      }
+      return this.getAggregateValue(riga, cf, cv, vf);
+    }
     const direct = this.getCellValue(riga, cf, cv, vf);
     if (direct !== '') {
       const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
@@ -870,6 +1021,61 @@ export class SnapshotViewerComponent implements OnInit {
     this.cellCtxMenu = null;
     this.guidaPopup  = null;
     this.closeFilterSearch();
+  }
+
+  // ── Cell History ─────────────────────────────────────────────────────────────
+
+  openCellHistory(riga: DataEntryRowOption, cf: string, cv: string, vf: { fieldName: string; label: string }): void {
+    this.closeAllMenus();
+
+    // Build dimension values matching the cell (same as saveCell logic)
+    const dimValues: Record<string, string> = { ...riga.pathValues };
+    if (!this.noColonnaMode && cf) dimValues[cf] = cv;
+    for (const f of this.layoutFilters) {
+      dimValues[f.fieldName] = this.selectedFiltri[f.fieldName] ?? '';
+    }
+
+    this.cellHistoryModal = {
+      riga, colonnaField: cf, colonnaValue: cv,
+      valoreField: vf.fieldName, valoreLabel: vf.label,
+      dimensionValues: dimValues,
+    };
+    this.cellHistoryEntries = [];
+    this.cellHistoryLoading = true;
+    this.cellHistoryError   = null;
+    this.cdr.markForCheck();
+
+    this.svc.getSnapshotCellHistory(this.snapshotId, {
+      dimensionValues: dimValues,
+      valoreField:     vf.fieldName,
+    }).subscribe({
+      next: (entries) => {
+        this.cellHistoryEntries = entries;
+        this.cellHistoryLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cellHistoryError   = 'Impossibile caricare lo storico.';
+        this.cellHistoryLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  closeCellHistory(): void {
+    this.cellHistoryModal   = null;
+    this.cellHistoryEntries = [];
+    this.cellHistoryError   = null;
+    this.cdr.markForCheck();
+  }
+
+  formatHistoryDate(isoString: string): string {
+    try {
+      return new Intl.DateTimeFormat(navigator.language || 'it-IT', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      }).format(new Date(isoString));
+    } catch { return isoString; }
   }
 
   // ── Filter search popup ────────────────────────────────────────────────────
@@ -1018,7 +1224,11 @@ export class SnapshotViewerComponent implements OnInit {
   onDocClick(): void { this.closeAllMenus(); }
 
   @HostListener('document:keydown.escape')
-  onEscape(): void { this.closeAllMenus(); this.editing = null; }
+  onEscape(): void {
+    if (this.cellHistoryModal) { this.closeCellHistory(); return; }
+    this.closeAllMenus();
+    this.editing = null;
+  }
 
   // ── Cell editing ────────────────────────────────────────────────────────────
 
@@ -1064,6 +1274,7 @@ export class SnapshotViewerComponent implements OnInit {
   startEdit(riga: DataEntryRowOption, cf: string, cv: string, vf: string, initialValue?: string): void {
     if (!riga.isLeaf) return;
     if (this.isFormulaRow(riga)) return;
+    if (this.isAggregateRow(riga)) return;
     if (this.isColumnMemberLocked(cf, cv)) return;
     if (this.isRowApproved(riga)) return;
     const selectAll    = initialValue === undefined;

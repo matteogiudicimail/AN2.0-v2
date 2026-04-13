@@ -69,7 +69,7 @@ export class EsgReportWizardComponent implements OnInit {
   private loadReport(): void {
     this.svc.getReport(this.reportId!).subscribe({
       next:  (r) => { this.report = r; },
-      error: ()  => { this.errorMsg = 'Could not load the Data Model.'; },
+      error: ()  => { this.errorMsg = 'Impossibile caricare il Data Model.'; },
     });
   }
 
@@ -86,12 +86,12 @@ export class EsgReportWizardComponent implements OnInit {
           this.isSaving = false;
           this.step     = 2;
         },
-        error: () => { this.errorMsg = 'Could not save the Data Model.'; this.isSaving = false; },
+        error: () => { this.errorMsg = 'Impossibile salvare il Data Model.'; this.isSaving = false; },
       });
     } else {
       this.svc.updateReport(this.reportId!, dto as UpdateDataModelDto).subscribe({
         next: (r) => { this.report = r; this.isSaving = false; this.step = 2; },
-        error: () => { this.errorMsg = 'Could not update the Data Model.'; this.isSaving = false; },
+        error: () => { this.errorMsg = 'Impossibile aggiornare il Data Model.'; this.isSaving = false; },
       });
     }
   }
