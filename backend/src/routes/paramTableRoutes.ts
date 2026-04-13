@@ -100,8 +100,8 @@ router.get(
   async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { schema, table, column } = req.params as Record<string, string>;
-      const rawLimit = parseInt((req.query['limit'] as string) ?? '500', 10);
-      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? Math.min(rawLimit, 5000) : 500;
+      const rawLimit = parseInt((req.query['limit'] as string) ?? '100000', 10);
+      const limit = Number.isFinite(rawLimit) && rawLimit > 0 ? rawLimit : 100000;
 
       const result = await svc.getDistinctValues(schema, table, column, limit);
       res.json(result);

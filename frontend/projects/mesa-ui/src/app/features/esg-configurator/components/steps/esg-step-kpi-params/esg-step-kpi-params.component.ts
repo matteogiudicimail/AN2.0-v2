@@ -293,9 +293,9 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
     const { schema, table, column: bareColumn } = this.resolveColumnLocation();
     this.isLoadingMatrix = true;
     this.errorMsg = null;
-    // For hierarchy label columns fetch up to 10 000 distinct labels so that
-    // all P&C nodes (leaves + groups) are available in the PARAM grid.
-    const valueLimit = this.isHierarchyLabelColSelected() ? 10000 : 500;
+    // Fetch all distinct values — no artificial cap so the user can configure
+    // parameters for every value in the column.
+    const valueLimit = 100000;
 
     this.svc.getDistinctValues(schema, table, bareColumn, valueLimit).subscribe({
       next: (r) => {
