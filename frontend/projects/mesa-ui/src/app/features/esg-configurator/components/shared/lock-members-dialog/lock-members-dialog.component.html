@@ -1,0 +1,69 @@
+<div class="cfg-lock-dialog__overlay" role="presentation" (click)="cancelled.emit()">
+  <div class="cfg-lock-dialog"
+       role="dialog"
+       [attr.aria-label]="'Lock members for ' + fieldLabel"
+       aria-modal="true"
+       (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="cfg-lock-dialog__header">
+      <h3 class="cfg-lock-dialog__title">
+        🔒 Lock members — <em>{{ fieldLabel }}</em>
+      </h3>
+      <button class="cfg-btn-icon" type="button" aria-label="Close" (click)="cancelled.emit()">✕</button>
+    </div>
+
+    <!-- Loading / error -->
+    <div *ngIf="isLoading" class="cfg-lock-dialog__body cfg-lock-dialog__body--loading">
+      <span class="cfg-spinner" aria-label="Loading values"></span>
+      <span>Caricamento valori…</span>
+    </div>
+    <div *ngIf="!isLoading && errorMsg" class="cfg-alert cfg-alert--error" role="alert">
+      {{ errorMsg }}
+    </div>
+
+    <!-- Main content -->
+    <ng-container *ngIf="!isLoading && !errorMsg">
+
+      <!-- Search + bulk actions -->
+      <div class="cfg-lock-dialog__toolbar">
+        <input class="cfg-lock-dialog__search"
+               type="search"
+               [(ngModel)]="searchText"
+               placeholder="Cerca valore…"
+               aria-label="Search values" />
+        <button class="cfg-btn cfg-btn--xs cfg-btn--ghost" type="button" (click)="selectAll()">
+          Seleziona tutto
+        </button>
+        <button class="cfg-btn cfg-btn--xs cfg-btn--ghost" type="button" (click)="deselectAll()">
+          Deseleziona tutto
+        </button>
+      </div>
+
+      <!-- Checklist -->
+      <div class="cfg-lock-dialog__list" role="group" [attr.aria-label]="'Values for ' + fieldLabel">
+        <label *ngFor="let v of filteredValues"
+               class="cfg-lock-dialog__item"
+               [class.cfg-lock-dialog__item--checked]="isChecked(v)">
+          <input type="checkbox"
+                 class="cfg-lock-dialog__check"
+                 [checked]="isChecked(v)"
+                 (change)="toggle(v)"
+                 [attr.aria-label]="v" />
+          <span class="cfg-lock-dialog__val">{{ v }}</span>
+        </label>
+        <p *ngIf="filteredValues.length === 0" class="cfg-lock-dialog__empty">
+          Nessun valore trovato.
+        </p>
+      </div>
+
+      <!-- Footer -->
+      <div class="cfg-lock-dialog__footer">
+        <span class="cfg-lock-dialog__count">{{ checkedValues.size }} selezionati</span>
+        <button class="cfg-btn cfg-btn--ghost" type="button" (click)="cancelled.emit()">Annulla</button>
+        <button class="cfg-btn cfg-btn--primary" type="button" (click)="confirm()">Conferma</button>
+      </div>
+    </ng-container>
+
+  </div>
+</div>

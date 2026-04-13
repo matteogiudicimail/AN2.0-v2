@@ -41,6 +41,8 @@ function validateAxisItems(items: unknown, zone: string): EntryAxisItem[] {
     const lockedMembersRaw = it['lockedMembers'];
     const skipDepthsRaw    = it['skipDepths'];
     const hierDefIdRaw     = it['hierarchyDefId'];
+    const roleRaw          = it['role'];
+    const defaultValueRaw  = it['defaultValue'];
     const base: EntryAxisItem = {
       fieldName:    it['fieldName'].trim().slice(0, 128),
       label:        String(it['label'] ?? it['fieldName']).slice(0, 200),
@@ -59,6 +61,12 @@ function validateAxisItems(items: unknown, zone: string): EntryAxisItem[] {
     }
     if (typeof hierDefIdRaw === 'number' && hierDefIdRaw > 0) {
       base.hierarchyDefId = Math.floor(hierDefIdRaw);
+    }
+    if (roleRaw === 'grouping' || roleRaw === 'detail') {
+      base.role = roleRaw;
+    }
+    if (typeof defaultValueRaw === 'string' && defaultValueRaw.trim()) {
+      base.defaultValue = defaultValueRaw.trim().slice(0, 500);
     }
     return base;
   });

@@ -1,0 +1,247 @@
+@use 'variables' as *;
+
+// ============================================================
+// Data Grid Styles — faithful translation of the HTML mockup
+// ============================================================
+
+.scroll-area {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+// ---- Table base ----
+.dtbl {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: max-content;
+  min-width: 100%;
+  font-family: $font-family;
+  font-size: $font-size-base;
+  color: $color-text;
+}
+
+// ---- Sticky header ----
+.dtbl thead th {
+  position: sticky;
+  top: 0;
+  z-index: $z-frozen-header;
+  background: $mesa-green;
+  color: $color-white;
+  font-size: $font-size-sm;
+  font-weight: 600;
+  padding: $spacing-md $spacing-xs;
+  text-align: center;
+  border-bottom: 2px solid $mesa-green-dark;
+  white-space: nowrap;
+
+  // Frozen corner headers
+  &.fc {
+    z-index: $z-frozen-corner;
+  }
+}
+
+// ---- Column width classes ----
+.kc-h {
+  text-align: left !important;
+  min-width: $frozen-col-kpi;
+  width: $frozen-col-kpi;
+  left: 0;
+}
+.uc-h {
+  min-width: $frozen-col-unit;
+  width: $frozen-col-unit;
+  left: $frozen-unit-left;
+}
+.mc-h {
+  min-width: $frozen-col-meta;
+  width: $frozen-col-meta;
+  left: $frozen-meta-left;
+  border-right: 2px solid $mesa-green-dark;
+}
+.ec {
+  min-width: $entity-col-width;
+  width: $entity-col-width;
+}
+
+// ---- Frozen columns (all rows) ----
+.fc {
+  position: sticky;
+  background: $color-white;
+  z-index: $z-frozen-cell;
+}
+.kc {
+  left: 0;
+  min-width: $frozen-col-kpi;
+  width: $frozen-col-kpi;
+  padding: $spacing-sm $spacing-lg;
+  font-size: $font-size-base;
+  white-space: normal;
+}
+.uc {
+  left: $frozen-unit-left;
+  min-width: $frozen-col-unit;
+  width: $frozen-col-unit;
+  text-align: center;
+  font-size: $font-size-sm;
+  color: $color-text-muted;
+}
+.mc-td {
+  left: $frozen-meta-left;
+  min-width: $frozen-col-meta;
+  width: $frozen-col-meta;
+  border-right: 2px solid $color-border-light;
+}
+
+// ---- Row base ----
+.dtbl tbody td {
+  border-bottom: 1px solid $color-border-light;
+  padding: 0;
+  vertical-align: middle;
+}
+
+// ---- Parent row (bold, calculated sum) ----
+.dr-p td.fc {
+  background: $mesa-green-bg;
+}
+.dtbl tbody tr:hover td            { background: $color-bg-hover; }
+.dtbl tbody tr:hover td.fc         { background: #f0f8e8; }
+.dtbl tbody tr.dr-p:hover td.fc    { background: #e8f3d8; }
+
+// ---- Value cells ----
+.vc {
+  min-width: $entity-col-width;
+  width: $entity-col-width;
+  padding: 0 2px;
+  text-align: right;
+}
+
+.vc input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid $color-border;
+  padding: $spacing-xs 2px;
+  font-size: $font-size-sm;
+  text-align: right;
+  font-family: inherit;
+  color: $color-text;
+  background: transparent;
+  outline: none;
+  transition: border-color $transition-fast;
+
+  &:focus {
+    border-bottom-color: $mesa-green;
+    background: rgba($mesa-green, 0.04);
+  }
+
+  // Calculated / readonly
+  &.calc {
+    color: #999;
+    font-style: italic;
+    border-bottom-color: transparent;
+    cursor: default;
+  }
+
+  // Empty value
+  &.empty { color: $color-text-light; }
+
+  // Dirty (unsaved change)
+  &.dirty { border-bottom-color: #f0a500; }
+
+  // Validation warning
+  &.cell-warn  { border-bottom-color: #f0a500; background: #fffde7; }
+  // Validation error
+  &.cell-error { border-bottom-color: #e53935; background: #ffebee; }
+}
+
+// ---- KPI label ----
+.kn {
+  font-size: $font-size-base;
+  b { font-weight: 700; }
+}
+
+.kpi-indent .kn,
+.dr-kpi-indent .kn {
+  padding-left: $spacing-xl;
+}
+
+// ---- Formula tag ----
+.ftag {
+  font-size: 9px;
+  color: $mesa-green-text;
+  background: $mesa-green-light;
+  padding: 1px 5px;
+  border-radius: $radius-sm;
+  margin-left: $spacing-xs;
+  font-family: 'Courier New', monospace;
+  white-space: nowrap;
+}
+
+// ---- Comment/metadata indicator ----
+.mc {
+  width: 24px;
+  height: 24px;
+  border: 1px solid #ccc;
+  border-radius: $radius-full;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  cursor: pointer;
+  background: $color-white;
+  margin: 0 auto;
+  transition: border-color $transition-fast;
+  svg { width: 12px; height: 12px; }
+  &:hover { border-color: $mesa-green; }
+  &:focus-visible {
+    outline: 2px solid $mesa-green;
+    outline-offset: 2px;
+  }
+}
+.mc-dot {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: $radius-full;
+  background: $mesa-green;
+  border: 1.5px solid $color-white;
+}
+.msvg {
+  fill: none;
+  stroke: #888;
+  stroke-width: 1.5;
+}
+
+// ---- Sub-section header row ----
+.sub-hdr td {
+  background: $mesa-green;
+  color: $color-white;
+  font-size: $font-size-base;
+  font-weight: 600;
+  padding: $spacing-sm $spacing-lg;
+  cursor: pointer;
+  user-select: none;
+  border-bottom: 1px solid $mesa-green-dark;
+  &.fc {
+    z-index: $z-subsec-header;
+    position: sticky;
+    left: 0;
+    min-width: $frozen-col-kpi + $frozen-col-unit + $frozen-col-meta;
+  }
+  &.vc { background: $mesa-green; }
+}
+
+// ---- Collapse chevron ----
+.sc {
+  font-size: $font-size-xs;
+  margin-right: $spacing-sm;
+  display: inline-block;
+  transition: transform $transition-fast;
+  &.open { transform: rotate(90deg); }
+}
+
+// ---- Collapsed sub-section body ----
+tbody.collapsed { display: none; }
+

@@ -22,8 +22,10 @@ import {
   loadWriteRows,
   loadAggregatedFactRows,
   resolveDistinctSource,
+  loadFiltriDimMapping,
+  loadFiltriColonneMapping,
 } from './dataEntryGridService';
-import { getDistinctColValues } from './dataEntryHelpers';
+import { getDistinctColValues, normalizeLayoutKeys } from './dataEntryHelpers';
 import { getDistinctParamGroupings } from './dataEntryHierarchyBuilderService';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -32,8 +34,14 @@ function isGroupingItem(item: { fieldName: string; paramTableId?: number | null 
   return !!(item.paramTableId) && item.fieldName.endsWith('_Grouping');
 }
 
-function isFactDim(f: { paramTableId?: number | null; dimTable?: unknown }): boolean {
+/** For filtri fields: include only if NOT a pure dim-table-only field (must have paramTableId or no dimTable). */
+function isFactFiltro(f: { paramTableId?: number | null; dimTable?: unknown }): boolean {
   return !isGroupingItem(f as any) && (!(f as any).dimTable || !!(f as any).paramTableId);
+}
+
+/** For righe fields: include ALL non-grouping fields (even dim-table-only) to ensure write granularity. */
+function isFactRiga(f: { paramTableId?: number | null; dimTable?: unknown }): boolean {
+  return !isGroupingItem(f as any);
 }
 
 // ── createSnapshot ────────────────────────────────────────────────────────────
@@ -132,23 +140,27 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
     throw e;
   }
 
-  const layout = JSON.parse(snap.layoutJson) as DataEntryGridResponse['layout'];
+  const rawLayout = JSON.parse(snap.layoutJson);
+  // Normalise: support both Italian-key and English-key layouts (backward compat).
+  const normalized = normalizeLayoutKeys(rawLayout);
+  const layout = { ...rawLayout, ...normalized } as DataEntryGridResponse['layout'];
+
   const binding = JSON.parse(snap.bindingJson) as SnapshotBindingInfo;
 
   const [schemaName, factTable] = splitFact(binding.factTable);
   const joinConfig = binding.joinConfig;
   const writeTable = `${factTable}_WRITE`;
 
-  const filtriFields  = layout.filtri.map((f) => f.fieldName);
-  const righeFields   = layout.righe.map((f) => f.fieldName);
-  const colonneFields = layout.colonne.map((f) => f.fieldName);
-  const valoriFields  = layout.valori.map((f) => f.fieldName);
+  const filtriFields  = normalized.filtri.map((f: any) => f.fieldName);
+  const righeFields   = normalized.righe.map((f: any) => f.fieldName);
+  const colonneFields = normalized.colonne.map((f: any) => f.fieldName);
+  const valoriFields  = normalized.valori.map((f: any) => f.fieldName);
 
   validateLayoutIdentifiers(filtriFields, righeFields, colonneFields, valoriFields);
 
   // Filter options
   const filtriOptions = await Promise.all(
-    layout.filtri.map(async (f) => {
+    normalized.filtri.map(async (f: any) => {
       if (isGroupingItem(f)) {
         return { fieldName: f.fieldName, label: f.label,
                  values: await getDistinctParamGroupings(f.paramTableId!) };
@@ -167,12 +179,12 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
 
   // Row options — uses reportId for hierarchy defs lookup
   const righeOptions = await getMultiLevelRigheOptions(
-    schemaName, factTable, layout.righe, snap.reportId,
+    schemaName, factTable, normalized.righe, snap.reportId,
   );
 
   // Column options
   const colonneOptions = await Promise.all(
-    layout.colonne.map(async (f) => {
+    normalized.colonne.map(async (f: any) => {
       if (isGroupingItem(f)) {
         return { fieldName: f.fieldName,
                  values: await getDistinctParamGroupings(f.paramTableId!) };
@@ -186,9 +198,9 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
   );
 
   // Write rows (same live table as regular data entry)
-  const factFiltriFields  = layout.filtri.filter(isFactDim).map((f) => f.fieldName);
-  const factRigheFields   = layout.righe.filter(isFactDim).map((f) => f.fieldName);
-  const factColonneFields = layout.colonne.filter((f) => !isGroupingItem(f)).map((f) => f.fieldName);
+  const factFiltriFields  = normalized.filtri.filter(isFactFiltro).map((f: any) => f.fieldName);
+  const factRigheFields   = normalized.righe.filter(isFactRiga).map((f: any) => f.fieldName);
+  const factColonneFields = normalized.colonne.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
   const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
 
   let writeRows = await loadWriteRows(schemaName, writeTable, allDimFields, valoriFields);
@@ -202,6 +214,12 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
     }
   }
 
+  // Build filtriDimMapping (row filtering) and filtriColonneMapping (column filtering)
+  const [filtriDimMapping, filtriColonneMapping] = await Promise.all([
+    loadFiltriDimMapping(schemaName, factTable, joinConfig, layout, snap.reportId),
+    loadFiltriColonneMapping(schemaName, factTable, joinConfig, layout),
+  ]);
+
   return {
     bindingInfo: { factTable, schemaName, writeTable },
     layout,
@@ -210,6 +228,8 @@ export async function getSnapshotGrid(snapshotId: number): Promise<DataEntryGrid
     colonneOptions,
     writeRows,
     approvedRows: [],  // Snapshots don't participate in the approval workflow
+    filtriDimMapping:     Object.keys(filtriDimMapping).length     > 0 ? filtriDimMapping     : undefined,
+    filtriColonneMapping: Object.keys(filtriColonneMapping).length > 0 ? filtriColonneMapping : undefined,
   };
 }
 
@@ -225,17 +245,19 @@ export async function saveSnapshotCell(
     throw e;
   }
 
-  const layout = JSON.parse(snap.layoutJson) as DataEntryGridResponse['layout'];
+  const rawLayout2 = JSON.parse(snap.layoutJson);
+  const normalized2 = normalizeLayoutKeys(rawLayout2);
   const binding = JSON.parse(snap.bindingJson) as SnapshotBindingInfo;
 
   const [schemaName, factTable] = splitFact(binding.factTable);
   const writeTable = `${factTable}_WRITE`;
 
-  const valoriFields  = layout.valori.map((f) => f.fieldName);
-  const factFiltriFields  = layout.filtri.filter(isFactDim).map((f) => f.fieldName);
-  const factRigheFields   = layout.righe.filter(isFactDim).map((f) => f.fieldName);
-  const factColonneFields = layout.colonne.filter((f) => !isGroupingItem(f)).map((f) => f.fieldName);
-  const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
+  const valoriFields  = normalized2.valori.map((f: any) => f.fieldName);
+  // Include ALL non-grouping filtri (even dim-table-only like Owner); frontend sends '' as "tutti" sentinel
+  const allFiltriFields   = normalized2.filtri.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
+  const factRigheFields   = normalized2.righe.filter(isFactRiga).map((f: any) => f.fieldName);
+  const factColonneFields = normalized2.colonne.filter((f: any) => !isGroupingItem(f)).map((f: any) => f.fieldName);
+  const allDimFields      = [...allFiltriFields, ...factRigheFields, ...factColonneFields];
 
   assertValidIdentifier(dto.valoreField, 'valoreField');
   if (!valoriFields.includes(dto.valoreField)) {

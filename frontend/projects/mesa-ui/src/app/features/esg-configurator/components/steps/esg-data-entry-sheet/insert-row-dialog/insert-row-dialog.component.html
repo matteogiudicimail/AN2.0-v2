@@ -1,0 +1,147 @@
+<div class="cfg-ins-dialog__overlay" role="presentation" (click)="cancelled.emit()">
+  <div class="cfg-ins-dialog"
+       role="dialog"
+       aria-modal="true"
+       aria-label="Inserisci riga"
+       (click)="$event.stopPropagation()">
+
+    <!-- Header -->
+    <div class="cfg-ins-dialog__header">
+      <h3 class="cfg-ins-dialog__title">➕ Inserisci riga</h3>
+      <button class="cfg-btn-icon" type="button" aria-label="Chiudi" (click)="cancelled.emit()">✕</button>
+    </div>
+
+    <!-- Tabs -->
+    <div class="cfg-ins-dialog__tabs" role="tablist">
+      <button class="cfg-ins-dialog__tab"
+              [class.cfg-ins-dialog__tab--active]="activeTab === 'param'"
+              role="tab"
+              [attr.aria-selected]="activeTab === 'param'"
+              type="button"
+              (click)="activeTab = 'param'">
+        🏷 Nuovo indicatore
+      </button>
+      <button class="cfg-ins-dialog__tab"
+              [class.cfg-ins-dialog__tab--active]="activeTab === 'manual'"
+              role="tab"
+              [attr.aria-selected]="activeTab === 'manual'"
+              type="button"
+              (click)="activeTab = 'manual'">
+        ✏️ Riga manuale
+      </button>
+    </div>
+
+    <!-- ── Tab 1: Nuovo indicatore ── -->
+    <div *ngIf="activeTab === 'param'"
+         class="cfg-ins-dialog__body"
+         role="tabpanel"
+         aria-label="Nuovo indicatore">
+
+      <div *ngIf="paramRowFields.length === 0" class="cfg-alert cfg-alert--info" role="status">
+        Nessun campo riga con tabella PARAM configurata. Configurare prima le KPI Params nel Step 3.
+      </div>
+
+      <ng-container *ngIf="paramRowFields.length > 0">
+        <div class="cfg-ins-dialog__field">
+          <label class="cfg-ins-dialog__label" for="param-field-select">Campo riga</label>
+          <select id="param-field-select"
+                  class="cfg-select"
+                  [(ngModel)]="selectedParamFieldName"
+                  aria-label="Seleziona campo riga">
+            <option *ngFor="let f of paramRowFields" [value]="f.fieldName">{{ f.label }}</option>
+          </select>
+        </div>
+
+        <div class="cfg-ins-dialog__field">
+          <label class="cfg-ins-dialog__label" for="param-source-value">
+            Valore sorgente <abbr title="obbligatorio" aria-label="obbligatorio">*</abbr>
+          </label>
+          <input id="param-source-value"
+                 class="cfg-input"
+                 type="text"
+                 [(ngModel)]="paramSourceValue"
+                 maxlength="500"
+                 placeholder="Es. NUOVO_INDICATORE_001"
+                 aria-required="true" />
+          <span class="cfg-ins-dialog__hint">Chiave univoca che appare nella fact table</span>
+        </div>
+
+        <div class="cfg-ins-dialog__field">
+          <label class="cfg-ins-dialog__label" for="param-label">
+            Etichetta <abbr title="obbligatorio" aria-label="obbligatorio">*</abbr>
+          </label>
+          <input id="param-label"
+                 class="cfg-input"
+                 type="text"
+                 [(ngModel)]="paramLabel"
+                 maxlength="500"
+                 placeholder="Es. Nuovo indicatore ESG"
+                 aria-required="true" />
+        </div>
+
+        <div *ngIf="paramError" class="cfg-alert cfg-alert--error" role="alert">{{ paramError }}</div>
+        <div *ngIf="paramSuccess" class="cfg-alert cfg-alert--success" role="status">
+          ✓ Indicatore creato. Aggiornamento griglia…
+        </div>
+      </ng-container>
+
+      <div class="cfg-ins-dialog__footer">
+        <button class="cfg-btn cfg-btn--ghost" type="button" (click)="cancelled.emit()">Annulla</button>
+        <button class="cfg-btn cfg-btn--primary"
+                type="button"
+                [disabled]="paramIsLoading || paramRowFields.length === 0 || !paramSourceValue.trim() || !paramLabel.trim()"
+                (click)="saveNewIndicator()">
+          <span *ngIf="paramIsLoading"><span class="cfg-spinner cfg-spinner--xs"></span></span>
+          Crea indicatore
+        </button>
+      </div>
+    </div>
+
+    <!-- ── Tab 2: Riga manuale ── -->
+    <div *ngIf="activeTab === 'manual'"
+         class="cfg-ins-dialog__body"
+         role="tabpanel"
+         aria-label="Riga manuale">
+
+      <p class="cfg-ins-dialog__desc">
+        Inserisci una riga con valori dimensionali specificati. I campi valore saranno vuoti e modificabili nella griglia.
+      </p>
+
+      <div *ngFor="let f of manualDimFields; let i = index"
+           class="cfg-ins-dialog__field">
+        <label class="cfg-ins-dialog__label" [for]="'manual-dim-' + i">
+          {{ f.label }} <abbr title="obbligatorio" aria-label="obbligatorio">*</abbr>
+        </label>
+        <input [id]="'manual-dim-' + i"
+               class="cfg-input"
+               type="text"
+               [(ngModel)]="manualValues[f.fieldName]"
+               maxlength="200"
+               [placeholder]="f.fieldName"
+               [attr.aria-label]="f.label"
+               aria-required="true" />
+      </div>
+
+      <div *ngIf="manualDimFields.length === 0" class="cfg-alert cfg-alert--info" role="status">
+        Nessun campo dimensione trovato nel layout.
+      </div>
+
+      <div *ngIf="manualError" class="cfg-alert cfg-alert--error" role="alert">{{ manualError }}</div>
+      <div *ngIf="manualSuccess" class="cfg-alert cfg-alert--success" role="status">
+        ✓ Riga inserita. Aggiornamento griglia…
+      </div>
+
+      <div class="cfg-ins-dialog__footer">
+        <button class="cfg-btn cfg-btn--ghost" type="button" (click)="cancelled.emit()">Annulla</button>
+        <button class="cfg-btn cfg-btn--primary"
+                type="button"
+                [disabled]="manualIsLoading || manualDimFields.length === 0"
+                (click)="saveManualRow()">
+          <span *ngIf="manualIsLoading"><span class="cfg-spinner cfg-spinner--xs"></span></span>
+          Inserisci riga
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

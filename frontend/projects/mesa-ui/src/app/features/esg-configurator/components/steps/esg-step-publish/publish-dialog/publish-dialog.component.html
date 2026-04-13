@@ -1,0 +1,120 @@
+<div class="cfg-pub-dialog" role="dialog" aria-modal="true" aria-labelledby="pub-dialog-title">
+
+  <div class="cfg-pub-dialog__header">
+    <h3 id="pub-dialog-title" class="cfg-pub-dialog__title">
+      {{ isNew ? 'New Published Report' : 'Edit Published Report' }}
+    </h3>
+    <button class="cfg-btn-icon" (click)="cancelled.emit()" aria-label="Close dialog">✕</button>
+  </div>
+
+  <div *ngIf="isLoading" class="cfg-pub-dialog__loading" role="status">
+    <span class="cfg-spinner"></span> Loading…
+  </div>
+
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+
+  <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="save()" novalidate class="cfg-pub-dialog__body">
+
+    <!-- ── Section 1: Basic Info ───────────────────────────────────────── -->
+    <section class="cfg-pub-section">
+      <h4 class="cfg-pub-section__title">Basic Info</h4>
+      <div class="cfg-form-row">
+        <div class="cfg-field cfg-field--grow">
+          <label for="pub-label" class="cfg-label">Label <span aria-hidden="true">*</span></label>
+          <input id="pub-label" class="cfg-input" formControlName="label"
+                 placeholder="Name shown in menu"
+                 [class.cfg-input--error]="form.get('label')?.invalid && form.get('label')?.touched" />
+          <span *ngIf="form.get('label')?.invalid && form.get('label')?.touched"
+                class="cfg-field__error" role="alert">Required</span>
+        </div>
+      </div>
+      <div class="cfg-form-row">
+        <div class="cfg-field cfg-field--grow">
+          <label for="pub-desc" class="cfg-label">Description</label>
+          <input id="pub-desc" class="cfg-input" formControlName="description"
+                 placeholder="Optional description" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Section 2: Menu Placement ──────────────────────────────────── -->
+    <section class="cfg-pub-section">
+      <h4 class="cfg-pub-section__title">Menu Placement</h4>
+      <div class="cfg-form-row">
+        <div class="cfg-field cfg-field--grow">
+          <label class="cfg-label">Parent Menu Item</label>
+          <cfg-searchable-select
+            [items]="menuItems"
+            [placeholder]="'— select parent menu —'"
+            [value]="form.get('parentMenuCode')?.value"
+            (selectionChange)="onParentMenuChange($event)">
+          </cfg-searchable-select>
+        </div>
+        <div class="cfg-field">
+          <label for="pub-menu-code" class="cfg-label">Menu Item Code</label>
+          <input id="pub-menu-code" class="cfg-input" formControlName="menuItemCode"
+                 placeholder="Auto-generated if blank" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Section 3: Default Filters ─────────────────────────────────── -->
+    <section class="cfg-pub-section" *ngIf="filterFields.length > 0">
+      <h4 class="cfg-pub-section__title">Default Filters</h4>
+      <p class="cfg-pub-section__hint">
+        Pre-select filter values that will be applied when the report opens.
+      </p>
+      <div class="cfg-pub-filters">
+        <div *ngFor="let f of filterFields; trackBy: trackByField" class="cfg-form-row">
+          <div class="cfg-field cfg-field--grow">
+            <label [for]="'pub-filter-' + f.fieldName" class="cfg-label">{{ f.label }}</label>
+            <ng-container *ngIf="f.optionsLoading">
+              <span class="cfg-spinner cfg-spinner--sm"></span>
+            </ng-container>
+            <ng-container *ngIf="!f.optionsLoading">
+              <select *ngIf="!f.optionsError"
+                      [id]="'pub-filter-' + f.fieldName"
+                      class="cfg-input"
+                      [(ngModel)]="defaultFilterValues[f.fieldName]"
+                      [ngModelOptions]="{standalone: true}">
+                <option value="">— nessun default —</option>
+                <option *ngFor="let opt of f.options" [value]="opt">{{ opt }}</option>
+              </select>
+              <span *ngIf="f.optionsError" class="cfg-field__error" role="alert">{{ f.optionsError }}</span>
+            </ng-container>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Section 4: Authorization ───────────────────────────────────── -->
+    <section class="cfg-pub-section">
+      <h4 class="cfg-pub-section__title">Authorization</h4>
+      <p class="cfg-pub-section__hint">
+        Comma-separated user IDs or role names. Leave blank to allow all.
+      </p>
+      <div class="cfg-form-row">
+        <div class="cfg-field cfg-field--grow">
+          <label for="pub-readers" class="cfg-label">Readers</label>
+          <input id="pub-readers" class="cfg-input" formControlName="accessReaders"
+                 placeholder="e.g. user1, role_finance" />
+        </div>
+        <div class="cfg-field cfg-field--grow">
+          <label for="pub-writers" class="cfg-label">Writers</label>
+          <input id="pub-writers" class="cfg-input" formControlName="accessWriters"
+                 placeholder="e.g. user2, role_admin" />
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Dialog footer ──────────────────────────────────────────────── -->
+    <div class="cfg-pub-dialog__footer">
+      <button type="submit" class="cfg-btn cfg-btn--primary" [disabled]="isSaving">
+        {{ isSaving ? 'Saving…' : (isNew ? 'Create' : 'Save Changes') }}
+      </button>
+      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="cancelled.emit()">Cancel</button>
+    </div>
+
+  </form>
+
+</div>

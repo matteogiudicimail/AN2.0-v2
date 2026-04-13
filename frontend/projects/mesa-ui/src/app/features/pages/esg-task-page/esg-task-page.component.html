@@ -1,0 +1,19 @@
+<div class="esg-task-page">
+
+  <div *ngIf="loading" class="esg-task-page__spinner" aria-live="polite" aria-busy="true">
+    <span>Caricamento report in corso…</span>
+  </div>
+
+  <div *ngIf="errorMsg && !loading" class="esg-task-page__error" role="alert">
+    {{ errorMsg }}
+  </div>
+
+  <!-- Snapshot viewer renders the frozen grid for the published task -->
+  <snapshot-viewer
+    *ngIf="snapshotId !== null && !loading"
+    [snapshotId]="snapshotId"
+    [taskLabel]="taskLabel"
+    [breadcrumbs]="breadcrumbs">
+  </snapshot-viewer>
+
+</div>

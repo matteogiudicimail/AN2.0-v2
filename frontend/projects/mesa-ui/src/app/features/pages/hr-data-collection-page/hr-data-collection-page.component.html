@@ -1,0 +1,72 @@
+<div class="hr-dc">
+
+  <!-- Loading / error -->
+  <div *ngIf="loading" class="hr-dc__loading">
+    <span>Caricamento report…</span>
+  </div>
+  <div *ngIf="errorMsg" class="hr-dc__error" role="alert">
+    {{ errorMsg }}
+  </div>
+
+  <!-- No reports -->
+  <div *ngIf="!loading && !errorMsg && reports.length === 0" class="hr-dc__empty">
+    <p>Nessun report HR disponibile.</p>
+    <p class="hr-dc__hint">Eseguire il seed dei dati oppure creare un report dal designer.</p>
+  </div>
+
+  <!-- Report selector (shown when more than one report) -->
+  <div *ngIf="!loading && reports.length > 1" class="hr-dc__report-bar">
+    <label class="hr-dc__report-label">Report:</label>
+    <select class="hr-dc__report-select"
+            [ngModel]="selectedReport?.id"
+            (ngModelChange)="selectReportById($event)">
+      <option *ngFor="let r of reports" [value]="r.id">{{ r.name }} — {{ r.period }}</option>
+    </select>
+  </div>
+
+  <!-- Main layout: sections sidebar + grid -->
+  <div *ngIf="selectedReport" class="hr-dc__main">
+
+    <!-- Sections list -->
+    <nav class="hr-dc__sections" aria-label="Sezioni report">
+      <div class="hr-dc__sections-header">
+        <span class="hr-dc__sections-title">{{ selectedReport.name }}</span>
+        <span class="hr-dc__sections-period">{{ selectedReport.period }}</span>
+        <span class="hr-dc__sections-status" [class]="'hr-dc__badge hr-dc__badge--' + selectedReport.status.toLowerCase()">
+          {{ selectedReport.status }}
+        </span>
+      </div>
+
+      <ul class="hr-dc__sec-list">
+        <li *ngFor="let sec of sections"
+            class="hr-dc__sec-item"
+            [class.hr-dc__sec-item--active]="selectedSection?.id === sec.id"
+            [class]="sectionStatusClass(sec.status)"
+            (click)="selectSection(sec)"
+            role="button"
+            [attr.aria-selected]="selectedSection?.id === sec.id"
+            tabindex="0"
+            (keydown.enter)="selectSection(sec)">
+          <span class="hr-dc__sec-icon">{{ sectionStatusIcon(sec.status) }}</span>
+          <span class="hr-dc__sec-name">{{ sec.name }}</span>
+        </li>
+      </ul>
+    </nav>
+
+    <!-- Grid area -->
+    <div class="hr-dc__grid-area">
+      <app-grid-page
+        *ngIf="selectedSection"
+        [report]="selectedReport"
+        [selectedSection]="selectedSection"
+        [currentUser]="user">
+      </app-grid-page>
+
+      <div *ngIf="!selectedSection && sections.length === 0" class="hr-dc__grid-empty">
+        Nessuna sezione disponibile per questo report.
+      </div>
+    </div>
+
+  </div>
+
+</div>

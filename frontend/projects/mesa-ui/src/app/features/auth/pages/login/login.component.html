@@ -1,0 +1,31 @@
+<div class="login-wrap" role="main">
+  <div class="login-card">
+    <div class="login-logo" aria-label="MESA">
+      <em>M</em><span>ESA.</span>
+    </div>
+    <h1 class="login-title">Accedi</h1>
+
+    <form (ngSubmit)="submit()" novalidate>
+      <div class="login-field">
+        <label for="username">Nome utente</label>
+        <input id="username" type="text" [(ngModel)]="username" name="username"
+               autocomplete="username" required aria-required="true"
+               [disabled]="loading" />
+      </div>
+      <div class="login-field">
+        <label for="password">Password</label>
+        <input id="password" type="password" [(ngModel)]="password" name="password"
+               autocomplete="current-password" required aria-required="true"
+               [disabled]="loading" />
+      </div>
+
+      <div *ngIf="error" class="login-error" role="alert">{{ error }}</div>
+
+      <button type="submit" class="login-btn" [disabled]="loading || !username || !password">
+        {{ loading ? 'Accesso in corso…' : 'Accedi' }}
+      </button>
+    </form>
+
+    <p class="login-hint">Utenti demo: <code>admin</code>, <code>abianco</code>, <code>mrossi</code> — password: <code>mesa2025</code></p>
+  </div>
+</div>

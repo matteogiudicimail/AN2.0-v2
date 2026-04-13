@@ -1,0 +1,49 @@
+<div class="cm-overlay" *ngIf="visible" role="dialog" aria-modal="true"
+     [attr.aria-label]="'Commenti per ' + kpiName"
+     (click)="close()">
+  <div class="cm-panel" (click)="$event.stopPropagation()">
+
+    <header class="cm-header">
+      <h2 class="cm-title">Note — {{ kpiName }}</h2>
+      <button class="cm-close" (click)="close()" aria-label="Chiudi" type="button">✕</button>
+    </header>
+
+    <div class="cm-body">
+      <!-- Loading -->
+      <div *ngIf="loading" class="cm-loading" aria-live="polite">Caricamento...</div>
+
+      <!-- No comments -->
+      <div *ngIf="!loading && comments.length === 0" class="cm-empty">
+        Nessuna nota presente. Aggiungi la prima nota qui sotto.
+      </div>
+
+      <!-- Comment list -->
+      <ul class="cm-list" aria-label="Lista note">
+        <li *ngFor="let c of comments" class="cm-item">
+          <div class="cm-meta">
+            <span class="cm-author">{{ c.author.displayName }}</span>
+            <span class="cm-date">{{ formatDate(c.createdAt) }}</span>
+            <button class="cm-del" (click)="delete(c.id)" aria-label="Elimina nota" type="button">✕</button>
+          </div>
+          <p class="cm-text">{{ c.text }}</p>
+        </li>
+      </ul>
+    </div>
+
+    <footer class="cm-footer">
+      <textarea
+        class="cm-input"
+        [(ngModel)]="newText"
+        placeholder="Scrivi una nota…"
+        rows="3"
+        maxlength="2000"
+        aria-label="Testo della nota"
+        (keydown.ctrl.enter)="submit()">
+      </textarea>
+      <button class="cm-submit" (click)="submit()" [disabled]="!newText.trim() || saving" type="button">
+        {{ saving ? 'Salvataggio…' : 'Aggiungi nota' }}
+      </button>
+    </footer>
+
+  </div>
+</div>

@@ -87,4 +87,14 @@ router.post('/:id/archive', async (req: Request, res: Response, next: NextFuncti
   } catch (err) { next(err); }
 });
 
+router.post('/:id/duplicate', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isFinite(id) || id <= 0) { res.status(400).json({ error: 'taskId non valido' }); return; }
+    const newTaskId = await taskSvc.duplicateTask(id, getUserId(req));
+    const task = await taskSvc.getTask(newTaskId);
+    res.status(201).json(task);
+  } catch (err) { next(err); }
+});
+
 export default router;

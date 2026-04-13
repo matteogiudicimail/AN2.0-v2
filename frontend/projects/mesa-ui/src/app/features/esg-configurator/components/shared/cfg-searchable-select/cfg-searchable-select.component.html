@@ -1,0 +1,82 @@
+<div class="cfg-ss" [class.cfg-ss--open]="isOpen" [class.cfg-ss--disabled]="disabled">
+
+  <!-- Trigger -->
+  <button
+    type="button"
+    class="cfg-ss__trigger"
+    [attr.aria-label]="ariaLabel || placeholder"
+    [attr.aria-expanded]="isOpen"
+    [attr.aria-haspopup]="'listbox'"
+    [disabled]="disabled"
+    (click)="toggle()">
+    <span class="cfg-ss__trigger-label" [class.cfg-ss__trigger-label--placeholder]="!value">
+      {{ value ? selectedLabel : placeholder }}
+    </span>
+    <button *ngIf="value && !disabled"
+            type="button"
+            class="cfg-ss__clear"
+            aria-label="Clear selection"
+            (click)="clear($event)">✕</button>
+    <span class="cfg-ss__arrow" aria-hidden="true">{{ isOpen ? '▲' : '▼' }}</span>
+  </button>
+
+  <!-- Dropdown -->
+  <div *ngIf="isOpen" class="cfg-ss__dropdown" role="listbox" [attr.aria-label]="ariaLabel || placeholder">
+
+    <!-- Search -->
+    <div class="cfg-ss__search-wrap">
+      <input
+        #searchInput
+        type="text"
+        class="cfg-ss__search"
+        placeholder="Search…"
+        autocomplete="off"
+        [(ngModel)]="searchText"
+        (ngModelChange)="focusIndex = -1"
+        (click)="$event.stopPropagation()"
+        aria-label="Search options"
+      />
+    </div>
+
+    <!-- Options — grouped -->
+    <div class="cfg-ss__list" *ngIf="hasGroups()">
+      <ng-container *ngFor="let group of groups; trackBy: trackByGroup">
+        <div *ngIf="itemsForGroup(group).length > 0">
+          <div *ngIf="group" class="cfg-ss__group-header">{{ group }}</div>
+          <div
+            *ngFor="let item of itemsForGroup(group); trackBy: trackByValue"
+            class="cfg-ss__option"
+            [class.cfg-ss__option--selected]="item.value === value"
+            [class.cfg-ss__option--focused]="isFocused(item)"
+            [class.cfg-ss__option--disabled]="item.disabled"
+            role="option"
+            [attr.aria-selected]="item.value === value"
+            (click)="select(item)">
+            {{ item.label }}
+            <span *ngIf="item.badge" class="cfg-badge cfg-badge--view">{{ item.badge }}</span>
+          </div>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Options — flat -->
+    <div class="cfg-ss__list" *ngIf="!hasGroups()">
+      <div
+        *ngFor="let item of filteredItems; trackBy: trackByValue"
+        class="cfg-ss__option"
+        [class.cfg-ss__option--selected]="item.value === value"
+        [class.cfg-ss__option--focused]="isFocused(item)"
+        [class.cfg-ss__option--disabled]="item.disabled"
+        role="option"
+        [attr.aria-selected]="item.value === value"
+        (click)="select(item)">
+        {{ item.label }}
+        <span *ngIf="item.badge" class="cfg-badge cfg-badge--view">{{ item.badge }}</span>
+      </div>
+    </div>
+
+    <!-- Empty state -->
+    <div *ngIf="filteredItems.length === 0" class="cfg-ss__empty">No results found.</div>
+
+  </div>
+</div>

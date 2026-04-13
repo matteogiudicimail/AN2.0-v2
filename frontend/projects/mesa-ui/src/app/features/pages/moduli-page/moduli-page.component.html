@@ -1,0 +1,249 @@
+<div class="mod-page">
+
+  <!-- Header -->
+  <div class="mod-page__header">
+    <div>
+      <h2 class="mod-page__title">{{ 'MODULES.TITLE' | translate }}</h2>
+      <p class="mod-page__subtitle">{{ 'MODULES.SUBTITLE' | translate }}</p>
+    </div>
+    <button class="mp-btn mp-btn--primary" (click)="openNew()" type="button">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+      </svg>
+      {{ 'MODULES.NEW_MODULE' | translate }}
+    </button>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="mp-filter-bar" *ngIf="!loading && !error">
+    <div class="mp-filter-bar__search">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input type="text" [(ngModel)]="filterText"
+             [placeholder]="'MODULES.SEARCH_PLACEHOLDER' | translate"
+             class="mp-filter-bar__input"/>
+      <button *ngIf="filterText" class="mp-filter-bar__clear" (click)="filterText=''" type="button">✕</button>
+    </div>
+    <span class="mp-filter-bar__count">{{ filteredModuli.length }} / {{ moduli.length }} {{ 'MODULES.MODULES_LABEL' | translate }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="mp-status">{{ 'COMMON.LOADING' | translate }}</div>
+  <div *ngIf="error" class="mp-status mp-status--error">{{ error }}</div>
+
+  <!-- Table -->
+  <div class="mp-table-wrap" *ngIf="!loading && !error">
+    <table class="mp-table">
+      <thead>
+        <tr>
+          <th class="mp-th--sortable" (click)="sort('name')">
+            {{ 'MODULES.MODULE' | translate }} <span class="mp-sort-icon">{{ sortIcon('name') }}</span>
+          </th>
+          <th class="mp-th--sortable" (click)="sort('code')">
+            {{ 'MODULES.CODE' | translate }} <span class="mp-sort-icon">{{ sortIcon('code') }}</span>
+          </th>
+          <th class="mp-th--sortable" (click)="sort('moduleType')">
+            {{ 'MODULES.TYPE' | translate }} <span class="mp-sort-icon">{{ sortIcon('moduleType') }}</span>
+          </th>
+          <th class="mp-th--sortable" (click)="sort('version')">
+            {{ 'MODULES.VERSION' | translate }} <span class="mp-sort-icon">{{ sortIcon('version') }}</span>
+          </th>
+          <th class="mp-th--sortable" (click)="sort('isActive')">
+            {{ 'MODULES.STATUS' | translate }} <span class="mp-sort-icon">{{ sortIcon('isActive') }}</span>
+          </th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let m of filteredModuli"
+            class="mp-row"
+            [class.mp-row--inactive]="!m.isActive"
+            (click)="openDetail(m)"
+            style="cursor:pointer">
+          <td>
+            <div class="mp-mod-cell">
+              <span class="mp-color-dot" [style.background]="m.color || '#ccc'"></span>
+              <div>
+                <span class="mp-mod-name">{{ m.name }}</span>
+                <span class="mp-mod-desc" *ngIf="m.description">{{ m.description }}</span>
+              </div>
+            </div>
+          </td>
+          <td class="mp-mono">{{ m.code }}</td>
+          <td>{{ m.moduleType }}</td>
+          <td class="mp-mono">{{ m.version }}</td>
+          <td>
+            <button class="mp-status-badge" type="button"
+                    [class.mp-status-badge--active]="m.isActive"
+                    (click)="toggleActive(m); $event.stopPropagation()"
+                    [title]="'COMMON.STATUS' | translate">
+              {{ (m.isActive ? 'MODULES.ACTIVE' : 'MODULES.INACTIVE') | translate }}
+            </button>
+          </td>
+          <td>
+            <div class="mp-actions" (click)="$event.stopPropagation()">
+              <button class="mp-icon-btn" (click)="openEdit(m)" [title]="'COMMON.EDIT' | translate" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                </svg>
+              </button>
+              <button class="mp-icon-btn mp-icon-btn--danger" (click)="delete(m)" [title]="'COMMON.DELETE' | translate" type="button">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                  <path d="M10 11v6M14 11v6"/>
+                </svg>
+              </button>
+            </div>
+          </td>
+        </tr>
+        <tr *ngIf="filteredModuli.length === 0 && moduli.length > 0">
+          <td colspan="6" class="mp-empty">{{ 'MODULES.NO_MATCH' | translate }}</td>
+        </tr>
+        <tr *ngIf="moduli.length === 0">
+          <td colspan="6" class="mp-empty">{{ 'MODULES.NONE_FOUND' | translate }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</div>
+
+<!-- ===== DETAIL DRAWER ===== -->
+<div class="mp-drawer-overlay" *ngIf="drawerModule && !showForm" (click)="closeDetail()">
+  <div class="mp-drawer" (click)="$event.stopPropagation()">
+    <div class="mp-drawer__header">
+      <span class="mp-drawer__color-dot" [style.background]="drawerModule.color || '#ccc'"></span>
+      <div class="mp-drawer__title-block">
+        <h3 class="mp-drawer__name">{{ drawerModule.name }}</h3>
+        <span class="mp-drawer__code">{{ drawerModule.code }}</span>
+      </div>
+      <button class="mp-drawer__close" (click)="closeDetail()" type="button">✕</button>
+    </div>
+    <div class="mp-drawer__body">
+      <div class="mp-drawer__field" *ngIf="drawerModule.description">
+        <span class="mp-drawer__label">{{ 'MODULES.DESCRIPTION' | translate }}</span>
+        <span class="mp-drawer__value">{{ drawerModule.description }}</span>
+      </div>
+      <div class="mp-drawer__field">
+        <span class="mp-drawer__label">{{ 'MODULES.TYPE' | translate }}</span>
+        <span class="mp-drawer__value">{{ drawerModule.moduleType }}</span>
+      </div>
+      <div class="mp-drawer__field">
+        <span class="mp-drawer__label">{{ 'MODULES.VERSION' | translate }}</span>
+        <span class="mp-drawer__value mp-mono">{{ drawerModule.version }}</span>
+      </div>
+      <div class="mp-drawer__field">
+        <span class="mp-drawer__label">{{ 'MODULES.ORDER' | translate }}</span>
+        <span class="mp-drawer__value">{{ drawerModule.sortOrder }}</span>
+      </div>
+      <div class="mp-drawer__field">
+        <span class="mp-drawer__label">{{ 'MODULES.STATUS' | translate }}</span>
+        <button class="mp-status-badge" type="button"
+                [class.mp-status-badge--active]="drawerModule.isActive"
+                (click)="toggleActive(drawerModule)">
+          {{ (drawerModule.isActive ? 'MODULES.ACTIVE' : 'MODULES.INACTIVE') | translate }}
+        </button>
+      </div>
+    </div>
+    <div class="mp-drawer__footer">
+      <button class="mp-btn mp-btn--outline" (click)="closeDetail()" type="button">{{ 'MODULES.CLOSE' | translate }}</button>
+      <button class="mp-btn mp-btn--primary" (click)="openEdit(drawerModule)" type="button">{{ 'COMMON.EDIT' | translate }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== MODULE FORM MODAL ===== -->
+<div class="mp-overlay" *ngIf="showForm" (click)="cancel()">
+  <div class="mp-modal" (click)="$event.stopPropagation()">
+
+    <div class="mp-modal__header">
+      <h3>{{ (editingId ? 'MODULES.EDIT_MODULE' : 'MODULES.NEW_MODULE') | translate }}</h3>
+      <button class="mp-modal__close" (click)="cancel()" type="button">&times;</button>
+    </div>
+
+    <div class="mp-modal__body">
+
+      <div class="mp-form-row">
+        <label class="mp-field">
+          <span>{{ 'MODULES.CODE' | translate }} *</span>
+          <input type="text" [(ngModel)]="form.code" placeholder="es. esg" [disabled]="!!editingId"/>
+        </label>
+        <label class="mp-field">
+          <span>{{ 'MODULES.NAME' | translate }} *</span>
+          <input type="text" [(ngModel)]="form.name" placeholder="ESG Strategy"/>
+        </label>
+      </div>
+
+      <label class="mp-field">
+        <span>{{ 'MODULES.DESCRIPTION' | translate }}</span>
+        <input type="text" [(ngModel)]="form.description" placeholder="Breve descrizione del modulo"/>
+      </label>
+
+      <div class="mp-form-row">
+        <label class="mp-field">
+          <span>{{ 'MODULES.TYPE' | translate }}</span>
+          <select [(ngModel)]="form.moduleType">
+            <option value="capability">Capability</option>
+            <option value="platform">Platform</option>
+            <option value="integration">Integration</option>
+          </select>
+        </label>
+        <label class="mp-field">
+          <span>{{ 'MODULES.VERSION' | translate }}</span>
+          <input type="text" [(ngModel)]="form.version" placeholder="1.0.0"/>
+        </label>
+      </div>
+
+      <div class="mp-form-row">
+        <label class="mp-field">
+          <span>{{ 'MODULES.ICON' | translate }}</span>
+          <select [(ngModel)]="form.icon">
+            <option value="">Nessuna</option>
+            <option value="chart">Chart</option>
+            <option value="shield">Shield</option>
+            <option value="document">Document</option>
+            <option value="settings">Settings</option>
+            <option value="home">Home</option>
+          </select>
+        </label>
+        <label class="mp-field">
+          <span>{{ 'MODULES.COLOR' | translate }}</span>
+          <div class="mp-color-field">
+            <input type="color" [(ngModel)]="form.color" class="mp-color-input"/>
+            <input type="text" [(ngModel)]="form.color" placeholder="#95C11F" class="mp-color-text"/>
+          </div>
+        </label>
+      </div>
+
+      <div class="mp-form-row">
+        <label class="mp-field">
+          <span>{{ 'MODULES.ORDER' | translate }}</span>
+          <input type="number" [(ngModel)]="form.sortOrder" placeholder="0"/>
+        </label>
+        <label class="mp-field mp-field--inline">
+          <span>{{ 'MODULES.ACTIVE' | translate }}</span>
+          <button class="mp-switch" type="button"
+                  [class.mp-switch--on]="form.isActive"
+                  (click)="form.isActive = !form.isActive">
+            <span class="mp-switch__thumb"></span>
+          </button>
+        </label>
+      </div>
+
+    </div>
+
+    <div class="mp-modal__footer">
+      <button class="mp-btn mp-btn--outline" (click)="cancel()" type="button">{{ 'MODULES.CANCEL' | translate }}</button>
+      <button class="mp-btn mp-btn--primary"
+              (click)="save()"
+              [disabled]="saving || !form.code || !form.name"
+              type="button">
+        {{ (saving ? 'MODULES.SAVING' : (editingId ? 'MODULES.SAVE_CHANGES' : 'MODULES.CREATE_MODULE')) | translate }}
+      </button>
+    </div>
+
+  </div>
+</div>

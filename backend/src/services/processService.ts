@@ -9,7 +9,6 @@ interface ProcessRow {
   Month: string;
 }
 
-interface LockRow { LoadId: number; IsLocked: number; }
 
 function mapProcess(row: ProcessRow, isLocked: boolean): Process {
   return {

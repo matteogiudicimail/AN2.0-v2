@@ -1,0 +1,324 @@
+<div class="nav-manager">
+
+  <!-- Header -->
+  <div class="nav-manager__header">
+    <div>
+      <h2 class="nav-manager__title">{{ 'NAV_MANAGER.TITLE' | translate }}</h2>
+      <p class="nav-manager__subtitle">{{ 'NAV_MANAGER.SUBTITLE' | translate }}</p>
+    </div>
+    <div class="nav-manager__actions">
+      <button class="nm-btn nm-btn--outline" (click)="openAdd(null)" type="button">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        {{ 'NAV_MANAGER.ADD_ITEM' | translate }}
+      </button>
+      <button class="nm-btn nm-btn--primary" (click)="saveOrder()" [disabled]="saving || isFiltering" type="button"
+              [title]="isFiltering ? ('NAV_MANAGER.DISABLE_ORDER_HINT' | translate) : ''">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/></svg>
+        {{ (saving ? 'NAV_MANAGER.SAVING' : 'NAV_MANAGER.SAVE_ORDER') | translate }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Filter bar -->
+  <div class="nm-filter-bar">
+    <div class="nm-filter-bar__input-wrap">
+      <svg class="nm-filter-bar__icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+      </svg>
+      <input
+        type="text"
+        class="nm-filter-bar__input"
+        [placeholder]="'NAV_MANAGER.SEARCH_PLACEHOLDER' | translate"
+        [(ngModel)]="filterText"
+        aria-label="Filtra voci di navigazione"
+      />
+      <button *ngIf="filterText" class="nm-filter-bar__clear" (click)="clearFilter()" type="button" aria-label="Cancella filtro">✕</button>
+    </div>
+    <span class="nm-filter-bar__badge" *ngIf="isFiltering">
+      {{ filteredFlat.length }} {{ filteredFlat.length === 1 ? 'voce' : 'voci' }}
+    </span>
+    <span class="nm-filter-bar__hint" *ngIf="isFiltering">
+      {{ 'NAV_MANAGER.DRAG_DISABLED' | translate }}
+    </span>
+  </div>
+
+  <!-- Info banner -->
+  <div class="nm-info">
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <span>{{ 'NAV_MANAGER.INFO_BANNER' | translate }}</span>
+  </div>
+
+  <!-- Loading / Error -->
+  <div *ngIf="loading" class="nm-status">{{ 'COMMON.LOADING' | translate }}</div>
+  <div *ngIf="error"   class="nm-status nm-status--error">{{ error }}</div>
+
+  <!-- FILTERED flat list (no drag-drop) -->
+  <div class="nm-tree" *ngIf="!loading && !error && isFiltering">
+    <div class="nm-list">
+      <div *ngFor="let item of filteredFlat; trackBy: trackById"
+           class="nm-row" [class.nm-row--inactive]="!item.isActive"
+           (click)="openDetail(item)" style="cursor:pointer">
+        <div class="nm-row__body">
+          <div class="nm-row__main">
+            <strong class="nm-row__label">{{ item.label }}</strong>
+            <span class="nm-row__key">{{ item.menuKey }}</span>
+            <span *ngIf="item.route" class="nm-tag nm-tag--route">{{ item.route }}</span>
+            <span *ngIf="item.moduleCode"
+                  class="nm-tag nm-tag--module"
+                  [style.background]="moduleColor(item.moduleCode)">
+              {{ moduleName(item.moduleCode) }}
+            </span>
+            <span *ngIf="!item.moduleCode" class="nm-tag nm-tag--shared">{{ 'NAV_MANAGER.SHARED' | translate }}</span>
+          </div>
+          <div class="nm-row__controls" (click)="$event.stopPropagation()">
+            <button class="nm-icon-btn" (click)="openEdit(item)" [title]="'COMMON.EDIT' | translate" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="nm-toggle" [class.nm-toggle--on]="item.isActive"
+                    (click)="toggleActive(item)" type="button"
+                    [title]="item.isActive ? 'Disabilita' : 'Abilita'">
+              <span class="nm-toggle__thumb"></span>
+            </button>
+            <button class="nm-icon-btn nm-icon-btn--danger" (click)="delete(item)" [title]="'COMMON.DELETE' | translate" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div *ngIf="filteredFlat.length === 0" class="nm-status">{{ 'NAV_MANAGER.NO_ITEMS' | translate }}</div>
+    </div>
+  </div>
+
+  <!-- FULL drag-drop tree (when no filter) -->
+  <div class="nm-tree" *ngIf="!loading && !error && !isFiltering">
+    <p class="nm-drag-hint">{{ 'NAV_MANAGER.DRAG_HINT' | translate }}</p>
+
+    <!-- ROOT items with CDK drag-drop -->
+    <div cdkDropList (cdkDropListDropped)="onDrop($event)" class="nm-list">
+      <div *ngFor="let item of tree; trackBy: trackById"
+           cdkDrag class="nm-row nm-row--root" [class.nm-row--inactive]="!item.isActive">
+
+        <!-- Drag handle -->
+        <span cdkDragHandle class="nm-drag-handle" title="Trascina">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6"  x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+          </svg>
+        </span>
+
+        <!-- Content -->
+        <div class="nm-row__body">
+          <div class="nm-row__main nm-row__main--clickable" (click)="openDetail(item)">
+            <strong class="nm-row__label">{{ item.label }}</strong>
+            <span class="nm-row__key">{{ item.menuKey }}</span>
+            <span *ngIf="item.route" class="nm-tag nm-tag--route">{{ item.route }}</span>
+            <span *ngIf="item.moduleCode"
+                  class="nm-tag nm-tag--module"
+                  [style.background]="moduleColor(item.moduleCode)">
+              {{ moduleName(item.moduleCode) }}
+            </span>
+            <span *ngIf="!item.moduleCode" class="nm-tag nm-tag--shared">{{ 'NAV_MANAGER.SHARED' | translate }}</span>
+          </div>
+
+          <!-- Controls -->
+          <div class="nm-row__controls">
+            <button class="nm-icon-btn" (click)="openAdd(item.id)" [title]="'NAV_MANAGER.ADD_CHILD' | translate" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </button>
+            <button class="nm-icon-btn" (click)="openEdit(item)" [title]="'COMMON.EDIT' | translate" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="nm-toggle" [class.nm-toggle--on]="item.isActive"
+                    (click)="toggleActive(item)" type="button"
+                    [title]="item.isActive ? 'Disabilita' : 'Abilita'">
+              <span class="nm-toggle__thumb"></span>
+            </button>
+            <button class="nm-icon-btn nm-icon-btn--danger" (click)="delete(item)" [title]="'COMMON.DELETE' | translate" type="button">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+            </button>
+          </div>
+        </div>
+
+        <!-- Children -->
+        <div *ngIf="item.children && item.children.length > 0"
+             class="nm-children"
+             cdkDropList
+             [cdkDropListData]="item.children"
+             (cdkDropListDropped)="onDropChildren($event, item)">
+          <div *ngFor="let child of item.children; trackBy: trackById"
+               cdkDrag
+               class="nm-row nm-row--child" [class.nm-row--inactive]="!child.isActive">
+            <span cdkDragHandle class="nm-drag-handle">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+              </svg>
+            </span>
+            <div class="nm-row__body">
+              <div class="nm-row__main nm-row__main--clickable" (click)="openDetail(child)">
+                <span class="nm-row__label">{{ child.label }}</span>
+                <span class="nm-row__key">{{ child.menuKey }}</span>
+                <span *ngIf="child.route"      class="nm-tag nm-tag--route">{{ child.route }}</span>
+                <span *ngIf="child.moduleCode" class="nm-tag nm-tag--module"
+                      [style.background]="moduleColor(child.moduleCode)">{{ moduleName(child.moduleCode) }}</span>
+              </div>
+              <div class="nm-row__controls">
+                <button class="nm-icon-btn" (click)="openEdit(child)" title="Modifica" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                </button>
+                <button class="nm-toggle" [class.nm-toggle--on]="child.isActive"
+                        (click)="toggleActive(child)" type="button">
+                  <span class="nm-toggle__thumb"></span>
+                </button>
+                <button class="nm-icon-btn nm-icon-btn--danger" (click)="delete(child)" [title]="'COMMON.DELETE' | translate" type="button">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===== DETAIL DRAWER ===== -->
+<div class="nm-drawer-overlay" *ngIf="drawerItem" (click)="closeDetail()"></div>
+<div class="nm-drawer" [class.nm-drawer--open]="drawerItem !== null" role="dialog" aria-label="Dettaglio voce navigazione">
+  <ng-container *ngIf="drawerItem">
+    <div class="nm-drawer__header">
+      <h3 class="nm-drawer__title">{{ drawerItem.label }}</h3>
+      <button class="nm-modal__close" (click)="closeDetail()" type="button" aria-label="Chiudi dettaglio">✕</button>
+    </div>
+    <div class="nm-drawer__body">
+      <div class="nm-detail-row">
+        <span class="nm-detail-row__label">{{ 'NAV_MANAGER.MENU_KEY' | translate }}</span>
+        <span class="nm-detail-row__value nm-detail-row__value--mono">{{ drawerItem.menuKey }}</span>
+      </div>
+      <div class="nm-detail-row">
+        <span class="nm-detail-row__label">{{ 'NAV_MANAGER.ROUTE' | translate }}</span>
+        <span class="nm-detail-row__value nm-detail-row__value--mono">{{ drawerItem.route || '—' }}</span>
+      </div>
+      <div class="nm-detail-row">
+        <span class="nm-detail-row__label">{{ 'MODULES.ICON' | translate }}</span>
+        <span class="nm-detail-row__value">{{ drawerItem.icon || '—' }}</span>
+      </div>
+      <div class="nm-detail-row">
+        <span class="nm-detail-row__label">{{ 'NAV_MANAGER.MODULE_LINKED' | translate }}</span>
+        <span class="nm-detail-row__value">
+          <span *ngIf="drawerItem.moduleCode"
+                class="nm-tag nm-tag--module"
+                [style.background]="moduleColor(drawerItem.moduleCode)">
+            {{ moduleName(drawerItem.moduleCode) }}
+          </span>
+          <span *ngIf="!drawerItem.moduleCode" class="nm-tag nm-tag--shared">{{ 'NAV_MANAGER.SHARED' | translate }}</span>
+        </span>
+      </div>
+      <div class="nm-detail-row">
+        <span class="nm-detail-row__label">{{ 'COMMON.STATUS' | translate }}</span>
+        <span class="nm-detail-row__value">
+          <span class="nm-tag" [class.nm-tag--shared]="drawerItem.isActive" [class.nm-tag--route]="!drawerItem.isActive">
+            {{ (drawerItem.isActive ? 'COMMON.ACTIVE' : 'COMMON.INACTIVE') | translate }}
+          </span>
+        </span>
+      </div>
+      <div class="nm-detail-row">
+        <span class="nm-detail-row__label">{{ 'NAV_MANAGER.SORT_ORDER' | translate }}</span>
+        <span class="nm-detail-row__value">{{ drawerItem.sortOrder }}</span>
+      </div>
+    </div>
+    <div class="nm-drawer__footer">
+      <button class="nm-btn nm-btn--outline nm-btn--danger-outline"
+              (click)="deleteFromDrawer()"
+              type="button">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        {{ 'NAV_MANAGER.DELETE' | translate }}
+      </button>
+      <button class="nm-btn nm-btn--primary" (click)="openEditFromDrawer()" type="button">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        {{ 'NAV_MANAGER.EDIT' | translate }}
+      </button>
+    </div>
+  </ng-container>
+</div>
+
+<!-- ===== EDIT MODAL ===== -->
+<div class="nm-overlay" *ngIf="editItem" (click)="closeEdit()">
+  <div class="nm-modal" (click)="$event.stopPropagation()">
+    <div class="nm-modal__header">
+      <h3>{{ 'NAV_MANAGER.EDIT' | translate }}: <em>{{ editItem.label }}</em></h3>
+      <button class="nm-modal__close" (click)="closeEdit()" type="button">✕</button>
+    </div>
+    <div class="nm-modal__body">
+      <label class="nm-field">
+        <span>Etichetta</span>
+        <input type="text" [(ngModel)]="editLabel" placeholder="Etichetta visibile"/>
+      </label>
+      <label class="nm-field">
+        <span>{{ 'NAV_MANAGER.ROUTE' | translate }}</span>
+        <input type="text" [(ngModel)]="editRoute" [placeholder]="'NAV_MANAGER.ROUTE_PLACEHOLDER' | translate"/>
+      </label>
+      <label class="nm-field">
+        <span>{{ 'MODULES.ICON' | translate }}</span>
+        <select [(ngModel)]="editIcon">
+          <option *ngFor="let ic of iconOptions" [value]="ic.value">{{ ic.label }}</option>
+        </select>
+      </label>
+      <label class="nm-field">
+        <span>{{ 'NAV_MANAGER.MODULE_LINKED' | translate }}</span>
+        <select [(ngModel)]="editModuleCode">
+          <option [value]="null">{{ 'NAV_MANAGER.MODULE_SHARED' | translate }}</option>
+          <option *ngFor="let m of modules" [value]="m.code">{{ m.name }}</option>
+        </select>
+      </label>
+    </div>
+    <div class="nm-modal__footer">
+      <button class="nm-btn nm-btn--outline" (click)="closeEdit()" type="button">{{ 'NAV_MANAGER.CANCEL' | translate }}</button>
+      <button class="nm-btn nm-btn--primary" (click)="saveEdit()" [disabled]="editSaving" type="button">
+        {{ (editSaving ? 'NAV_MANAGER.SAVING' : 'NAV_MANAGER.SAVE') | translate }}
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADD MODAL ===== -->
+<div class="nm-overlay" *ngIf="showAddForm" (click)="cancelAdd()">
+  <div class="nm-modal" (click)="$event.stopPropagation()">
+    <div class="nm-modal__header">
+      <h3>{{ (addParentId ? 'NAV_MANAGER.ADD_CHILD' : 'NAV_MANAGER.ADD_ROOT') | translate }}</h3>
+      <button class="nm-modal__close" (click)="cancelAdd()" type="button">✕</button>
+    </div>
+    <div class="nm-modal__body">
+      <label class="nm-field">
+        <span>{{ 'NAV_MANAGER.MENU_KEY' | translate }} <em>{{ 'NAV_MANAGER.MENU_KEY_HINT' | translate }}</em></span>
+        <input type="text" [(ngModel)]="addForm.menuKey" placeholder="es. reports, esg_overview"/>
+      </label>
+      <label class="nm-field">
+        <span>Etichetta</span>
+        <input type="text" [(ngModel)]="addForm.label" placeholder="Testo visibile"/>
+      </label>
+      <label class="nm-field">
+        <span>{{ 'NAV_MANAGER.ROUTE' | translate }}</span>
+        <input type="text" [(ngModel)]="addForm.route" placeholder="/percorso"/>
+      </label>
+      <label class="nm-field">
+        <span>{{ 'MODULES.ICON' | translate }}</span>
+        <select [(ngModel)]="addForm.icon">
+          <option *ngFor="let ic of iconOptions" [value]="ic.value">{{ ic.label }}</option>
+        </select>
+      </label>
+      <label class="nm-field">
+        <span>{{ 'NAV_MANAGER.MODULE_LINKED' | translate }}</span>
+        <select [(ngModel)]="addForm.moduleCode">
+          <option [value]="null">{{ 'NAV_MANAGER.MODULE_SHARED_SHORT' | translate }}</option>
+          <option *ngFor="let m of modules" [value]="m.code">{{ m.name }}</option>
+        </select>
+      </label>
+    </div>
+    <div class="nm-modal__footer">
+      <button class="nm-btn nm-btn--outline" (click)="cancelAdd()" type="button">{{ 'NAV_MANAGER.CANCEL' | translate }}</button>
+      <button class="nm-btn nm-btn--primary" (click)="submitAdd()"
+              [disabled]="!addForm.menuKey || !addForm.label" type="button">{{ 'COMMON.ADD' | translate }}</button>
+    </div>
+  </div>
+</div>

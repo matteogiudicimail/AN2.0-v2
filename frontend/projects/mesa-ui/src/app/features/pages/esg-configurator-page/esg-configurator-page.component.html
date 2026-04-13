@@ -1,0 +1,25 @@
+<div class="esg-host">
+
+  <esg-report-list
+    *ngIf="view === 'list'"
+    (openDefinition)="openDefinition($event)"
+    (openDesigner)="openDesigner($event)">
+  </esg-report-list>
+
+  <esg-report-wizard
+    *ngIf="view === 'definition'"
+    mode="definition"
+    [reportId]="activeReportId"
+    [initialStep]="$any(activeStep)"
+    (back)="backToList()">
+  </esg-report-wizard>
+
+  <esg-report-wizard
+    *ngIf="view === 'designer'"
+    mode="designer"
+    [reportId]="activeReportId"
+    [initialStep]="$any(activeStep)"
+    (back)="backToList()">
+  </esg-report-wizard>
+
+</div>

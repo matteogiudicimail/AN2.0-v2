@@ -1,0 +1,112 @@
+<div class="grid-page" id="main-content" role="main">
+
+  <!-- Action bar -->
+  <app-action-bar
+    [saveState]="saveState"
+    [lastSaved]="lastSaved"
+    [canSubmit]="!!selectedSection && report.status === 'DRAFT'"
+    [reportStatus]="report.status"
+    [userRoles]="currentUser?.roles ?? []"
+    (downloadExcel)="onDownloadExcel()"
+    (uploadExcel)="onUploadExcel()"
+    (saveDraft)="onSaveDraft()"
+    (refresh)="onRefresh()"
+    (submitReport)="onSubmitReport()"
+    (approveReport)="onTransition('APPROVE')"
+    (rejectReport)="onTransition('REJECT')">
+  </app-action-bar>
+
+  <!-- Column filter bar (shown when FILTER role is assigned in configurator) -->
+  <div *ngIf="gridData?.filterEnabled" class="filter-bar" role="toolbar" aria-label="Filtro colonne">
+    <button class="filter-toggle"
+            [class.filter-toggle--active]="filterPanelOpen"
+            (click)="toggleFilterPanel()"
+            type="button"
+            [attr.aria-expanded]="filterPanelOpen">
+      ⊡ Filtro colonne
+      <span class="filter-count">{{ visibleColumnCount }}/{{ gridData!.columns.length }}</span>
+    </button>
+
+    <div *ngIf="filterPanelOpen" class="filter-panel" role="group" aria-label="Seleziona colonne visibili">
+      <div class="filter-panel-header">
+        <span class="filter-panel-title">Colonne visibili</span>
+        <button class="filter-panel-all" (click)="showAllColumns()" type="button">Mostra tutte</button>
+      </div>
+      <div class="filter-checkboxes">
+        <label *ngFor="let col of gridData!.columns" class="filter-col-label">
+          <input type="checkbox"
+                 [checked]="isColumnVisible(col.id)"
+                 (change)="toggleColumn(col.id)" />
+          <span class="filter-col-code">{{ col.code }}</span>
+          <span class="filter-col-name">{{ col.name }}</span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div *ngIf="loading" class="section-empty" role="status" aria-live="polite">
+    <span class="spinner" style="display:inline-block;margin-right:8px;"></span>
+    Caricamento dati in corso...
+  </div>
+
+  <!-- Error -->
+  <div *ngIf="error && !loading" class="section-empty" role="alert" style="color:#e53935;">
+    {{ error }}
+    <button class="btn" (click)="onRefresh()" style="margin-left:8px;">Riprova</button>
+  </div>
+
+  <!-- No section selected -->
+  <div *ngIf="!selectedSection && !loading" class="section-empty">
+    Seleziona una sezione dalla barra laterale.
+  </div>
+
+  <!-- Data grid -->
+  <app-data-grid
+    *ngIf="!loading && !error && selectedSection"
+    [gridData]="gridData"
+    [dirtyKeys]="dirtyKeys"
+    [warnings]="gridData?.warnings ?? []"
+    [visibleColumnIds]="visibleColumnIds"
+    (cellChanged)="onCellChanged($event)"
+    (commentClicked)="onCommentClicked($event)">
+  </app-data-grid>
+
+  <!-- Comment modal -->
+  <app-comment-modal
+    *ngIf="commentRow"
+    [visible]="commentModalVisible"
+    [reportId]="report.id"
+    [sectionId]="selectedSection!.id"
+    [kpiId]="commentRow.kpiId"
+    [kpiName]="commentRow.kpiName"
+    (closed)="onCommentClosed($event)">
+  </app-comment-modal>
+
+  <!-- Excel import preview dialog -->
+  <div *ngIf="showImportDialog"
+       class="dialog-overlay"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="import-dialog-title">
+    <div class="dialog">
+      <h2 id="import-dialog-title" style="font-size:14px;margin-bottom:12px;">
+        Anteprima importazione Excel
+      </h2>
+      <p style="font-size:12px;margin-bottom:8px;">
+        Celle rilevate: <strong>{{ importPreview?.matchedCells }}</strong>
+      </p>
+      <p *ngIf="importPreview?.unmatchedColumns?.length" style="font-size:11px;color:#f0a500;">
+        Colonne non abbinate: {{ importPreview.unmatchedColumns.join(', ') }}
+      </p>
+      <p *ngIf="importPreview?.unmatchedRows?.length" style="font-size:11px;color:#f0a500;">
+        Righe non abbinate: {{ importPreview.unmatchedRows.length }}
+      </p>
+      <div style="margin-top:16px;display:flex;gap:8px;justify-content:flex-end;">
+        <button class="btn" (click)="onCancelImport()">Annulla</button>
+        <button class="btn btn--fill" (click)="onConfirmImport()">Conferma importazione</button>
+      </div>
+    </div>
+  </div>
+
+</div>

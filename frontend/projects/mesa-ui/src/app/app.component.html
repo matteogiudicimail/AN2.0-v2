@@ -1,0 +1,57 @@
+<!-- Skip navigation — WCAG 2.4.1 -->
+<a class="skip-link" href="#main-content">Vai al contenuto principale</a>
+
+<!-- ===== LOGIN (when not authenticated) ===== -->
+<app-login *ngIf="!authService.isLoggedIn"></app-login>
+
+<!-- ===== APP SHELL (when authenticated) ===== -->
+<ng-container *ngIf="authService.isLoggedIn">
+
+<div class="layout">
+
+  <!-- ===== SIDEBAR ===== -->
+  <app-sidebar
+    class="sidebar"
+    [class.sidebar--collapsed]="sidebarCollapsed"
+    [activeView]="activeView"
+    [user]="currentUser"
+    (welcomeSelected)="onNavWelcome()"
+    (moduliSelected)="onNavModuli()"
+    (usersSelected)="onNavUsers()"
+    (navManagerSelected)="onNavNavManager()"
+    (cfsReportSelected)="onNavCfsReport($event)"
+    (esgReportsSelected)="onNavEsgReports()"
+    (esgConfiguratorSelected)="onNavEsgConfigurator()"
+    (esgTaskSelected)="onNavEsgTask($event)"
+    (logoutSelected)="logout()"
+    (collapsedChange)="sidebarCollapsed = $event">
+  </app-sidebar>
+
+  <!-- ===== CONTENT ===== -->
+  <div class="content" id="main-content">
+
+    <app-welcome-page     *ngIf="activeView === 'welcome'"></app-welcome-page>
+    <app-moduli-page      *ngIf="activeView === 'moduli'"></app-moduli-page>
+    <app-users-page       *ngIf="activeView === 'users'"></app-users-page>
+    <app-nav-manager-page *ngIf="activeView === 'nav-manager'"></app-nav-manager-page>
+    <!-- HR Data Collection: MESA reports/sections/grid (taskId=null → full MESA HR view) -->
+    <app-hr-data-collection-page *ngIf="activeView === 'cfs-report' && activeTaskId === null"
+                                  [user]="currentUser">
+    </app-hr-data-collection-page>
+    <!-- CFS report container: only when a specific CFS task is selected -->
+    <cfs-report-container *ngIf="activeView === 'cfs-report' && activeTaskId !== null"
+                          [inputData]="cfsInputData">
+    </cfs-report-container>
+    <app-esg-reports-page       *ngIf="activeView === 'esg-reports'"
+                                [user]="currentUser"
+                                (openConfigurator)="onOpenEsgConfigurator($event)"
+                                (openTask)="onNavEsgTask($event)">
+    </app-esg-reports-page>
+    <app-esg-configurator-page  *ngIf="activeView === 'esg-configurator'" [openReportId]="esgOpenReportId" [openStep]="5"
+                                (openTask)="onNavEsgTask($event)"></app-esg-configurator-page>
+    <app-esg-task-page          *ngIf="activeView === 'esg-task'"         [taskId]="activeEsgTaskId" [taskLabel]="activeEsgTaskLabel" [breadcrumbs]="activeEsgTaskBreadcrumbs"></app-esg-task-page>
+
+  </div>
+</div>
+
+</ng-container>

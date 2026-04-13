@@ -20,9 +20,7 @@
 						"outputPath": "dist/cfs-report-shell",
 						"index": "projects/cfs-report-shell/src/index.html",
 						"main": "projects/cfs-report-shell/src/main.ts",
-						"polyfills": [
-							"zone.js"
-						],
+						"polyfills": ["zone.js"],
 						"tsConfig": "projects/cfs-report-shell/tsconfig.app.json",
 						"inlineStyleLanguage": "scss",
 						"assets": [
@@ -42,16 +40,8 @@
 					"configurations": {
 						"production": {
 							"budgets": [
-								{
-									"type": "initial",
-									"maximumWarning": "500kb",
-									"maximumError": "1mb"
-								},
-								{
-									"type": "anyComponentStyle",
-									"maximumWarning": "6kb",
-									"maximumError": "4kb"
-								}
+								{ "type": "initial", "maximumWarning": "500kb", "maximumError": "1mb" },
+								{ "type": "anyComponentStyle", "maximumWarning": "6kb", "maximumError": "4kb" }
 							],
 							"outputHashing": "all",
 							"extraWebpackConfig": "projects/cfs-report-shell/webpack.prod.config.js"
@@ -96,10 +86,7 @@
 				"test": {
 					"builder": "@angular-devkit/build-angular:karma",
 					"options": {
-						"polyfills": [
-							"zone.js",
-							"zone.js/testing"
-						],
+						"polyfills": ["zone.js", "zone.js/testing"],
 						"tsConfig": "projects/cfs-report-shell/tsconfig.spec.json",
 						"inlineStyleLanguage": "scss",
 						"assets": [
@@ -115,9 +102,85 @@
 					}
 				}
 			}
+		},
+		"mesa-ui": {
+			"projectType": "application",
+			"schematics": {
+				"@schematics/angular:component": { "style": "scss" }
+			},
+			"root": "projects/mesa-ui",
+			"sourceRoot": "projects/mesa-ui/src",
+			"prefix": "app",
+			"architect": {
+				"build": {
+					"builder": "@angular-devkit/build-angular:browser",
+					"options": {
+						"outputPath": "dist/mesa-ui",
+						"index": "projects/mesa-ui/src/index.html",
+						"main": "projects/mesa-ui/src/main.ts",
+						"polyfills": ["zone.js"],
+						"tsConfig": "projects/mesa-ui/tsconfig.app.json",
+						"inlineStyleLanguage": "scss",
+						"assets": [
+							"projects/mesa-ui/src/favicon.ico",
+							"projects/mesa-ui/src/assets"
+						],
+						"styles": [
+							"node_modules/ag-grid-community/styles/ag-grid.css",
+							"node_modules/ag-grid-community/styles/ag-theme-alpine.css",
+							"projects/mesa-ui/src/styles.scss"
+						],
+						"scripts": []
+					},
+					"configurations": {
+						"production": {
+							"budgets": [
+								{ "type": "initial", "maximumWarning": "1mb", "maximumError": "2mb" },
+								{ "type": "anyComponentStyle", "maximumWarning": "6kb", "maximumError": "12kb" }
+							],
+							"outputHashing": "all"
+						},
+						"development": {
+							"buildOptimizer": false,
+							"optimization": false,
+							"vendorChunk": true,
+							"extractLicenses": false,
+							"sourceMap": true,
+							"namedChunks": true
+						}
+					},
+					"defaultConfiguration": "production"
+				},
+				"serve": {
+					"builder": "@angular-devkit/build-angular:dev-server",
+					"configurations": {
+						"production": { "browserTarget": "mesa-ui:build:production" },
+						"development": { "browserTarget": "mesa-ui:build:development" }
+					},
+					"defaultConfiguration": "development",
+					"options": {
+						"port": 4201,
+						"proxyConfig": "projects/mesa-ui/proxy.conf.json"
+					}
+				},
+				"test": {
+					"builder": "@angular-devkit/build-angular:karma",
+					"options": {
+						"polyfills": ["zone.js", "zone.js/testing"],
+						"tsConfig": "projects/mesa-ui/tsconfig.spec.json",
+						"inlineStyleLanguage": "scss",
+						"assets": [
+							"projects/mesa-ui/src/favicon.ico",
+							"projects/mesa-ui/src/assets"
+						],
+						"styles": ["projects/mesa-ui/src/styles.scss"],
+						"scripts": []
+					}
+				}
+			}
 		}
-  },
-  "cli": {
-    "analytics": false
-  }
+	},
+	"cli": {
+		"analytics": false
+	}
 }

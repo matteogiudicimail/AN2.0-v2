@@ -297,9 +297,17 @@ export interface TaskDef {
   parentMenuCode:  string | null;
   allowedRoles:    string | null;
   allowedEntities: number[] | null;
+  /** JSON string of default filter values applied when the report opens. */
+  defaultFilters:  string | null;
+  /** Comma-separated user IDs / role names allowed to read this report. */
+  accessReaders:   string | null;
+  /** Comma-separated user IDs / role names allowed to write this report. */
+  accessWriters:   string | null;
   createdBy:       string;
   createdAt:       string;
   reportDomain:    string | null;
+  reportCode:      string | null;
+  reportLabel:     string | null;
 }
 
 export interface CreateTaskDto {
@@ -315,6 +323,9 @@ export interface CreateTaskDto {
   parentMenuCode?: string;
   allowedRoles?:   string;
   allowedEntities?: number[];
+  defaultFilters?: string;
+  accessReaders?:  string;
+  accessWriters?:  string;
 }
 
 export interface UpdateTaskDto {
@@ -328,6 +339,9 @@ export interface UpdateTaskDto {
   parentMenuCode?: string;
   allowedRoles?:   string;
   allowedEntities?: number[];
+  defaultFilters?: string;
+  accessReaders?:  string;
+  accessWriters?:  string;
 }
 
 // ── Audit ─────────────────────────────────────────────────────────────────────

@@ -1,0 +1,319 @@
+<div class="cfg-kpi-grid">
+
+  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+
+  <!-- Toolbar -->
+  <div class="cfg-kpi-grid__toolbar" role="toolbar" aria-label="Row actions">
+    <button class="cfg-btn cfg-btn--secondary" (click)="openAddForm('Aggregate')"
+            [disabled]="showAddForm"
+            title="Add aggregate grouping row">
+      + Aggregate
+    </button>
+    <button class="cfg-btn cfg-btn--primary" (click)="openAddForm('Indicator')"
+            [disabled]="showAddForm"
+            title="Add KPI indicator row">
+      + Indicator
+    </button>
+  </div>
+
+  <!-- Add-row form -->
+  <div *ngIf="showAddForm" class="cfg-kpi-add-form" role="region" aria-label="New row">
+    <h4 class="cfg-kpi-add-form__title">New row — {{ addKind }}</h4>
+    <form [formGroup]="addForm" (ngSubmit)="submitAddForm()" novalidate>
+      <div class="cfg-form-row">
+        <!-- sourceValue only for Indicatore -->
+        <div *ngIf="addKind === 'Indicator'" class="cfg-field">
+          <label for="add-source" class="cfg-label">Source value *</label>
+          <input id="add-source" class="cfg-input" formControlName="sourceValue"
+                 placeholder="e.g. CO2_Scope1"
+                 [class.cfg-input--error]="addForm.get('sourceValue')?.invalid && addForm.get('sourceValue')?.touched" />
+          <span *ngIf="addForm.get('sourceValue')?.invalid && addForm.get('sourceValue')?.touched"
+                class="cfg-field__error" role="alert">Required</span>
+        </div>
+
+        <div class="cfg-field">
+          <label for="add-label" class="cfg-label">Label *</label>
+          <input id="add-label" class="cfg-input" formControlName="label"
+                 placeholder="e.g. Environment"
+                 [class.cfg-input--error]="addForm.get('label')?.invalid && addForm.get('label')?.touched" />
+          <span *ngIf="addForm.get('label')?.invalid && addForm.get('label')?.touched"
+                class="cfg-field__error" role="alert">Required</span>
+        </div>
+
+        <div class="cfg-field">
+          <label for="add-gruppo" class="cfg-label">Grouping</label>
+          <input id="add-gruppo" class="cfg-input" formControlName="grouping" placeholder="e.g. Environment" />
+        </div>
+      </div>
+
+      <!-- Parent (only for Indicatore) -->
+      <div *ngIf="addKind === 'Indicator' && aggregatoRows.length > 0" class="cfg-form-row">
+        <div class="cfg-field">
+          <label for="add-parent" class="cfg-label">Parent group</label>
+          <select id="add-parent" class="cfg-select" formControlName="parentParamId">
+            <option [ngValue]="null">— None —</option>
+            <option *ngFor="let agg of aggregatoRows; trackBy: trackByRow" [value]="agg.paramId">
+              {{ agg.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Flags -->
+      <div class="cfg-form-row cfg-form-row--flags">
+        <label class="cfg-checkbox">
+          <input type="checkbox" formControlName="isEditable" />
+          <span>Editable</span>
+        </label>
+        <label class="cfg-checkbox">
+          <input type="checkbox" formControlName="isFormula" />
+          <span>Formula</span>
+        </label>
+        <label class="cfg-checkbox">
+          <input type="checkbox" formControlName="isVisible" />
+          <span>Visible</span>
+        </label>
+      </div>
+
+      <!-- Formula (conditionally shown) -->
+      <div *ngIf="addForm.get('isFormula')?.value" class="cfg-form-row">
+        <div class="cfg-field cfg-field--full">
+          <label for="add-formula" class="cfg-label">Formula</label>
+          <div class="cfg-field__input-row">
+            <input id="add-formula" class="cfg-input cfg-input--flex" formControlName="formula"
+                   placeholder="e.g. [Ricavi] - [Costi]" />
+            <button type="button"
+                    class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                    (click)="openFormulaBuilder('add')"
+                    title="Open Formula Builder"
+                    aria-label="Open Formula Builder">
+              ƒ Builder
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compilation guide -->
+      <div class="cfg-form-row">
+        <div class="cfg-field cfg-field--full">
+          <label for="add-guida" class="cfg-label">
+            Compilation guide
+            <span class="cfg-label__hint">(HTML — shown as 🔍 in the pivot)</span>
+          </label>
+          <textarea id="add-guida" class="cfg-textarea cfg-textarea--sm" formControlName="compilationGuide"
+                    rows="3"
+                    placeholder="<p>e.g. Enter the value in tonnes of CO₂eq.</p>"></textarea>
+        </div>
+      </div>
+
+      <div class="cfg-kpi-add-form__actions">
+        <button type="submit" class="cfg-btn cfg-btn--primary" [disabled]="isSaving">
+          {{ isSaving ? 'Saving…' : 'Add' }}
+        </button>
+        <button type="button" class="cfg-btn cfg-btn--ghost" (click)="cancelAddForm()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Loading spinner -->
+  <div *ngIf="isLoading" class="cfg-kpi-grid__loading" aria-live="polite" aria-busy="true">
+    <span class="cfg-spinner"></span> Loading rows…
+  </div>
+
+  <!-- Empty state -->
+  <div *ngIf="!isLoading && rows.length === 0" class="cfg-kpi-grid__empty">
+    No rows. Use "Seed from DB" or add rows manually.
+  </div>
+
+  <!-- Grid table -->
+  <div *ngIf="!isLoading && rows.length > 0" class="cfg-kpi-grid__scroll">
+    <table class="cfg-table cfg-kpi-table" aria-label="KPI parameter rows">
+      <thead>
+        <tr>
+          <th class="cfg-kpi-table__col-ord" scope="col" aria-label="Order"></th>
+          <th class="cfg-kpi-table__col-label" scope="col">Label</th>
+          <th class="cfg-kpi-table__col-gruppo" scope="col">Grouping</th>
+          <th class="cfg-kpi-table__col-flags" scope="col">Flags</th>
+          <th class="cfg-kpi-table__col-actions" scope="col" aria-label="Actions"></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let row of rows; let i = index; trackBy: trackByRow"
+            class="cfg-kpi-row"
+            [class.cfg-kpi-row--aggregato]="row.rowKind === 'Aggregate'"
+            [class.cfg-kpi-row--indicatore]="row.rowKind === 'Indicator'"
+            [class.cfg-kpi-row--selected]="editingRow?.paramId === row.paramId"
+            [class.cfg-kpi-row--hidden]="!row.isVisible"
+            [attr.aria-selected]="editingRow?.paramId === row.paramId">
+
+          <!-- Move buttons -->
+          <td class="cfg-kpi-table__col-ord">
+            <div class="cfg-kpi-row__ord-btns">
+              <button class="cfg-btn-icon" [disabled]="i === 0"
+                      (click)="moveRow(row, 'up')"
+                      [attr.aria-label]="'Move up ' + row.label">▲</button>
+              <button class="cfg-btn-icon" [disabled]="i === rows.length - 1"
+                      (click)="moveRow(row, 'down')"
+                      [attr.aria-label]="'Move down ' + row.label">▼</button>
+            </div>
+          </td>
+
+          <!-- Label + indent for Indicatore -->
+          <td class="cfg-kpi-table__col-label">
+            <span *ngIf="row.rowKind === 'Indicator'" class="cfg-kpi-row__indent" aria-hidden="true"></span>
+            <span class="cfg-kpi-row__kind-badge"
+                  [class.cfg-kpi-badge--agg]="row.rowKind === 'Aggregate'"
+                  [class.cfg-kpi-badge--ind]="row.rowKind === 'Indicator'"
+                  [attr.aria-label]="row.rowKind">
+              {{ row.rowKind === 'Aggregate' ? '■' : '◆' }}
+            </span>
+            <span class="cfg-kpi-row__label">{{ row.label }}</span>
+          </td>
+
+          <td class="cfg-kpi-table__col-gruppo">
+            <span class="cfg-text-muted">{{ row.grouping || '—' }}</span>
+          </td>
+
+          <!-- Flags badges -->
+          <td class="cfg-kpi-table__col-flags">
+            <span *ngIf="row.isFormula"   class="cfg-badge cfg-badge--info"    title="Formula">F</span>
+            <span *ngIf="row.isEditable"  class="cfg-badge cfg-badge--success" title="Editable">E</span>
+            <span *ngIf="!row.isVisible"  class="cfg-badge cfg-badge--muted"   title="Hidden">H</span>
+          </td>
+
+          <!-- Actions -->
+          <td class="cfg-kpi-table__col-actions">
+            <button class="cfg-btn-icon" (click)="startEdit(row)"
+                    [attr.aria-label]="'Edit ' + row.label"
+                    title="Edit">✏️</button>
+            <button class="cfg-btn-icon" (click)="openLens(row)"
+                    [attr.aria-label]="'Open guide for ' + row.label"
+                    title="Compilation guide">🔍</button>
+            <button class="cfg-btn-icon cfg-btn-icon--danger" (click)="deleteRow(row)"
+                    [attr.aria-label]="'Delete ' + row.label"
+                    title="Delete">🗑</button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Edit row panel -->
+  <div *ngIf="editingRow" class="cfg-kpi-edit-panel" role="region"
+       [attr.aria-label]="'Edit row: ' + editingRow.label">
+    <div class="cfg-kpi-edit-panel__header">
+      <span class="cfg-kpi-edit-panel__title">Edit — {{ editingRow.label }}</span>
+      <button class="cfg-btn-icon" (click)="cancelEdit()" aria-label="Close edit panel">✕</button>
+    </div>
+    <form [formGroup]="editForm" (ngSubmit)="submitEdit()" novalidate class="cfg-kpi-edit-panel__body">
+      <div class="cfg-form-row">
+        <div class="cfg-field">
+          <label for="edit-label" class="cfg-label">Label *</label>
+          <input id="edit-label" class="cfg-input" formControlName="label"
+                 [class.cfg-input--error]="editForm.get('label')?.invalid && editForm.get('label')?.touched" />
+          <span *ngIf="editForm.get('label')?.invalid && editForm.get('label')?.touched"
+                class="cfg-field__error" role="alert">Required</span>
+        </div>
+        <div class="cfg-field">
+          <label for="edit-gruppo" class="cfg-label">Grouping</label>
+          <input id="edit-gruppo" class="cfg-input" formControlName="grouping" />
+        </div>
+      </div>
+
+      <!-- Parent -->
+      <div *ngIf="editingRow.rowKind === 'Indicator'" class="cfg-form-row">
+        <div class="cfg-field">
+          <label for="edit-parent" class="cfg-label">Parent group</label>
+          <select id="edit-parent" class="cfg-select" formControlName="parentParamId">
+            <option [ngValue]="null">— None —</option>
+            <option *ngFor="let agg of aggregatoRows; trackBy: trackByRow" [value]="agg.paramId">
+              {{ agg.label }}
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Flags -->
+      <div class="cfg-form-row cfg-form-row--flags">
+        <label class="cfg-checkbox">
+          <input type="checkbox" formControlName="isEditable" />
+          <span>Editable</span>
+        </label>
+        <label class="cfg-checkbox">
+          <input type="checkbox" formControlName="isFormula" />
+          <span>Formula</span>
+        </label>
+        <label class="cfg-checkbox">
+          <input type="checkbox" formControlName="isVisible" />
+          <span>Visible</span>
+        </label>
+      </div>
+
+      <!-- Formula -->
+      <div *ngIf="editForm.get('isFormula')?.value" class="cfg-form-row">
+        <div class="cfg-field cfg-field--full">
+          <label for="edit-formula" class="cfg-label">Formula</label>
+          <div class="cfg-field__input-row">
+            <input id="edit-formula" class="cfg-input cfg-input--flex" formControlName="formula"
+                   placeholder="e.g. [Ricavi] - [Costi]" />
+            <button type="button"
+                    class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                    (click)="openFormulaBuilder('edit')"
+                    title="Open Formula Builder"
+                    aria-label="Open Formula Builder">
+              ƒ Builder
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compilation guide -->
+      <div class="cfg-form-row">
+        <div class="cfg-field cfg-field--full">
+          <label for="edit-guida" class="cfg-label">
+            Compilation guide
+            <span class="cfg-label__hint">(HTML — shown as 🔍 in the pivot)</span>
+          </label>
+          <textarea id="edit-guida" class="cfg-textarea cfg-textarea--sm" formControlName="compilationGuide"
+                    rows="3"
+                    placeholder="<p>e.g. Enter the value in tonnes of CO₂eq.</p>"></textarea>
+        </div>
+      </div>
+
+      <div class="cfg-kpi-edit-panel__actions">
+        <button type="submit" class="cfg-btn cfg-btn--primary" [disabled]="isSaving">
+          {{ isSaving ? 'Saving…' : 'Save' }}
+        </button>
+        <button type="button" class="cfg-btn cfg-btn--ghost" (click)="cancelEdit()">Cancel</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Metadata Lens dialog -->
+  <kpi-metadata-lens
+    *ngIf="lensRow"
+    [row]="lensRow"
+    [paramTableId]="paramTableId"
+    (closed)="closeLens()"
+    (saved)="onLensSaved($event)">
+  </kpi-metadata-lens>
+
+  <!-- Formula Builder overlay -->
+  <div *ngIf="formulaBuilderTarget"
+       class="cfg-fb-overlay"
+       role="presentation"
+       (click)="onFormulaCancelled()">
+    <div (click)="$event.stopPropagation()">
+      <esg-formula-builder
+        [availableRefs]="availableRefs"
+        [currentFormula]="formulaBuilderTarget === 'add'
+          ? addForm.get('formula')?.value
+          : editForm.get('formula')?.value"
+        [rowLabel]="formulaBuilderTarget === 'edit' && editingRow ? editingRow.label : ''"
+        (formulaSaved)="onFormulaSaved($event)"
+        (cancelled)="onFormulaCancelled()">
+      </esg-formula-builder>
+    </div>
+  </div>
+
+</div>

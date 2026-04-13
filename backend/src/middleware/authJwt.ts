@@ -22,33 +22,50 @@ export function authJwt(req: Request, res: Response, next: NextFunction): void {
 
   const token = authHeader.substring(7); // strip "Bearer "
 
-  try {
-    const secret = config.jwt.publicKey || config.jwt.secret;
+  // Try to verify with primary secret, then MESA secret as fallback.
+  // This allows MESA JWT tokens to also authenticate on CFS configurator routes.
+  const secrets: string[] = [];
+  const primarySecret = config.jwt.publicKey || config.jwt.secret;
+  if (primarySecret) secrets.push(primarySecret);
+  if (config.mesaJwtSecret && config.mesaJwtSecret !== primarySecret) {
+    secrets.push(config.mesaJwtSecret);
+  }
 
-    const verifyOptions: jwt.VerifyOptions = {};
-    if (config.jwt.issuer)   verifyOptions.issuer   = config.jwt.issuer;
-    if (config.jwt.audience) verifyOptions.audience = config.jwt.audience;
+  for (let i = 0; i < secrets.length; i++) {
+    try {
+      const verifyOptions: jwt.VerifyOptions = {};
+      // Only apply issuer/audience constraints for the primary CFS secret
+      if (i === 0) {
+        if (config.jwt.issuer)   verifyOptions.issuer   = config.jwt.issuer;
+        if (config.jwt.audience) verifyOptions.audience = config.jwt.audience;
+      }
 
-    const decoded = jwt.verify(token, secret, verifyOptions) as jwt.JwtPayload;
+      const decoded = jwt.verify(token, secrets[i]!, verifyOptions) as jwt.JwtPayload;
 
-    // Attach decoded user to request — never forward the raw token [OWASP A07]
-    req.user = {
-      sub:   decoded['sub']   as string ?? 'unknown',
-      name:  decoded['name']  as string | undefined,
-      email: decoded['email'] as string | undefined,
-      ...decoded,
-    };
+      // Attach decoded user to request — never forward the raw token [OWASP A07]
+      req.user = {
+        sub:   decoded['sub']   as string ?? 'unknown',
+        name:  decoded['name']  as string | undefined,
+        email: decoded['email'] as string | undefined,
+        ...decoded,
+      };
 
-    next();
-  } catch (err) {
-    // Log only a generic message — never the token content [OWASP A09]
-    const errName = (err as Error).name;
-    console.warn(`[authJwt] Token validation failed: ${errName}`);
-
-    if (errName === 'TokenExpiredError') {
-      res.status(401).json({ error: 'Token expired' });
-    } else {
-      res.status(401).json({ error: 'Invalid token' });
+      return next();
+    } catch (err) {
+      const errName = (err as Error).name;
+      // If token expired (valid signature), reject immediately — no point trying other secrets
+      if (errName === 'TokenExpiredError') {
+        console.warn('[authJwt] Token expired');
+        res.status(401).json({ error: 'Token expired' });
+        return;
+      }
+      // If this was the last secret and still failed, fall through to rejection
+      if (i === secrets.length - 1) {
+        console.warn(`[authJwt] Token validation failed: ${errName}`);
+        res.status(401).json({ error: 'Invalid token' });
+        return;
+      }
+      // Otherwise try the next secret
     }
   }
 }
