@@ -5232,14 +5232,17 @@ app-esg-task-page {
 }
 
 // Sticky first column (row label) — freeze panes
+// NOTE: do NOT set display:flex here — it removes the <td> from the table's
+// column-width algorithm, causing layout issues (especially with few data columns).
+// Inner flex layout is handled by the __riga-inner wrapper or by the inline children.
 .cfg-de-td--riga-sticky {
   position: sticky;
   left: 0;
   z-index: 2;
   background: var(--cfg-bg-card, #fff);
   border-right: 2px solid var(--cfg-border, #e0e0e0);
-  display: flex;
-  align-items: center;
+  // Inner children (expand-btn + label span) are inline and lay out horizontally.
+  // vertical-align: middle from .cfg-de-td handles vertical centering.
 
   .cfg-de-grid__row--group & {
     background: var(--cfg-bg-hover, #f0f4ff);

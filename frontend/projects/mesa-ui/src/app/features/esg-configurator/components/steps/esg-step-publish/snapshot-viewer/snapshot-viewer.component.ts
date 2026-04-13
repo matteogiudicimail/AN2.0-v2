@@ -73,6 +73,8 @@ export class SnapshotViewerComponent implements OnInit {
   @Input() taskViewerSettings?: ViewerSettings | null;
   /** Whether insert-tracking is enabled for this report (controls right-click history). */
   @Input() trackingEnabled = false;
+  /** When true, cell editing is disabled (dblclick/keyboard editing blocked). */
+  @Input() readOnly = false;
 
   /** Whether the save-mode toggle (Auto/Manual) is visible. Defaults to true. */
   get showSaveMode():    boolean { return this.taskViewerSettings?.showSaveMode    ?? true; }
@@ -666,6 +668,20 @@ export class SnapshotViewerComponent implements OnInit {
 
   get noColonnaMode(): boolean {
     return this.columnCombinations.length === 0;
+  }
+
+  /** Number of currently visible data cells (leaf rows × data columns). */
+  get cellCount(): number {
+    const rows = this.filteredVisibleRows.filter((r) => r.isLeaf).length;
+    const cols = this.noColonnaMode
+      ? this.layoutValues.length
+      : this.filteredColumnCombinations.length * this.layoutValues.length;
+    return rows * Math.max(1, cols);
+  }
+
+  /** True when the rendered grid exceeds the recommended cell threshold. */
+  get tooManyCells(): boolean {
+    return this.cellCount > 3000;
   }
 
   // ── Formula rows ────────────────────────────────────────────────────────────
@@ -1346,7 +1362,9 @@ export class SnapshotViewerComponent implements OnInit {
       return;
     }
 
-    // ── Enter edit mode ───────────────────────────────────────────────────────
+    // ── Enter edit mode (blocked in readOnly) ────────────────────────────────
+    if (this.readOnly) return;
+
     if (event.key === 'Enter' || event.key === 'F2') {
       event.preventDefault();
       this.startEdit(riga, cf, cv, vf);          // existing value, select-all

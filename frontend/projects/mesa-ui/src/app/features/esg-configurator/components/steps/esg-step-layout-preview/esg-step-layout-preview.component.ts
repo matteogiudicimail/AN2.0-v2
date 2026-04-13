@@ -9,7 +9,7 @@ import {
   Component, EventEmitter, Input, OnInit, Output, ViewChild,
 } from '@angular/core';
 import { EsgConfiguratorService } from '../../../services/esg-configurator.service';
-import { TaskSummary } from '../../../models/esg-configurator.models';
+import { TaskSummary, ViewerSettings } from '../../../models/esg-configurator.models';
 import { EsgStepEntryLayoutComponent } from '../esg-step-entry-layout/esg-step-entry-layout.component';
 
 @Component({
@@ -46,6 +46,15 @@ export class EsgStepLayoutPreviewComponent implements OnInit {
 
   viewerSnapshotId: number | null = null;
   viewerTaskLabel   = '';
+
+  /** ViewerSettings for the read-only preview inside the designer (no save/export). */
+  readonly previewViewerSettings: ViewerSettings = {
+    showSaveMode:    false,
+    defaultSaveMode: 'auto',
+    showExcelExport: false,
+    showSoloConDati: true,
+    defaultSoloConDati: false,
+  };
 
   constructor(private svc: EsgConfiguratorService) {}
 

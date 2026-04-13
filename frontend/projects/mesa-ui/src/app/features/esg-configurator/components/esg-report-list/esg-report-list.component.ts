@@ -26,8 +26,63 @@ export class EsgReportListComponent implements OnInit {
   /** Tasks grouped by reportId */
   tasksByReport = new Map<number, TaskSummary[]>();
 
-  /** Which report rows have their designer section open */
-  expandedReports = new Set<number>();
+  // ── Drawer ─────────────────────────────────────────────────────────────────
+
+  /** reportId il cui drawer è aperto; null = drawer chiuso */
+  drawerReportId: number | null = null;
+
+  get drawerTasks(): TaskSummary[] {
+    return this.drawerReportId !== null ? this.tasksFor(this.drawerReportId) : [];
+  }
+
+  get drawerReportLabel(): string {
+    if (this.drawerReportId === null) return '';
+    return this.reports.find(r => r.reportId === this.drawerReportId)?.reportLabel ?? '';
+  }
+
+  openDrawer(reportId: number, event: Event): void {
+    event.stopPropagation();
+    this.drawerReportId = reportId;
+  }
+
+  closeDrawer(): void {
+    this.drawerReportId = null;
+    this.closeDialog();
+  }
+
+  // ── Publish dialog (nuovo / modifica task) ─────────────────────────────────
+
+  /** reportId per il quale il dialog è aperto */
+  activeReportId: number | null = null;
+  dialogOpen = false;
+  /** undefined = nuovo task, TaskSummary = modifica */
+  dialogTask: TaskSummary | null | undefined = null;
+
+  openNewTask(reportId: number, event: Event): void {
+    event.stopPropagation();
+    this.activeReportId = reportId;
+    this.dialogTask     = undefined;
+    this.dialogOpen     = true;
+  }
+
+  openEditTask(task: TaskSummary): void {
+    this.activeReportId = task.reportId;
+    this.dialogTask     = task;
+    this.dialogOpen     = true;
+  }
+
+  closeDialog(): void {
+    this.dialogOpen     = false;
+    this.dialogTask     = null;
+    this.activeReportId = null;
+  }
+
+  onDialogSaved(_saved: TaskSummary): void {
+    this.closeDialog();
+    this.loadTasks();
+  }
+
+  // ── Load ───────────────────────────────────────────────────────────────────
 
   constructor(private svc: EsgConfiguratorService) {}
 
@@ -64,16 +119,6 @@ export class EsgReportListComponent implements OnInit {
     return this.tasksByReport.get(reportId) ?? [];
   }
 
-  isExpanded(reportId: number): boolean {
-    return this.expandedReports.has(reportId);
-  }
-
-  toggleExpand(reportId: number, event: Event): void {
-    event.stopPropagation();
-    if (this.expandedReports.has(reportId)) this.expandedReports.delete(reportId);
-    else                                     this.expandedReports.add(reportId);
-  }
-
   taskStatusClass(status: string): string {
     if (status === 'Active')   return 'cfg-badge--published';
     if (status === 'Archived') return 'cfg-badge--archived';
@@ -93,12 +138,12 @@ export class EsgReportListComponent implements OnInit {
       let va: string | number = '';
       let vb: string | number = '';
       switch (this.sortCol) {
-        case 'reportCode':    va = a.reportCode;         vb = b.reportCode;         break;
-        case 'reportLabel':   va = a.reportLabel;        vb = b.reportLabel;        break;
+        case 'reportCode':    va = a.reportCode;          vb = b.reportCode;          break;
+        case 'reportLabel':   va = a.reportLabel;         vb = b.reportLabel;         break;
         case 'writebackMode': va = a.writebackMode ?? ''; vb = b.writebackMode ?? ''; break;
-        case 'status':        va = a.status ?? '';        vb = b.status ?? '';        break;
-        case 'version':       va = a.version ?? 0;        vb = b.version ?? 0;        break;
-        case 'updatedAt':     va = a.updatedAt ?? '';     vb = b.updatedAt ?? '';     break;
+        case 'status':        va = a.status ?? '';         vb = b.status ?? '';         break;
+        case 'version':       va = a.version ?? 0;         vb = b.version ?? 0;         break;
+        case 'updatedAt':     va = a.updatedAt ?? '';      vb = b.updatedAt ?? '';      break;
       }
       if (va < vb) return this.sortDir === 'asc' ? -1 : 1;
       if (va > vb) return this.sortDir === 'asc' ?  1 : -1;
@@ -122,9 +167,7 @@ export class EsgReportListComponent implements OnInit {
 
   // ── Duplicate ──────────────────────────────────────────────────────────────
 
-  /** IDs of reports/tasks currently being duplicated (prevents double-click) */
   duplicatingReport = new Set<number>();
-  duplicatingTask   = new Set<number>();
 
   duplicateReport(reportId: number, event: Event): void {
     event.stopPropagation();
@@ -138,22 +181,6 @@ export class EsgReportListComponent implements OnInit {
       error: () => {
         this.duplicatingReport.delete(reportId);
         this.errorMsg = 'Impossibile duplicare il Data Model.';
-      },
-    });
-  }
-
-  duplicateTask(taskId: number, event: Event): void {
-    event.stopPropagation();
-    if (this.duplicatingTask.has(taskId)) return;
-    this.duplicatingTask.add(taskId);
-    this.svc.duplicateTask(taskId).subscribe({
-      next: () => {
-        this.duplicatingTask.delete(taskId);
-        this.loadTasks();
-      },
-      error: () => {
-        this.duplicatingTask.delete(taskId);
-        this.errorMsg = 'Impossibile duplicare il designer.';
       },
     });
   }

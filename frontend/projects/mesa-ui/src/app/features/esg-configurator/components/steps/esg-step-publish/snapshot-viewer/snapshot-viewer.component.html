@@ -268,6 +268,16 @@
       </ul>
     </div>
 
+    <!-- Cell-count warning: suggests applying a filter when grid is very large -->
+    <div *ngIf="tooManyCells" class="cfg-de-too-large" role="alert">
+      <span class="cfg-de-too-large__icon">⚠️</span>
+      <div class="cfg-de-too-large__body">
+        <strong>Dataset molto grande</strong> —
+        {{ cellCount | number:'1.0-0' }} celle visibili (soglia: 3.000).
+        <br>Applica uno o più filtri per migliorare le prestazioni.
+      </div>
+    </div>
+
     <!-- Grid -->
     <div class="cfg-sv-grid-wrap" role="region" aria-label="Griglia dati snapshot"
          [class.cfg-sv-grid-wrap--computing]="isComputingFilter">
@@ -337,39 +347,41 @@
             <td class="cfg-de-td cfg-de-td--riga cfg-de-td--riga-sticky"
                 [style.padding-left.px]="12 + (riga.paramRow?.indentLevel ?? riga.depth) * 16"
                 (contextmenu)="onRowRightClick($event, riga)">
+              <!-- Inner flex wrapper — keeps label+icons horizontal without display:flex on the td -->
+              <div class="cfg-de-td__riga-inner">
+                <!-- Expand/collapse toggle for grouping rows (not detail-role rows) -->
+                <button *ngIf="!riga.isLeaf && isMultiLevel && !isDetailRole(riga)"
+                        class="cfg-de-expand-btn"
+                        type="button"
+                        (click)="toggleGroup(riga)"
+                        [attr.aria-label]="isExpanded(riga) ? 'Comprimi gruppo' : 'Espandi gruppo'"
+                        [attr.aria-expanded]="isExpanded(riga)">
+                  {{ isExpanded(riga) ? '▾' : '▸' }}
+                </button>
+                <!-- Detail-role non-leaf: fixed marker, no toggle -->
+                <span *ngIf="!riga.isLeaf && isMultiLevel && isDetailRole(riga)"
+                      class="cfg-de-td__detail-marker">—</span>
 
-              <!-- Expand/collapse toggle for grouping rows (not detail-role rows) -->
-              <button *ngIf="!riga.isLeaf && isMultiLevel && !isDetailRole(riga)"
-                      class="cfg-de-expand-btn"
-                      type="button"
-                      (click)="toggleGroup(riga)"
-                      [attr.aria-label]="isExpanded(riga) ? 'Comprimi gruppo' : 'Espandi gruppo'"
-                      [attr.aria-expanded]="isExpanded(riga)">
-                {{ isExpanded(riga) ? '▾' : '▸' }}
-              </button>
-              <!-- Detail-role non-leaf: fixed marker, no toggle -->
-              <span *ngIf="!riga.isLeaf && isMultiLevel && isDetailRole(riga)"
-                    class="cfg-de-td__detail-marker">—</span>
+                <span class="cfg-de-riga-label"
+                      [class.cfg-de-riga-label--group]="!riga.isLeaf && !isDetailRole(riga)"
+                      [class.cfg-de-riga-label--leaf]="riga.isLeaf"
+                      [class.cfg-de-riga-label--na]="!riga.label">
+                  {{ riga.label || 'N/A' }}
+                </span>
 
-              <span class="cfg-de-riga-label"
-                    [class.cfg-de-riga-label--group]="!riga.isLeaf && !isDetailRole(riga)"
-                    [class.cfg-de-riga-label--leaf]="riga.isLeaf"
-                    [class.cfg-de-riga-label--na]="!riga.label">
-                {{ riga.label || 'N/A' }}
-              </span>
+                <!-- Formula indicator -->
+                <span *ngIf="isFormulaRow(riga)"
+                      class="cfg-de-formula-badge"
+                      title="Riga formula (calcolata automaticamente)">ƒ</span>
 
-              <!-- Formula indicator -->
-              <span *ngIf="isFormulaRow(riga)"
-                    class="cfg-de-formula-badge"
-                    title="Riga formula (calcolata automaticamente)">ƒ</span>
-
-              <!-- Compilation guide button -->
-              <button *ngIf="riga.paramRow?.compilationGuide"
-                      class="cfg-de-guida-btn"
-                      type="button"
-                      (click)="openGuida($event, riga)"
-                      [attr.aria-label]="'Guida compilazione: ' + riga.label"
-                      [title]="stripHtml(riga.paramRow?.compilationGuide ?? null)">🔍</button>
+                <!-- Compilation guide button -->
+                <button *ngIf="riga.paramRow?.compilationGuide"
+                        class="cfg-de-guida-btn"
+                        type="button"
+                        (click)="openGuida($event, riga)"
+                        [attr.aria-label]="'Guida compilazione: ' + riga.label"
+                        [title]="stripHtml(riga.paramRow?.compilationGuide ?? null)">🔍</button>
+              </div>
             </td>
 
             <!-- Data cells: with-columns mode -->
@@ -387,7 +399,7 @@
                     [class.cfg-de-td--approved]="isRowApproved(riga)"
                     [class.cfg-de-td--readonly]="isRowApproved(riga) || isFormulaRow(riga) || isAggregateRow(riga)"
                     tabindex="0"
-                    (dblclick)="startEdit(riga, cc.fieldName, cc.value, vf.fieldName)"
+                    (dblclick)="!readOnly && startEdit(riga, cc.fieldName, cc.value, vf.fieldName)"
                     (keydown)="onCellKeydown($event, riga, cc.fieldName, cc.value, vf.fieldName)"
                     (contextmenu)="onCellRightClick($event, riga, cc.fieldName, cc.value, vf)"
                     [attr.aria-label]="'Valore ' + riga.label + ' / ' + cc.value + ' / ' + vf.label"
@@ -429,7 +441,7 @@
                   [class.cfg-de-td--approved]="isRowApproved(riga)"
                   [class.cfg-de-td--readonly]="isRowApproved(riga) || isFormulaRow(riga) || isAggregateRow(riga)"
                   tabindex="0"
-                  (dblclick)="startEdit(riga, '', '', vf.fieldName)"
+                  (dblclick)="!readOnly && startEdit(riga, '', '', vf.fieldName)"
                   (keydown)="onCellKeydown($event, riga, '', '', vf.fieldName)"
                   (contextmenu)="onCellRightClick($event, riga, '', '', vf)"
                   [attr.aria-label]="'Valore ' + riga.label + ' / ' + vf.label"

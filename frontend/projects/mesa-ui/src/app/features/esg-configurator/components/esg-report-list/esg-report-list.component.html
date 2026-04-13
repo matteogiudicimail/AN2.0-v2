@@ -29,7 +29,6 @@
   <table *ngIf="!isLoading && reports.length > 0" class="cfg-table" aria-label="Data Models">
     <thead>
       <tr>
-        <th scope="col" style="width:32px"></th>
         <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportCode')"
             tabindex="0" (keydown.enter)="sortBy('reportCode')">
           Codice <span class="cfg-sort-icon">{{ sortIcon('reportCode') }}</span>
@@ -56,33 +55,22 @@
     <tbody>
       <ng-container *ngFor="let r of filteredReports; trackBy: trackById">
 
-        <!-- ── Data model row (definition) ── -->
         <tr class="cfg-table__row cfg-table__row--clickable"
-            [class.cfg-table__row--expanded]="isExpanded(r.reportId)"
             (click)="openDefinition.emit(r.reportId)"
             tabindex="0"
             (keydown.enter)="openDefinition.emit(r.reportId)"
             [attr.aria-label]="'Modifica data model ' + r.reportLabel">
 
-          <!-- Expand toggle for Report Designer sub-section -->
-          <td class="cfg-list__expand-cell" (click)="toggleExpand(r.reportId, $event)">
-            <button class="cfg-list__expand-btn"
-                    type="button"
-                    [attr.aria-expanded]="isExpanded(r.reportId)"
-                    [attr.aria-label]="(isExpanded(r.reportId) ? 'Chiudi' : 'Apri') + ' Report Designer di ' + r.reportLabel"
-                    title="Report Designer">
-              {{ isExpanded(r.reportId) ? '▾' : '▸' }}
-            </button>
-          </td>
-
           <td>
             <div class="cfg-list__dm-code-cell">
               <code>{{ r.reportCode }}</code>
-              <span *ngIf="tasksFor(r.reportId).length > 0"
-                    class="cfg-list__task-count"
-                    [title]="tasksFor(r.reportId).length + ' report pubblicati'">
+              <button *ngIf="tasksFor(r.reportId).length > 0"
+                      class="cfg-list__task-count"
+                      type="button"
+                      (click)="openDrawer(r.reportId, $event)"
+                      [title]="tasksFor(r.reportId).length + ' report pubblicati — apri drawer'">
                 {{ tasksFor(r.reportId).length }}
-              </span>
+              </button>
             </div>
           </td>
           <td>{{ r.reportLabel }}</td>
@@ -109,10 +97,15 @@
                     title="Modifica definizione data model (step 1-3)">
               ✏️ Modifica
             </button>
-            <button class="cfg-btn cfg-btn--sm cfg-btn--primary"
-                    (click)="openDesigner.emit(r.reportId); $event.stopPropagation()"
-                    title="Apri Report Designer (layout, preview, publish — step 4-6)">
-              ▦ Report Designer
+            <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
+                    (click)="openDrawer(r.reportId, $event)"
+                    title="Visualizza e gestisci i report pubblicati">
+              📋 Report Pubblicati
+            </button>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--secondary"
+                    (click)="openNewTask(r.reportId, $event)"
+                    title="Crea un nuovo report pubblicato per questo Data Model">
+              + Nuovo Report
             </button>
             <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
                     [disabled]="duplicatingReport.has(r.reportId)"
@@ -121,63 +114,6 @@
                     [attr.aria-busy]="duplicatingReport.has(r.reportId)">
               {{ duplicatingReport.has(r.reportId) ? '⏳' : '⧉' }} Duplica
             </button>
-          </td>
-        </tr>
-
-        <!-- ── Report Designer sub-section ── -->
-        <tr *ngIf="isExpanded(r.reportId)" class="cfg-list__designer-row">
-          <td colspan="7" class="cfg-list__designer-cell">
-
-            <div class="cfg-list__designer-panel">
-
-              <!-- Designer header -->
-              <div class="cfg-list__designer-header">
-                <span class="cfg-list__designer-title">
-                  <span class="cfg-list__designer-icon">▦</span>
-                  Report Designer
-                  <span class="cfg-list__designer-hint">Layout · Preview · Publish — step 4-6</span>
-                </span>
-              </div>
-
-              <!-- Published tasks list -->
-              <div *ngIf="tasksFor(r.reportId).length > 0" class="cfg-list__tasks-section">
-                <div class="cfg-list__tasks-label">Report pubblicati</div>
-                <div class="cfg-list__tasks-grid">
-                  <div *ngFor="let t of tasksFor(r.reportId); trackBy: trackByTask"
-                       class="cfg-list__task-card">
-                    <div class="cfg-list__task-card-top">
-                      <span class="cfg-badge cfg-badge--sm" [ngClass]="taskStatusClass(t.status)">
-                        {{ t.status === 'Active' ? 'Attivo' : t.status === 'Archived' ? 'Archiviato' : 'Bozza' }}
-                      </span>
-                      <code class="cfg-list__task-code">{{ t.taskCode }}</code>
-                    </div>
-                    <div class="cfg-list__task-card-name">{{ t.label }}</div>
-                    <div class="cfg-list__task-card-date">
-                      {{ t.createdAt ? (t.createdAt | date:'dd/MM/yyyy') : '' }}
-                    </div>
-                    <div class="cfg-list__task-card-actions">
-                      <button class="cfg-btn cfg-btn--xs cfg-btn--ghost"
-                              (click)="openDesigner.emit(t.reportId); $event.stopPropagation()"
-                              title="Modifica questo report nel Report Designer">
-                        ✏️ Modifica
-                      </button>
-                      <button class="cfg-btn cfg-btn--xs cfg-btn--ghost"
-                              [disabled]="duplicatingTask.has(t.taskId)"
-                              (click)="duplicateTask(t.taskId, $event)"
-                              [title]="duplicatingTask.has(t.taskId) ? 'Duplicazione in corso…' : 'Duplica questo designer'"
-                              [attr.aria-busy]="duplicatingTask.has(t.taskId)">
-                        {{ duplicatingTask.has(t.taskId) ? '⏳' : '⧉' }} Duplica
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div *ngIf="tasksFor(r.reportId).length === 0" class="cfg-list__tasks-empty">
-                Nessun report ancora pubblicato da questo data model.
-              </div>
-
-            </div>
           </td>
         </tr>
 
@@ -190,3 +126,84 @@
   </p>
 
 </div>
+
+<!-- ── Drawer Report Pubblicati ──────────────────────────────────────────── -->
+<ng-container *ngIf="drawerReportId !== null">
+  <div class="cfg-drawer-backdrop" role="presentation" (click)="closeDrawer()"></div>
+
+  <div class="cfg-drawer"
+       role="dialog"
+       aria-modal="true"
+       aria-labelledby="cfg-rlist-drawer-title">
+
+    <div class="cfg-drawer__header">
+      <div>
+        <h3 id="cfg-rlist-drawer-title" class="cfg-drawer__title">Report Pubblicati</h3>
+        <span class="cfg-drawer__subtitle">{{ drawerReportLabel }}</span>
+      </div>
+      <div class="cfg-drawer__header-actions">
+        <button class="cfg-btn cfg-btn--primary cfg-btn--sm"
+                type="button"
+                (click)="openNewTask(drawerReportId!, $event)">
+          + Nuovo Report
+        </button>
+        <button class="cfg-btn-icon"
+                type="button"
+                aria-label="Chiudi pannello"
+                (click)="closeDrawer()">✕</button>
+      </div>
+    </div>
+
+    <div class="cfg-drawer__body">
+
+      <div *ngIf="drawerTasks.length === 0" class="cfg-empty">
+        Nessun report pubblicato. Usa <strong>+ Nuovo Report</strong> per crearne uno.
+      </div>
+
+      <div *ngFor="let t of drawerTasks; trackBy: trackByTask"
+           class="cfg-drawer__task-card">
+        <div class="cfg-drawer__task-info">
+          <div class="cfg-drawer__task-header">
+            <span class="cfg-badge cfg-badge--sm" [ngClass]="taskStatusClass(t.status)">
+              {{ t.status === 'Active' ? 'Attivo' : t.status === 'Archived' ? 'Archiviato' : 'Bozza' }}
+            </span>
+            <code class="cfg-list__task-code">{{ t.taskCode }}</code>
+          </div>
+          <span class="cfg-drawer__task-label">{{ t.label }}</span>
+          <span *ngIf="t.createdAt" class="cfg-drawer__task-date">
+            {{ t.createdAt | date:'dd/MM/yyyy' }}
+          </span>
+        </div>
+        <div class="cfg-drawer__task-actions">
+          <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                  type="button"
+                  (click)="openEditTask(t)"
+                  [attr.aria-label]="'Modifica impostazioni di ' + t.label">
+            ✏️ Modifica
+          </button>
+          <button class="cfg-btn cfg-btn--secondary cfg-btn--sm"
+                  type="button"
+                  (click)="openDesigner.emit(t.reportId); $event.stopPropagation()"
+                  [attr.aria-label]="'Apri Report Designer per ' + t.label"
+                  title="Apri il Report Designer (layout, anteprima, publish)">
+            ▦ Apri Designer
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</ng-container>
+
+<!-- ── Publish dialog overlay ────────────────────────────────────────────── -->
+<ng-container *ngIf="dialogOpen && activeReportId !== null">
+  <div class="cfg-pub-overlay" role="presentation" (click)="closeDialog()"></div>
+  <div class="cfg-pub-overlay-content">
+    <publish-dialog
+      [reportId]="activeReportId"
+      [task]="dialogTask ?? null"
+      (saved)="onDialogSaved($event)"
+      (cancelled)="closeDialog()">
+    </publish-dialog>
+  </div>
+</ng-container>
