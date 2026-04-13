@@ -14,6 +14,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import { config } from './config/env';
 import { initPool, closePool } from './config/db';
+import { runSchemaMigrations } from './config/schemaMigrations';
 import { initMesaDb, closeMesaDb } from './config/mesaDb';
 import { runSeed } from './config/seed';
 import { initRealtime } from './services/mesa/realtimeGateway';
@@ -72,6 +73,7 @@ async function start(): Promise<void> {
   try {
     // CFS database (mssql pool)
     await initPool();
+    await runSchemaMigrations();
     if (process.env['SKIP_SEED'] !== 'true') {
       await runSeed();
     } else {
