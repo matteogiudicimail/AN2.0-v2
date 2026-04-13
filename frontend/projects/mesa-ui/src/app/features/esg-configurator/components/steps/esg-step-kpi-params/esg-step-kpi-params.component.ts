@@ -47,10 +47,33 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
   /** Client-side text filter applied to the Value column of the matrix. */
   matrixFilter = '';
 
+  /** Pagination state — resets to page 1 whenever the filter changes. */
+  currentPage = 1;
+  readonly pageSize = 100;
+
   get filteredMatrixRows(): ParamMatrixRow[] {
     const q = this.matrixFilter.trim().toLowerCase();
     if (!q) return this.matrixRows;
     return this.matrixRows.filter((r) => r.sourceValue.toLowerCase().includes(q));
+  }
+
+  get totalPages(): number {
+    return Math.max(1, Math.ceil(this.filteredMatrixRows.length / this.pageSize));
+  }
+
+  get pagedMatrixRows(): ParamMatrixRow[] {
+    const start = (this.currentPage - 1) * this.pageSize;
+    return this.filteredMatrixRows.slice(start, start + this.pageSize);
+  }
+
+  onMatrixFilterChange(value: string): void {
+    this.matrixFilter = value;
+    this.currentPage = 1;
+  }
+
+  setPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
   }
 
   editingCell:  { rowIdx: number; field: string } | null = null;
@@ -293,6 +316,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
   }
 
   private buildMatrix(distinctVals: string[]): void {
+    this.currentPage = 1;
     this.matrixRows = distinctVals.map((v) => {
       const sv = String(v);  // normalise: DB may return numeric types (e.g. INT columns)
       const row = this.paramRows.find((r) => r.sourceValue === sv);

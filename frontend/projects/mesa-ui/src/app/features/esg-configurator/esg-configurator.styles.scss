@@ -1322,6 +1322,27 @@
   &:focus { border-color: var(--cfg-accent, #5a9e3a); }
 }
 
+.cfg-kpi-matrix__pager-info {
+  font-size: 11px;
+  color: var(--cfg-text-muted);
+  white-space: nowrap;
+}
+
+.cfg-kpi-matrix__pagination {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 4px 2px;
+  justify-content: center;
+}
+
+.cfg-kpi-matrix__pagination-label {
+  font-size: 12px;
+  color: var(--cfg-text-muted);
+  min-width: 120px;
+  text-align: center;
+}
+
 .cfg-kpi-matrix__hint {
   font-size: 12px;
   color: var(--cfg-text-muted);

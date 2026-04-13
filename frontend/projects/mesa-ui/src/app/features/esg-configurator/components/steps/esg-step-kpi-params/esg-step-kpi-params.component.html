@@ -125,15 +125,21 @@
             <th class="cfg-kpi-matrix__th cfg-kpi-matrix__th--source" scope="col">
               <input class="cfg-kpi-matrix__filter-input"
                      type="text"
-                     [(ngModel)]="matrixFilter"
-                     placeholder="Filter…"
+                     [ngModel]="matrixFilter"
+                     (ngModelChange)="onMatrixFilterChange($event)"
+                     placeholder="Filter… (cerca su tutti i {{ matrixRows.length }} valori)"
                      aria-label="Filter by value" />
             </th>
-            <th class="cfg-kpi-matrix__th" [attr.colspan]="3 + customCols.length + 1"></th>
+            <th class="cfg-kpi-matrix__th" [attr.colspan]="3 + customCols.length + 1">
+              <span class="cfg-kpi-matrix__pager-info">
+                {{ (currentPage - 1) * pageSize + 1 }}–{{ currentPage * pageSize < filteredMatrixRows.length ? currentPage * pageSize : filteredMatrixRows.length }} di {{ filteredMatrixRows.length }}
+                <ng-container *ngIf="filteredMatrixRows.length < matrixRows.length"> (filtrati su {{ matrixRows.length }})</ng-container>
+              </span>
+            </th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let row of filteredMatrixRows; trackBy: trackByRow"
+          <tr *ngFor="let row of pagedMatrixRows; trackBy: trackByRow"
               class="cfg-kpi-matrix__row"
               [class.cfg-kpi-matrix__row--saving]="row.isSaving">
 
@@ -236,6 +242,25 @@
           </tr>
         </tbody>
       </table>
+
+      <!-- Pagination controls -->
+      <div *ngIf="totalPages > 1" class="cfg-kpi-matrix__pagination">
+        <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                [disabled]="currentPage === 1"
+                (click)="setPage(1)" title="Prima pagina">«</button>
+        <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                [disabled]="currentPage === 1"
+                (click)="setPage(currentPage - 1)" title="Pagina precedente">‹</button>
+        <span class="cfg-kpi-matrix__pagination-label">
+          Pagina {{ currentPage }} / {{ totalPages }}
+        </span>
+        <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                [disabled]="currentPage === totalPages"
+                (click)="setPage(currentPage + 1)" title="Pagina successiva">›</button>
+        <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                [disabled]="currentPage === totalPages"
+                (click)="setPage(totalPages)" title="Ultima pagina">»</button>
+      </div>
     </div>
 
   </section>
