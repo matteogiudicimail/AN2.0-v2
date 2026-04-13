@@ -141,7 +141,8 @@
         <tbody>
           <tr *ngFor="let row of pagedMatrixRows; trackBy: trackByRow"
               class="cfg-kpi-matrix__row"
-              [class.cfg-kpi-matrix__row--saving]="row.isSaving">
+              [class.cfg-kpi-matrix__row--saving]="row.isSaving"
+              [class.cfg-kpi-matrix__row--formula]="row.isFormula">
 
             <!-- Value (read-only) -->
             <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--source" [title]="row.sourceValue">
@@ -149,15 +150,16 @@
               <span *ngIf="row.isSaving" class="cfg-spinner cfg-spinner--xs" aria-label="Saving"></span>
             </td>
 
-            <!-- Grouping (inline edit) -->
-            <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--editable"
-                [class.cfg-kpi-matrix__td--active]="isEditing(matrixRows.indexOf(row), 'grouping')"
-                (click)="startEdit(matrixRows.indexOf(row), 'grouping')"
+            <!-- Grouping (inline edit — disabled for formula rows) -->
+            <td class="cfg-kpi-matrix__td"
+                [class.cfg-kpi-matrix__td--editable]="!row.isFormula"
+                [class.cfg-kpi-matrix__td--active]="!row.isFormula && isEditing(matrixRows.indexOf(row), 'grouping')"
+                (click)="!row.isFormula && startEdit(matrixRows.indexOf(row), 'grouping')"
                 [attr.aria-label]="'Grouping: ' + row.grouping">
-              <span *ngIf="!isEditing(matrixRows.indexOf(row), 'grouping')" class="cfg-kpi-matrix__cell-val">
+              <span *ngIf="row.isFormula || !isEditing(matrixRows.indexOf(row), 'grouping')" class="cfg-kpi-matrix__cell-val">
                 {{ row.grouping }}
               </span>
-              <input *ngIf="isEditing(matrixRows.indexOf(row), 'grouping')"
+              <input *ngIf="!row.isFormula && isEditing(matrixRows.indexOf(row), 'grouping')"
                      #activeInput
                      class="cfg-kpi-matrix__cell-input"
                      [(ngModel)]="pendingValue"
@@ -167,29 +169,38 @@
                      aria-label="Edit grouping" />
             </td>
 
-            <!-- Formula (inline edit + builder) -->
-            <td class="cfg-kpi-matrix__td cfg-kpi-matrix__td--editable"
-                [class.cfg-kpi-matrix__td--active]="isEditing(matrixRows.indexOf(row), 'formula')"
+            <!-- Formula — read-only for formula rows, inline-edit + builder otherwise -->
+            <td class="cfg-kpi-matrix__td"
+                [class.cfg-kpi-matrix__td--editable]="!row.isFormula"
+                [class.cfg-kpi-matrix__td--active]="!row.isFormula && isEditing(matrixRows.indexOf(row), 'formula')"
                 [attr.aria-label]="'Formula: ' + row.formula">
-              <div class="cfg-field__input-row" *ngIf="!isEditing(matrixRows.indexOf(row), 'formula')">
-                <span class="cfg-kpi-matrix__cell-val cfg-input--flex"
-                      (click)="startEdit(matrixRows.indexOf(row), 'formula')">{{ row.formula }}</span>
-                <button type="button"
-                        class="cfg-btn cfg-btn--ghost cfg-btn--sm"
-                        (click)="openFormulaBuilder(row); $event.stopPropagation()"
-                        title="Open Formula Builder"
-                        aria-label="Open Formula Builder">
-                  ƒ
-                </button>
-              </div>
-              <input *ngIf="isEditing(matrixRows.indexOf(row), 'formula')"
-                     #activeInput
-                     class="cfg-kpi-matrix__cell-input"
-                     [(ngModel)]="pendingValue"
-                     (keydown.enter)="commitEdit()"
-                     (keydown.escape)="cancelEdit()"
-                     (blur)="commitEdit()"
-                     aria-label="Edit formula" />
+              <!-- Formula row: read-only display with ƒ badge -->
+              <span *ngIf="row.isFormula" class="cfg-kpi-matrix__formula-ro">
+                <span class="cfg-kpi-matrix__formula-badge" title="Riga formula — non editabile">ƒ</span>
+                {{ row.formula }}
+              </span>
+              <!-- Normal row: inline edit + formula builder button -->
+              <ng-container *ngIf="!row.isFormula">
+                <div class="cfg-field__input-row" *ngIf="!isEditing(matrixRows.indexOf(row), 'formula')">
+                  <span class="cfg-kpi-matrix__cell-val cfg-input--flex"
+                        (click)="startEdit(matrixRows.indexOf(row), 'formula')">{{ row.formula }}</span>
+                  <button type="button"
+                          class="cfg-btn cfg-btn--ghost cfg-btn--sm"
+                          (click)="openFormulaBuilder(row); $event.stopPropagation()"
+                          title="Open Formula Builder"
+                          aria-label="Open Formula Builder">
+                    ƒ
+                  </button>
+                </div>
+                <input *ngIf="isEditing(matrixRows.indexOf(row), 'formula')"
+                       #activeInput
+                       class="cfg-kpi-matrix__cell-input"
+                       [(ngModel)]="pendingValue"
+                       (keydown.enter)="commitEdit()"
+                       (keydown.escape)="cancelEdit()"
+                       (blur)="commitEdit()"
+                       aria-label="Edit formula" />
+              </ng-container>
             </td>
 
             <!-- Compilation guide (via lens modal) -->
@@ -206,16 +217,17 @@
               </button>
             </td>
 
-            <!-- Custom columns (inline edit) -->
+            <!-- Custom columns (inline edit — disabled for formula rows) -->
             <td *ngFor="let col of customCols; trackBy: trackByDef"
-                class="cfg-kpi-matrix__td cfg-kpi-matrix__td--editable"
-                [class.cfg-kpi-matrix__td--active]="isEditing(matrixRows.indexOf(row), col.name)"
-                (click)="startEdit(matrixRows.indexOf(row), col.name)"
+                class="cfg-kpi-matrix__td"
+                [class.cfg-kpi-matrix__td--editable]="!row.isFormula"
+                [class.cfg-kpi-matrix__td--active]="!row.isFormula && isEditing(matrixRows.indexOf(row), col.name)"
+                (click)="!row.isFormula && startEdit(matrixRows.indexOf(row), col.name)"
                 [attr.aria-label]="col.label + ': ' + (row.customColumns[col.name] || '')">
-              <span *ngIf="!isEditing(matrixRows.indexOf(row), col.name)" class="cfg-kpi-matrix__cell-val">
+              <span *ngIf="row.isFormula || !isEditing(matrixRows.indexOf(row), col.name)" class="cfg-kpi-matrix__cell-val">
                 {{ row.customColumns[col.name] }}
               </span>
-              <input *ngIf="isEditing(matrixRows.indexOf(row), col.name)"
+              <input *ngIf="!row.isFormula && isEditing(matrixRows.indexOf(row), col.name)"
                      #activeInput
                      class="cfg-kpi-matrix__cell-input"
                      [(ngModel)]="pendingValue"

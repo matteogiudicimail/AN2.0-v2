@@ -18,6 +18,8 @@ interface ParamMatrixRow {
   compilationGuide: string;
   customColumns:    Record<string, string>;
   isSaving:         boolean;
+  /** Row carries a formula expression — editing is disabled, formula shown read-only. */
+  isFormula:        boolean;
 }
 
 @Component({
@@ -334,6 +336,7 @@ export class EsgStepKpiParamsComponent implements OnInit, AfterViewChecked {
         compilationGuide: row?.compilationGuide  ?? '',
         customColumns:    custom,
         isSaving:         false,
+        isFormula:        row?.isFormula         ?? false,
       };
     });
   }
