@@ -91,6 +91,47 @@ export class SnapshotViewerComponent implements OnInit {
   /** Show/hide the SQL debug panel */
   showSqlPanel = false;
 
+  /** Toggle between filtered (true) and raw (false) SQL view */
+  sqlShowFiltered = true;
+
+  /**
+   * Returns each debug SQL wrapped in a CTE with WHERE conditions
+   * that mirror the currently active client-side filters.
+   * Example:
+   *   WITH _base AS ( <original sql> )
+   *   SELECT * FROM _base
+   *   WHERE [Anno] = '2025'
+   *     AND [StrutturaRefKPI] = 'Acantus'
+   */
+  get debugSqlFiltered(): string[] {
+    const raw = this.grid?.debugSql;
+    if (!raw?.length) return [];
+
+    // Build the list of active (non-empty) filter conditions
+    const conditions: string[] = [];
+    for (const [field, val] of Object.entries(this.selectedFiltri)) {
+      if (!val) continue;
+      // Escape single quotes in the value
+      const escaped = val.replace(/'/g, "''");
+      conditions.push(`  [${field}] = '${escaped}'`);
+    }
+
+    return raw.map((sql) => {
+      if (conditions.length === 0) return sql;
+      // Strip comment header (lines starting with --)
+      const lines = sql.split('\n');
+      const commentLines = lines.filter((l) => l.trimStart().startsWith('--'));
+      const sqlBody     = lines.filter((l) => !l.trimStart().startsWith('--')).join('\n').trim();
+      const comment     = commentLines.length ? commentLines.join('\n') + '\n' : '';
+      return (
+        comment +
+        `WITH _base AS (\n  ${sqlBody.replace(/\n/g, '\n  ')}\n)\n` +
+        `SELECT * FROM _base\nWHERE\n` +
+        conditions.join('\n  AND ')
+      );
+    });
+  }
+
   /** Filter search popup state */
   filterSearchField: string | null = null;
   filterSearchText = '';

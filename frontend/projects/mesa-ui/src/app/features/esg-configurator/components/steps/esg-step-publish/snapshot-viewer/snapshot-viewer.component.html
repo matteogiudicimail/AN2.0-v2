@@ -453,11 +453,44 @@
     <span class="cfg-sv-sql-panel__title">🛠 Query SQL — snap #{{ snapshotId }}</span>
     <button class="cfg-btn-icon" type="button" (click)="showSqlPanel = false" aria-label="Chiudi">✕</button>
   </div>
+
+  <!-- Toggle filtrata / grezza -->
+  <div class="cfg-sv-sql-panel__toggle-bar">
+    <button class="cfg-sv-sql-panel__tab"
+            [class.cfg-sv-sql-panel__tab--active]="sqlShowFiltered"
+            type="button"
+            (click)="sqlShowFiltered = true">
+      Con filtri attivi
+    </button>
+    <button class="cfg-sv-sql-panel__tab"
+            [class.cfg-sv-sql-panel__tab--active]="!sqlShowFiltered"
+            type="button"
+            (click)="sqlShowFiltered = false">
+      Grezza (server)
+    </button>
+  </div>
+
+  <!-- Nota filtri attivi -->
+  <div *ngIf="sqlShowFiltered" class="cfg-sv-sql-panel__filters-note">
+    <span *ngFor="let f of layoutFilters" class="cfg-sv-sql-panel__filter-chip"
+          [class.cfg-sv-sql-panel__filter-chip--active]="selectedFiltri[f.fieldName]">
+      {{ f.label }}: <strong>{{ selectedFiltri[f.fieldName] || '— tutti —' }}</strong>
+    </span>
+  </div>
+
   <div class="cfg-sv-sql-panel__body">
-    <div *ngFor="let q of grid!.debugSql; let i = index" class="cfg-sv-sql-panel__query">
-      <div class="cfg-sv-sql-panel__query-index">Query {{ i + 1 }}</div>
-      <pre class="cfg-sv-sql-panel__pre">{{ q }}</pre>
-    </div>
+    <ng-container *ngIf="sqlShowFiltered">
+      <div *ngFor="let q of debugSqlFiltered; let i = index" class="cfg-sv-sql-panel__query">
+        <div class="cfg-sv-sql-panel__query-index">Query {{ i + 1 }}</div>
+        <pre class="cfg-sv-sql-panel__pre">{{ q }}</pre>
+      </div>
+    </ng-container>
+    <ng-container *ngIf="!sqlShowFiltered">
+      <div *ngFor="let q of grid!.debugSql; let i = index" class="cfg-sv-sql-panel__query">
+        <div class="cfg-sv-sql-panel__query-index">Query {{ i + 1 }}</div>
+        <pre class="cfg-sv-sql-panel__pre">{{ q }}</pre>
+      </div>
+    </ng-container>
   </div>
 </div>
 

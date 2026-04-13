@@ -4747,6 +4747,55 @@ app-esg-task-page {
     &:hover { opacity: 1; }
   }
 
+  &__toggle-bar {
+    display: flex;
+    flex-shrink: 0;
+    border-bottom: 1px solid rgba(255,255,255,.1);
+  }
+
+  &__tab {
+    flex: 1;
+    padding: 8px 12px;
+    background: none;
+    border: none;
+    color: rgba(205,214,244,.55);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color .15s, border-color .15s;
+
+    &--active {
+      color: #cba6f7;
+      border-bottom-color: #cba6f7;
+    }
+    &:hover:not(&--active) { color: #cdd6f4; }
+  }
+
+  &__filters-note {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 16px;
+    border-bottom: 1px solid rgba(255,255,255,.07);
+    flex-shrink: 0;
+  }
+
+  &__filter-chip {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: rgba(255,255,255,.07);
+    color: rgba(205,214,244,.6);
+
+    &--active {
+      background: rgba(203,166,247,.18);
+      color: #cba6f7;
+    }
+
+    strong { font-weight: 700; }
+  }
+
   &__body {
     overflow-y: auto;
     flex: 1;
