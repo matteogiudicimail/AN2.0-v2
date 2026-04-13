@@ -20,6 +20,7 @@
     (usersSelected)="onNavUsers()"
     (navManagerSelected)="onNavNavManager()"
     (cfsReportSelected)="onNavCfsReport($event)"
+    (esgReportsSelected)="onNavEsgReports()"
     (esgConfiguratorSelected)="onNavEsgConfigurator()"
     (esgTaskSelected)="onNavEsgTask($event)"
     (logoutSelected)="logout()"
@@ -41,7 +42,13 @@
     <cfs-report-container *ngIf="activeView === 'cfs-report' && activeTaskId !== null"
                           [inputData]="cfsInputData">
     </cfs-report-container>
-    <app-esg-configurator-page  *ngIf="activeView === 'esg-configurator'" [openReportId]="esgOpenReportId" [openStep]="5"></app-esg-configurator-page>
+    <app-esg-reports-page       *ngIf="activeView === 'esg-reports'"
+                                [user]="currentUser"
+                                (openConfigurator)="onOpenEsgConfigurator($event)"
+                                (openTask)="onNavEsgTask($event)">
+    </app-esg-reports-page>
+    <app-esg-configurator-page  *ngIf="activeView === 'esg-configurator'" [openReportId]="esgOpenReportId" [openStep]="5"
+                                (openTask)="onNavEsgTask($event)"></app-esg-configurator-page>
     <app-esg-task-page          *ngIf="activeView === 'esg-task'"         [taskId]="activeEsgTaskId" [taskLabel]="activeEsgTaskLabel"></app-esg-task-page>
 
   </div>

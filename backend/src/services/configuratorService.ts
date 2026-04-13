@@ -905,3 +905,99 @@ export async function getTableColumns(schemaName: string, tableName: string): Pr
     isPrimaryKey: r.isPK === 1,
   }));
 }
+
+// ── duplicateReport ────────────────────────────────────────────────────────────
+
+/**
+ * Creates a full clone of a data model (cfg_Report + cfg_DatasetBinding +
+ * cfg_EntryLayout).  The new report gets code = <originalCode>_COPY (or
+ * <originalCode>_COPY2, _COPY3, … to avoid collisions).
+ * Returns the new reportId.
+ */
+export async function duplicateReport(sourceId: number, userId: string): Promise<number> {
+  const source = await getReport(sourceId);
+  if (!source) {
+    const e = new Error(`Report ${sourceId} not found`);
+    (e as Error & { statusCode: number }).statusCode = 404;
+    throw e;
+  }
+
+  // Generate a unique code
+  const baseCode = source.reportCode.replace(/_COPY\d*$/, '');
+  let newCode = `${baseCode}_COPY`;
+  let attempt = 0;
+  while (true) {
+    const exists = await dbGet<{ c: number }>(
+      `SELECT COUNT(1) AS c FROM cfg_Report WHERE ReportCode = ? AND IsActive = 1`, newCode
+    );
+    if ((exists?.c ?? 0) === 0) break;
+    attempt++;
+    newCode = `${baseCode}_COPY${attempt + 1}`;
+  }
+
+  const now = new Date().toISOString();
+
+  // 1. Clone cfg_Report
+  const newReportId = await dbInsertGetId(
+    `INSERT INTO cfg_Report
+       (ReportCode, ReportLabel, Description, Domain, Category, Tags, Owner,
+        Status, Version, WritebackMode, CreatedBy, CreatedAt, IsActive)
+     VALUES (?,?,?,?,?,?,?,'Draft',1,?,?,?,1)`,
+    newCode,
+    `${source.reportLabel} (copia)`,
+    source.description ?? null,
+    source.domain      ?? null,
+    source.category    ?? null,
+    source.tags        ?? null,
+    source.owner       ?? null,
+    source.writebackMode,
+    userId, now
+  );
+
+  // 2. Clone cfg_ReportLayout (default layout row)
+  await dbRun(`INSERT INTO cfg_ReportLayout (ReportId) VALUES (?)`, newReportId);
+
+  // 3. Clone cfg_DatasetBinding (if any)
+  const binding = await dbGet<{
+    FactTable: string; FactTableSmartName: string | null;
+    FieldMappings: string | null; JoinConfig: string | null;
+  }>(
+    `SELECT TOP 1 FactTable, FactTableSmartName, FieldMappings, JoinConfig
+     FROM cfg_DatasetBinding WHERE ReportId = ?`, sourceId
+  );
+  if (binding) {
+    try {
+      await dbRun(
+        `INSERT INTO cfg_DatasetBinding
+           (ReportId, FactTable, FactTableSmartName, FieldMappings, JoinConfig, CreatedBy, CreatedAt)
+         VALUES (?,?,?,?,?,?,?)`,
+        newReportId, binding.FactTable, binding.FactTableSmartName ?? null,
+        binding.FieldMappings ?? null, binding.JoinConfig ?? null, userId, now
+      );
+    } catch {
+      // FactTableSmartName column might not exist in older deployments
+      await dbRun(
+        `INSERT INTO cfg_DatasetBinding
+           (ReportId, FactTable, FieldMappings, JoinConfig, CreatedBy, CreatedAt)
+         VALUES (?,?,?,?,?,?)`,
+        newReportId, binding.FactTable,
+        binding.FieldMappings ?? null, binding.JoinConfig ?? null, userId, now
+      );
+    }
+  }
+
+  // 4. Clone cfg_EntryLayout (if any)
+  const entryLayout = await dbGet<{ ConfigJson: string }>(
+    `SELECT ConfigJson FROM dbo.cfg_EntryLayout WHERE ReportId = ?`, sourceId
+  );
+  if (entryLayout) {
+    await dbRun(
+      `INSERT INTO dbo.cfg_EntryLayout (ReportId, ConfigJson, CreatedBy) VALUES (?,?,?)`,
+      newReportId, entryLayout.ConfigJson, userId
+    );
+  }
+
+  await logConfigEvent('ReportDuplicated', 'Report', String(newReportId), newReportId, null,
+    { sourceId, newCode }, userId);
+  return newReportId;
+}

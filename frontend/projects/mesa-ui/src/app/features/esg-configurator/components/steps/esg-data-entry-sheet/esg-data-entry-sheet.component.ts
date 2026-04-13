@@ -36,7 +36,6 @@ interface CellCtxMenu {
 }
 
 interface GuidaPopup {
-  x: number; y: number;
   riga: DataEntryRigaOption;
 }
 
@@ -54,13 +53,24 @@ interface PendingCell {
 })
 export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
   @Input()  reportId!: number;
+  /** When true, hides footer nav and adapts toolbar for embedded split-pane. */
+  @Input()  embedded = false;
   @Output() back = new EventEmitter<void>();
   @Output() next = new EventEmitter<void>();
 
   @ViewChild('cellInputRef') cellInputRef?: ElementRef<HTMLInputElement>;
 
   grid:      DataEntryGridResponse | null = null;
-  isLoading  = false;
+  /** Phase 1: filter options are loading from the API */
+  isLoadingFilters = false;
+  /** Phase 2: grid table is being prepared (brief tick after filters render) */
+  isLoadingGrid    = false;
+  /** True once the grid table is ready to be displayed */
+  gridReady        = false;
+  /** True when the raw cell count exceeds the 3 000-cell threshold */
+  gridTooLarge     = false;
+  /** Estimated cell count shown in the too-large warning */
+  gridCellCount    = 0;
   errorMsg:  string | null = null;
   isSaving   = false;
   saveError: string | null = null;
@@ -68,7 +78,9 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
   selectedFiltri: Record<string, string> = {};
 
   /** Toggle: hide rows that have no value (direct or rollup) */
-  showOnlyWithData = false;
+  showOnlyWithData = true;
+  /** True while the grid is re-filtering after showOnlyWithData changes */
+  isRefiltering = false;
   /** Bottom-up rollup sums: key = `pathKey||cf||cv||vf` → numeric sum */
   private rollupCache = new Map<string, number>();
   /** Path keys of nodes that have at least one value (direct leaf or rollup) */
@@ -94,11 +106,6 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
   pendingChanges = new Map<string, PendingCell>();
   isSavingPending = false;
 
-  // ── Row Approval ───────────────────────────────────────────────────────────
-  /** Set of sorted-JSON dimension keys for approved (locked) rows */
-  approvedKeys = new Set<string>();
-  approvalLoading = false;
-
   // ── Column Search Filters ──────────────────────────────────────────────────
   /** Map of search text per column slot; '__riga' is the row-label search */
   columnSearchFilters: Record<string, string> = {};
@@ -106,6 +113,13 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
 
   // ── Insert Row Dialog ──────────────────────────────────────────────────────
   showInsertRowDialog = false;
+
+  // ── Collapsible params section ─────────────────────────────────────────────
+  paramsCollapsed = false;
+
+  // ── Filter search popup ────────────────────────────────────────────────────
+  filterSearchField: string | null = null;
+  filterSearchText = '';
 
   constructor(
     private svc: EsgConfiguratorService,
@@ -145,26 +159,114 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
   // ── Load ──────────────────────────────────────────────────────────────────
 
   load(): void {
-    this.isLoading = true;
-    this.errorMsg  = null;
+    // Reset all state
+    this.isLoadingFilters = true;
+    this.isLoadingGrid    = false;
+    this.gridReady        = false;
+    this.gridTooLarge     = false;
+    this.gridCellCount    = 0;
+    this.errorMsg         = null;
+    this.grid             = null;
+
     this.svc.getDataEntryGrid(this.reportId).subscribe({
       next: (g) => {
-        this.grid      = g;
-        this.isLoading = false;
-        // Initialise approval keys from response
-        this.approvedKeys = new Set(g.approvedRows ?? []);
-        // Init filtri selectors
+        // ── Phase 1: expose filter data immediately ────────────────────────
+        this.grid             = g;
+        this.isLoadingFilters = false;
+
+        // Init filtri selectors; apply defaultValue from layout config if present
         g.filterOptions.forEach((f) => {
-          if (!(f.fieldName in this.selectedFiltri)) this.selectedFiltri[f.fieldName] = '';
+          if (!(f.fieldName in this.selectedFiltri)) {
+            const layoutFilter = (g.layout.filters ?? g.layout.filtri ?? [])
+              .find((lf) => lf.fieldName === f.fieldName);
+            this.selectedFiltri[f.fieldName] = layoutFilter?.defaultValue ?? '';
+          }
         });
-        // Expand top-level groups if only 1-3 → better UX
-        const topGroups = g.rowOptions.filter((r) => r.depth === 0 && !r.isLeaf);
-        if (topGroups.length <= 3) topGroups.forEach((r) => this.expandedGroups.add(this.pathKey(r.pathValues)));
-        // Build rollup cache for subtotals and "only with data" filter
-        this.rebuildRollupCache();
+
+        this.initExpandedGroups(g);
+
+        // ── Phase 2: quick cell count estimate (leaf rows × data columns) ──
+        // rebuildRollupCache() is deferred to avoid blocking the main thread
+        // with a synchronous scan of all rows × cols × writeRows before the
+        // spinner is cleared.  Using raw leaf count avoids needing nodesWithData.
+        const leafCount = g.rowOptions.filter((r) => r.isLeaf).length;
+        this.gridCellCount = leafCount * Math.max(1, this.totalDataColumns);
+        if (this.gridCellCount > 3000) {
+          this.gridTooLarge = true;
+          // Do NOT build the rollup cache here — dataset is too large.
+          // onFiltroChange() will call rebuildRollupCache() when the user applies a filter,
+          // and checkAndAutoLoadGrid() will re-evaluate the threshold at that point.
+        } else {
+          // Brief tick lets Angular render the filter bar first, then show grid
+          this.isLoadingGrid = true;
+          setTimeout(() => {
+            this.rebuildRollupCache();
+            this.gridReady     = true;
+            this.isLoadingGrid = false;
+          }, 0);
+        }
       },
-      error: () => { this.errorMsg = 'Impossibile caricare la scheda di data entry.'; this.isLoading = false; },
+      error: () => {
+        this.errorMsg         = 'Impossibile caricare la scheda di data entry.';
+        this.isLoadingFilters = false;
+        this.isLoadingGrid    = false;
+      },
     });
+  }
+
+  /** Force-display the grid table even when the dataset exceeds the threshold. */
+  forceLoadGrid(): void {
+    this.gridTooLarge  = false;
+    this.isLoadingGrid = true;
+    setTimeout(() => {
+      this.rebuildRollupCache();
+      this.gridReady     = true;
+      this.isLoadingGrid = false;
+    }, 0);
+  }
+
+  // ── Private helpers ───────────────────────────────────────────────────────
+
+  /**
+   * Auto-expand non-leaf groups after load.
+   * Expands all when ≤ 100 non-leaf nodes; only top-level otherwise.
+   */
+  private initExpandedGroups(g: DataEntryGridResponse): void {
+    const nonLeafGroups = g.rowOptions.filter((r) => !r.isLeaf);
+    if (nonLeafGroups.length <= 100) {
+      nonLeafGroups.forEach((r) => this.expandedGroups.add(this.pathKey(r.pathValues)));
+    } else {
+      const topGroups = g.rowOptions.filter((r) => r.depth === 0 && !r.isLeaf);
+      topGroups.forEach((r) => this.expandedGroups.add(this.pathKey(r.pathValues)));
+    }
+  }
+
+  /**
+   * Estimated number of renderable cells (leaf rows × data columns).
+   * Uses the *visible* row set so filter selections reduce the count.
+   */
+  private computeVisibleCellCount(): number {
+    if (!this.grid) return 0;
+    const leafRows = this.visibleRighe.filter((r) => r.isLeaf).length;
+    return leafRows * Math.max(1, this.totalDataColumns);
+  }
+
+  /**
+   * Called after every filter change: if we are in the "too large" state and the
+   * filtered cell count has dropped to ≤ 3 000, automatically activate the grid.
+   */
+  private checkAndAutoLoadGrid(): void {
+    if (!this.gridTooLarge) return;
+    const count = this.computeVisibleCellCount();
+    this.gridCellCount = count;
+    if (count <= 3000) {
+      this.gridTooLarge  = false;
+      this.isLoadingGrid = true;
+      setTimeout(() => {
+        this.gridReady     = true;
+        this.isLoadingGrid = false;
+      }, 0);
+    }
   }
 
   // ── Filtri ────────────────────────────────────────────────────────────────
@@ -221,13 +323,6 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     return Object.keys(values).sort().map((k) => `${k}=${values[k]}`).join('|');
   }
 
-  /** Sorted-JSON key matching the backend DimensionsJson format */
-  approvalPathKey(values: Record<string, string>): string {
-    return JSON.stringify(
-      Object.fromEntries(Object.entries(values).sort(([a], [b]) => a.localeCompare(b))),
-    );
-  }
-
   isExpanded(riga: DataEntryRigaOption): boolean {
     return this.expandedGroups.has(this.pathKey(riga.pathValues));
   }
@@ -246,6 +341,10 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     const all = this.grid?.rowOptions ?? [];
     const righeLayout = this.grid?.layout.rows ?? [];
 
+    // Build depth → role map: detail-role levels are auto-expanded (no click needed).
+    const depthRoles: ('grouping' | 'detail')[] = righeLayout.map((r) => r.role ?? 'grouping');
+    const isDetailDepth = (d: number) => depthRoles[d] === 'detail';
+
     const isDimTableMode = righeLayout.length === 1 && !!(righeLayout[0] as any).dimTable;
     const skipDepths: number = isDimTableMode ? ((righeLayout[0] as any).skipDepths ?? 0) : 0;
 
@@ -260,12 +359,24 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
       if (r.depth === 0) return true;
 
       if (r.ancestorKeys && r.ancestorKeys.length > 0) {
-        return r.ancestorKeys.every((ak) => this.expandedGroups.has(ak));
+        // ancestorKeys[i] corresponds to the ancestor at depth i.
+        // Detail-role ancestors are always-expanded: skip the expandedGroups check.
+        return r.ancestorKeys.every((ak, idx) => {
+          if (isDetailDepth(idx)) return true; // detail role: always visible
+          return this.expandedGroups.has(ak);
+        });
       }
 
       for (let d = 0; d < r.depth; d++) {
+        if (isDetailDepth(d)) continue; // detail role: always expanded
         const ancestorPath: Record<string, string> = {};
-        for (let i = 0; i <= d; i++) ancestorPath[righeLayout[i].fieldName] = r.pathValues[righeLayout[i].fieldName];
+        for (let i = 0; i <= d; i++) {
+          const fn = righeLayout[i]?.fieldName;
+          if (!fn) return false; // safety: layout mismatch
+          const val = r.pathValues[fn];
+          if (val === undefined) return false; // safety: missing key in pathValues
+          ancestorPath[fn] = val;
+        }
         if (!this.expandedGroups.has(this.pathKey(ancestorPath))) return false;
       }
       return true;
@@ -275,21 +386,63 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
       visible = visible.filter((r) => this.nodesWithData.has(this.pathKey(r.pathValues)));
     }
 
-    // Apply P&C hierarchy filters: when a filter field is also in rows with a dimTable,
-    // restrict visible rows to the selected node + all its descendants.
+    // Apply row-level filters.
     if (this.grid) {
+      const rowFieldNames = new Set((this.grid.layout.rows ?? []).map((r) => r.fieldName));
+      const primaryDimRigaField = (this.grid.layout.rows ?? [])
+        .find((r) => !!(r as any).dimTable && !(r as any).paramTableId)?.fieldName;
+
       for (const f of (this.grid.layout.filters ?? [])) {
-        if (!(f as any).dimTable) continue;
         const selVal = this.selectedFiltri[f.fieldName];
         if (!selVal) continue;
-        // Build the pathKey that would appear in a descendant's ancestorKeys
-        const ancestorPathKey = `${f.fieldName}=${selVal}`;
-        visible = visible.filter((r) =>
-          r.pathValues[f.fieldName] === selVal ||
-          (r.ancestorKeys ?? []).includes(ancestorPathKey),
-        );
+
+        if (rowFieldNames.has(f.fieldName)) {
+          // Field is also a row dim: filter by pathValues
+          if ((f as any).dimTable) {
+            // P&C hierarchy: filter to selected node + descendants
+            const ancestorPathKey = `${f.fieldName}=${selVal}`;
+            visible = visible.filter((r) =>
+              r.pathValues[f.fieldName] === selVal ||
+              (r.ancestorKeys ?? []).includes(ancestorPathKey),
+            );
+          } else {
+            visible = visible.filter((r) => {
+              const rowVal = r.pathValues[f.fieldName];
+              return rowVal === undefined || rowVal === selVal;
+            });
+          }
+        } else if ((f as any).dimTable && !(f as any).paramTableId) {
+          // Pure dim-table-only filtri field NOT in rows zone (e.g. Stakeholder, SDGs).
+          // Use filtriDimMapping if available to filter by which primary-row values belong
+          // to this filter value.
+          const mapping = (this.grid as any).filtriDimMapping?.[f.fieldName];
+          if (mapping && primaryDimRigaField) {
+            const validRowKeys = new Set<string>(mapping[selVal] ?? []);
+            visible = visible.filter((r) => {
+              const rv = r.pathValues[primaryDimRigaField];
+              return rv === undefined || validRowKeys.has(rv);
+            });
+          }
+        }
       }
     }
+
+    // Prune depth-0 group headers that have no visible children after filtering.
+    // Leaf nodes at depth 0 (flat layouts with no sub-levels) are always kept.
+    const groupsWithChildren = new Set<string>();
+    for (const r of visible) {
+      if (r.depth > 0) {
+        if (r.ancestorKeys && r.ancestorKeys.length > 0) {
+          groupsWithChildren.add(r.ancestorKeys[0]);
+        } else if (r.depth === 1) {
+          const groupField = righeLayout[0]?.fieldName;
+          if (groupField && r.pathValues[groupField] !== undefined) {
+            groupsWithChildren.add(this.pathKey({ [groupField]: r.pathValues[groupField] }));
+          }
+        }
+      }
+    }
+    visible = visible.filter((r) => r.depth !== 0 || r.isLeaf || groupsWithChildren.has(this.pathKey(r.pathValues)));
 
     // Apply column search filter (row-label based, case-insensitive)
     return this.applyColumnSearchFilter(visible);
@@ -332,6 +485,40 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     this.searchDebounceTimer = setTimeout(() => { /* visibleRighe is a getter — auto-refreshes */ }, 200);
   }
 
+  /**
+   * Handles the "Only with data" checkbox change.
+   * Shows a brief spinner while Angular re-renders the filtered rows.
+   */
+  onShowOnlyWithDataChange(event: Event): void {
+    const checked = (event.target as HTMLInputElement).checked;
+    this.isRefiltering    = true;
+    this.showOnlyWithData = checked;
+    // One tick: lets the spinner appear before the (potentially expensive) DOM update
+    setTimeout(() => { this.isRefiltering = false; }, 0);
+  }
+
+  /**
+   * Called whenever a filter select changes (both embedded and non-embedded).
+   * Shows a spinner while the rollup cache is rebuilt and the grid re-renders.
+   * `selectedFiltri` is already updated by [(ngModel)] before this fires.
+   */
+  onFiltroChange(): void {
+    this.isRefiltering = true;
+    setTimeout(() => {
+      this.rebuildRollupCache();
+      this.isRefiltering = false;
+    }, 0);
+  }
+
+  /**
+   * Returns true when the row node belongs to a layout field with role='detail'.
+   * Detail rows are always-visible (non-collapsible) sub-rows, like OLAP pivot detail rows.
+   */
+  isDetailRole(riga: DataEntryRigaOption): boolean {
+    const item = (this.grid?.layout.rows ?? []).find((r) => r.fieldName === riga.fieldName);
+    return item?.role === 'detail';
+  }
+
   /** True when there are multiple righe levels OR a single dim-table hierarchy field */
   get isMultiLevel(): boolean {
     const righe = this.grid?.layout.rows ?? [];
@@ -342,7 +529,10 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
   // ── Colonne helpers ───────────────────────────────────────────────────────
 
   getColonneValues(fn: string): string[] {
-    return this.grid?.columnOptions.find((c) => c.fieldName === fn)?.values ?? [];
+    const all = this.grid?.columnOptions.find((c) => c.fieldName === fn)?.values ?? [];
+    const sel = this.selectedFiltri[fn];
+    if (sel) return all.includes(sel) ? [sel] : [];
+    return all;
   }
 
   get effectiveColonne(): Array<{ fieldName: string; values: string[] }> {
@@ -360,48 +550,6 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     if (!this.grid || !colonnaField) return false;
     const col = this.grid.layout.columns.find((c) => c.fieldName === colonnaField);
     return (col as any)?.lockedMembers?.includes(colonnaValue) ?? false;
-  }
-
-  // ── Row Approval ─────────────────────────────────────────────────────────
-
-  isRowApproved(riga: DataEntryRigaOption): boolean {
-    return this.approvedKeys.has(this.approvalPathKey(riga.pathValues));
-  }
-
-  toggleRowApproval(riga: DataEntryRigaOption): void {
-    const key = this.approvalPathKey(riga.pathValues);
-    const newApproved = !this.approvedKeys.has(key);
-    this.approvalLoading = true;
-    this.svc.setRowApproval(this.reportId, { dimensionsJson: key, approved: newApproved }).subscribe({
-      next: () => {
-        if (newApproved) this.approvedKeys.add(key);
-        else this.approvedKeys.delete(key);
-        this.approvalLoading = false;
-      },
-      error: () => { this.approvalLoading = false; },
-    });
-  }
-
-  toggleGroupApproval(riga: DataEntryRigaOption): void {
-    const all = this.grid?.rowOptions ?? [];
-    const groupKey = this.pathKey(riga.pathValues);
-    // Collect all descendants (rows whose ancestorKeys includes this group's pathKey)
-    const descendants = all.filter(
-      (r) => r !== riga && (r.ancestorKeys ?? []).includes(groupKey),
-    );
-    const keysToToggle = [riga, ...descendants].map((r) => this.approvalPathKey(r.pathValues));
-    const newApproved = !this.isRowApproved(riga);
-    this.approvalLoading = true;
-    this.svc.bulkSetRowApproval(this.reportId, { dimensionsJsonArray: keysToToggle, approved: newApproved }).subscribe({
-      next: () => {
-        keysToToggle.forEach((k) => {
-          if (newApproved) this.approvedKeys.add(k);
-          else this.approvedKeys.delete(k);
-        });
-        this.approvalLoading = false;
-      },
-      error: () => { this.approvalLoading = false; },
-    });
   }
 
   // ── Formula evaluation ─────────────────────────────────────────────────────
@@ -459,22 +607,56 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
       const pending = this.pendingChanges.get(pk);
       if (pending !== undefined) return pending.value;
     }
-    const match = this.grid.writeRows.find((row) => {
+
+    // Fields that are also in the rows zone are already constrained by riga.pathValues.
+    // Applying the filter check on them too would cause a conflict: e.g. if
+    // Descrizione_KPI_Grouping is both a row dimension AND a filter field, a filter
+    // selection of 'Num' would empty all 'Perc' cells even though their rows are visible.
+    const rowFieldNames = new Set((this.grid.layout.rows ?? []).map((r) => r.fieldName));
+
+    const matches = this.grid.writeRows.filter((row) => {
+      // 1. Apply filter fields that are NOT also row dimensions.
+      //    Apply if the field is stored in the write row (present in dimensionValues),
+      //    regardless of dimTable — dimTable-only filters not in the WRITE table are skipped.
       for (const f of this.grid!.layout.filters) {
-        if ((f as any).dimTable) continue;
+        if (rowFieldNames.has(f.fieldName)) continue; // already constrained by pathValues
         const sel = this.selectedFiltri[f.fieldName];
-        if (sel && row.dimensionValues[f.fieldName] !== sel) return false;
+        if (sel && f.fieldName in row.dimensionValues && row.dimensionValues[f.fieldName] !== sel) return false;
       }
+      // 2. Match row path dimensions
       for (const [field, val] of Object.entries(riga.pathValues)) {
-        // Skip virtual grouping fields (e.g. Descrizione_KPI_Grouping) that are not
-        // stored in the write table — they exist in pathValues but not in dimensionValues.
+        // Skip virtual grouping fields not stored in the write table
         if (!(field in row.dimensionValues)) continue;
         if (row.dimensionValues[field] !== val) return false;
       }
+      // 3. Match column dimension
       if (!this.noColonnaMode && colonnaField && row.dimensionValues[colonnaField] !== colonnaValue) return false;
       return true;
     });
-    return match?.values[valoreField] ?? '';
+
+    if (matches.length === 0) return '';
+    if (matches.length === 1) return matches[0].values[valoreField] ?? '';
+
+    // Multiple matches (no filter selected, or filter fields not fully constrained):
+    // aggregate according to the value field's aggregation function.
+    const vfDef = this.grid.layout.values.find((v) => v.fieldName === valoreField);
+    const agg = vfDef?.aggregation ?? 'SUM';
+
+    if (agg === 'NONE') return matches[0].values[valoreField] ?? '';
+    if (agg === 'COUNT') {
+      return String(matches.filter((m) => m.values[valoreField] !== null && m.values[valoreField] !== '').length);
+    }
+
+    const nums = matches
+      .map((m) => parseFloat(m.values[valoreField] ?? ''))
+      .filter((n) => !isNaN(n));
+
+    if (nums.length === 0) return '';
+    if (agg === 'MAX') return String(Math.max(...nums));
+    if (agg === 'MIN') return String(Math.min(...nums));
+    if (agg === 'AVG') return String(nums.reduce((a, b) => a + b, 0) / nums.length);
+    // SUM (default)
+    return String(nums.reduce((a, b) => a + b, 0));
   }
 
   hasWrittenValue(riga: DataEntryRigaOption, cf: string, cv: string, vf: string): boolean {
@@ -556,8 +738,8 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
   // ── Cell editing ──────────────────────────────────────────────────────────
 
   startEdit(riga: DataEntryRigaOption, cf: string, cv: string, vf: string): void {
-    // Block: approved rows
-    if (this.isRowApproved(riga)) return;
+    // Block: embedded preview mode is read-only
+    if (this.embedded) return;
     // Block: locked column members
     if (this.isColumnMemberLocked(cf, cv)) return;
     // Block: formula rows
@@ -579,7 +761,10 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
       originalValue: initialValue,
     };
     this.saveError = null;
-    setTimeout(() => this.cellInputRef?.nativeElement?.focus(), 0);
+    setTimeout(() => {
+      const el = this.cellInputRef?.nativeElement;
+      if (el) { el.focus(); el.select(); }
+    }, 0);
   }
 
   isEditing(riga: DataEntryRigaOption, cf: string, cv: string, vf: string): boolean {
@@ -616,13 +801,69 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     });
   }
 
+  /**
+   * Commit the current cell and move focus to the adjacent cell in the given direction.
+   * Enter/ArrowDown → next row; Tab → next column cell; Shift+Tab → prev column cell; ArrowUp → prev row.
+   */
+  navigateAfterCommit(direction: 'down' | 'up' | 'right' | 'left'): void {
+    if (!this.editing || !this.grid) { this.commitEdit(); return; }
+
+    // Capture state BEFORE commit clears this.editing
+    const pathKey  = this.editing.rigaPathKey;
+    const cf       = this.editing.colonnaField;
+    const cv       = this.editing.colonnaValue;
+    const vf       = this.editing.valoreField;
+    const rows     = this.visibleRighe;
+    const rowIdx   = rows.findIndex((r) => this.pathKey(r.pathValues) === pathKey);
+    const values   = this.grid.layout.values ?? [];
+    const effCols  = this.effectiveColonne;
+
+    this.commitEdit();
+
+    if (rowIdx < 0) return;
+
+    if (direction === 'down' || direction === 'up') {
+      const delta = direction === 'down' ? 1 : -1;
+      const nextIdx = rowIdx + delta;
+      if (nextIdx >= 0 && nextIdx < rows.length) {
+        setTimeout(() => this.startEdit(rows[nextIdx], cf, cv, vf), 0);
+      }
+      return;
+    }
+
+    // Tab / Shift+Tab: move across the flat (colonnaField × colonnaValue × valoreField) matrix
+    const cellOrder: Array<{ cf: string; cv: string; vf: string }> = [];
+    for (const col of effCols) {
+      const cvs = this.noColonnaMode ? [''] : this.getColonneValues(col.fieldName);
+      for (const colonnaValue of (cvs.length ? cvs : [''])) {
+        for (const v of values) {
+          cellOrder.push({ cf: col.fieldName, cv: colonnaValue, vf: v.fieldName });
+        }
+      }
+    }
+
+    const pos = cellOrder.findIndex((c) => c.cf === cf && c.cv === cv && c.vf === vf);
+    if (pos < 0) return;
+
+    const nextPos = direction === 'right'
+      ? (pos + 1) % cellOrder.length
+      : (pos - 1 + cellOrder.length) % cellOrder.length;
+
+    const next = cellOrder[nextPos];
+    setTimeout(() => this.startEdit(rows[rowIdx], next.cf, next.cv, next.vf), 0);
+  }
+
   private buildDimValues(
     rigaPathValues: Record<string, string>, colonnaField: string, colonnaValue: string,
   ): Record<string, string> {
     if (!this.grid) return {};
     const dim: Record<string, string> = {};
     for (const f of this.grid.layout.filters) {
-      if ((f as any).dimTable) continue;
+      // Include filter field in dim values if it's stored in the WRITE table:
+      // - plain fields (no dimTable): always included
+      // - paramTableId fields (even with dimTable): included (they are fact-level dims)
+      // - pure dimTable-only fields (dimTable set, no paramTableId): excluded (not in WRITE table)
+      if ((f as any).dimTable && !(f as any).paramTableId) continue;
       dim[f.fieldName] = this.selectedFiltri[f.fieldName] ?? '';
     }
     for (const f of this.grid.layout.rows) dim[f.fieldName] = '';
@@ -634,18 +875,13 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
 
   private updateCache(dim: Record<string, string>, vf: string, value: string): void {
     if (!this.grid) return;
-    // Use the same matching logic as getCellValue to correctly identify the row.
-    // buildDimValues() initialises ancestor row fields to '' and overwrites only with
-    // rigaPathValues, so a strict allDimFields comparison would miss the existing row.
+    // Find the exact matching write row (strict match on all non-empty dim fields).
+    // buildDimValues() includes filter field values in dim, so this correctly identifies
+    // the specific row combination that was saved.
     const existing = this.grid.writeRows.find((row) => {
-      for (const f of this.grid!.layout.filters) {
-        if ((f as any).dimTable) continue;
-        const sel = this.selectedFiltri[f.fieldName];
-        if (sel && row.dimensionValues[f.fieldName] !== sel) return false;
-      }
       for (const [field, val] of Object.entries(dim)) {
         if (!val) continue; // skip empty ancestor fields
-        if (!(field in row.dimensionValues)) continue; // skip virtual fields not in write table
+        if (!(field in row.dimensionValues)) continue; // skip virtual fields
         if (row.dimensionValues[field] !== val) return false;
       }
       return true;
@@ -694,12 +930,15 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
       originalValue: initialValue,
     };
     this.saveError = null;
-    setTimeout(() => this.cellInputRef?.nativeElement?.focus(), 0);
+    setTimeout(() => {
+      const el = this.cellInputRef?.nativeElement;
+      if (el) { el.focus(); el.select(); }
+    }, 0);
   }
 
   onGroupCellClick(event: MouseEvent, riga: DataEntryRigaOption, cf: string, cv: string, vf: string): void {
     event.stopPropagation();
-    if (this.isRowApproved(riga)) return;
+    if (this.embedded) return;
     if (this.isColumnMemberLocked(cf, cv)) return;
     this._openEditorDirectly(riga, cf, cv, vf);
   }
@@ -743,7 +982,7 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     event.stopPropagation();
     this.closeAllMenus();
     if (!riga.paramRow?.compilationGuide) return;
-    this.guidaPopup = { x: event.clientX, y: event.clientY, riga };
+    this.guidaPopup = { riga };
   }
 
   closeGuida(): void { this.guidaPopup = null; }
@@ -753,12 +992,82 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
+  // ── Filter search popup ────────────────────────────────────────────────────
+
+  openFilterSearch(fieldName: string): void {
+    this.filterSearchField = fieldName;
+    this.filterSearchText = '';
+  }
+
+  closeFilterSearch(): void {
+    this.filterSearchField = null;
+    this.filterSearchText = '';
+  }
+
+  selectFilterValue(fieldName: string, value: string): void {
+    this.selectedFiltri[fieldName] = value;
+    this.closeFilterSearch();
+    this.isRefiltering = true;
+    setTimeout(() => {
+      this.rebuildRollupCache();
+      this.isRefiltering = false;
+    }, 0);
+  }
+
+  get filteredFilterValues(): string[] {
+    if (!this.filterSearchField) return [];
+    const all = this.isHierarchyFilter(this.filterSearchField)
+      ? this.getHierarchyFilterOptions(this.filterSearchField).map((o) => o.value)
+      : this.getFiltriValues(this.filterSearchField);
+    if (!this.filterSearchText.trim()) return all;
+    const q = this.filterSearchText.trim().toLowerCase();
+    if (this.isHierarchyFilter(this.filterSearchField)) {
+      const opts = this.getHierarchyFilterOptions(this.filterSearchField);
+      return opts.filter((o) => o.label.toLowerCase().includes(q) || o.value.toLowerCase().includes(q)).map((o) => o.value);
+    }
+    return all.filter((v) => v.toLowerCase().includes(q));
+  }
+
+  getFilterValueLabel(fieldName: string, value: string): string {
+    if (this.isHierarchyFilter(fieldName)) {
+      const opt = this.getHierarchyFilterOptions(fieldName).find((o) => o.value === value);
+      return opt?.label ?? value;
+    }
+    return value;
+  }
+
+  /** Number of leaf rows in the full dataset that match a given filter value. */
+  getFilterValueRowCount(fieldName: string, value: string): number {
+    if (!this.grid) return 0;
+    const all = this.grid.rowOptions ?? [];
+    const rowFieldNames = new Set((this.grid.layout.rows ?? []).map((r) => r.fieldName));
+    const fDef = (this.grid.layout.filters ?? []).find((f: any) => f.fieldName === fieldName);
+
+    if (fDef && (fDef as any).dimTable && !(fDef as any).paramTableId && !rowFieldNames.has(fieldName)) {
+      // Dim-table-only filter (e.g. STAKEHOLDER): use filtriDimMapping
+      const mapping = (this.grid as any).filtriDimMapping?.[fieldName];
+      const primaryRigaField = (this.grid.layout.rows ?? [])
+        .find((r: any) => !!(r as any).dimTable && !(r as any).paramTableId)?.fieldName;
+      if (mapping && primaryRigaField) {
+        const validKeys = new Set<string>(mapping[value] ?? []);
+        return all.filter((r) => r.isLeaf && validKeys.has(r.pathValues[primaryRigaField] ?? '')).length;
+      }
+      return 0;
+    }
+
+    if (rowFieldNames.has(fieldName)) {
+      return all.filter((r) => r.isLeaf && r.pathValues[fieldName] === value).length;
+    }
+    return 0;
+  }
+
   // ── Menu helpers ───────────────────────────────────────────────────────────
 
   closeAllMenus(): void {
     this.rowCtxMenu  = null;
     this.cellCtxMenu = null;
     this.guidaPopup  = null;
+    this.closeFilterSearch();
   }
 
   @HostListener('document:click')   onDocClick(): void { this.closeAllMenus(); }
@@ -787,7 +1096,61 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     const flat = this.grid.rowOptions;
     const cols = this.effectiveColonne;
     const vals = this.grid.layout.values;
+    const rowFieldNames = new Set((this.grid.layout.rows ?? []).map((r) => r.fieldName));
 
+    // ── Build a pre-filtered write-row index for O(1) lookups ────────────────
+    // 1. Determine which row-dim and colonna fields are actually stored in writeRows
+    //    (virtual grouping fields like Foo_Grouping are not in dimensionValues).
+    const colonnaFields = new Set(cols.map((c) => c.fieldName).filter(Boolean));
+    const storedRowDimFields = new Set<string>();
+    const storedColFields    = new Set<string>();
+    for (const wr of this.grid.writeRows) {
+      for (const k of Object.keys(wr.dimensionValues)) {
+        if (rowFieldNames.has(k)) storedRowDimFields.add(k);
+        if (colonnaFields.has(k)) storedColFields.add(k);
+      }
+    }
+
+    // 2. Filter writeRows once by current filtri selections (skip row-dim fields).
+    const activeFiltri = (this.grid.layout.filters ?? [])
+      .filter((f) => !rowFieldNames.has(f.fieldName) && !!this.selectedFiltri[f.fieldName]);
+
+    const preFiltered = this.grid.writeRows.filter((wr) => {
+      for (const f of activeFiltri) {
+        if (f.fieldName in wr.dimensionValues && wr.dimensionValues[f.fieldName] !== this.selectedFiltri[f.fieldName]) {
+          return false;
+        }
+      }
+      return true;
+    });
+
+    // 3. Build index: sorted-key of (storedRowDims + storedColFields) → aggregated values.
+    //    Each write row contributes exactly one key (its own dimension combination).
+    const idx = new Map<string, Record<string, number>>();
+    const keyFields = [...storedRowDimFields, ...storedColFields].sort();
+
+    const makeKey = (dimVals: Record<string, string>, extraColField?: string, extraColVal?: string): string =>
+      keyFields
+        .map((f) => {
+          if (f === extraColField) return `${f}=${extraColVal ?? ''}`;
+          return f in dimVals ? `${f}=${dimVals[f]}` : null;
+        })
+        .filter((s): s is string => s !== null)
+        .join('|');
+
+    for (const wr of preFiltered) {
+      const key = makeKey(wr.dimensionValues);
+      let agg = idx.get(key);
+      if (!agg) { agg = {}; idx.set(key, agg); }
+      for (const vf of vals) {
+        const raw = wr.values[vf.fieldName];
+        if (raw === null || raw === '' || raw === undefined) continue;
+        const num = parseFloat(raw);
+        if (!isNaN(num)) agg[vf.fieldName] = (agg[vf.fieldName] ?? 0) + num;
+      }
+    }
+
+    // ── Scan leaf rows using the index ───────────────────────────────────────
     for (const row of flat) {
       if (!row.isLeaf) continue;
       let leafHasData = false;
@@ -795,11 +1158,12 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
         const cfName = c.fieldName;
         const cvList = c.values.length ? c.values : [''];
         for (const cv of cvList) {
+          const key = makeKey(row.pathValues, cfName || undefined, cfName ? cv : undefined);
+          const agg = idx.get(key);
+          if (!agg) continue;
           for (const vf of vals) {
-            const raw = this.getCellValue(row, cfName, cv, vf.fieldName);
-            if (!raw) continue;
-            const num = parseFloat(raw);
-            if (isNaN(num)) continue;
+            const num = agg[vf.fieldName];
+            if (num === undefined || isNaN(num)) continue;
             leafHasData = true;
             for (const ak of (row.ancestorKeys ?? [])) {
               const k = `${ak}||${cfName}||${cv}||${vf.fieldName}`;
@@ -821,6 +1185,9 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
       );
       if (hasRollup) this.nodesWithData.add(pk);
     }
+
+    // When in "too large" state, check if the new visible count is within threshold
+    this.checkAndAutoLoadGrid();
   }
 
   getDisplayValue(riga: DataEntryRigaOption, cf: string, cv: string, vf: string): string {
@@ -866,8 +1233,8 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     return this.grid.layout.columns.reduce((s, cf) => s + this.getColonneValues(cf.fieldName).length * vc, 0);
   }
 
-  /** Total column span for the empty row (approval col + riga label col + data cols) */
-  get totalColspan(): number { return 2 + this.totalDataColumns; }
+  /** Total column span for the empty row (riga label col + data cols) */
+  get totalColspan(): number { return 1 + this.totalDataColumns; }
 
   trackByRiga(_: number, r: DataEntryRigaOption): string {
     return r.depth + ':' + r.value + ':' + Object.values(r.pathValues).join('|');

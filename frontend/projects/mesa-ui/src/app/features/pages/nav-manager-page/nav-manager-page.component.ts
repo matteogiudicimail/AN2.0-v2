@@ -37,6 +37,12 @@ export class NavManagerPageComponent implements OnInit {
   saving = false;
   error: string | null = null;
 
+  // Filter
+  filterText = '';
+
+  // Drawer (detail panel)
+  drawerItem: NavItem | null = null;
+
   // Label edit modal
   editItem: NavItem | null = null;
   editLabel = '';
@@ -65,6 +71,47 @@ export class NavManagerPageComponent implements OnInit {
   constructor(private api: ApiService) {}
 
   ngOnInit() { this.load(); }
+
+  /* -------- Filter / Flat list -------- */
+  get isFiltering(): boolean { return this.filterText.trim().length > 0; }
+
+  get flatItems(): NavItem[] {
+    const result: NavItem[] = [];
+    for (const item of this.tree) {
+      result.push(item);
+      for (const child of (item.children ?? [])) { result.push(child); }
+    }
+    return result;
+  }
+
+  get filteredFlat(): NavItem[] {
+    if (!this.isFiltering) return this.flatItems;
+    const q = this.filterText.toLowerCase().trim();
+    return this.flatItems.filter(item =>
+      item.label.toLowerCase().includes(q) ||
+      item.menuKey.toLowerCase().includes(q) ||
+      (item.route ?? '').toLowerCase().includes(q),
+    );
+  }
+
+  clearFilter(): void { this.filterText = ''; }
+
+  /* -------- Drawer -------- */
+  openDetail(item: NavItem): void { this.drawerItem = item; }
+  closeDetail(): void { this.drawerItem = null; }
+
+  openEditFromDrawer(): void {
+    if (!this.drawerItem) return;
+    this.openEdit(this.drawerItem);
+    this.drawerItem = null;
+  }
+
+  deleteFromDrawer(): void {
+    if (!this.drawerItem) return;
+    const item = this.drawerItem;
+    this.drawerItem = null;
+    this.delete(item);
+  }
 
   load() {
     this.loading = true;

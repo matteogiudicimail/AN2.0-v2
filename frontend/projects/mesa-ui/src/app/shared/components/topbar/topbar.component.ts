@@ -8,6 +8,6 @@ import { User } from '../../../core/models/grid.model';
 })
 export class TopbarComponent {
   @Input() user: User | null = null;
-  @Input() activeNav = 'HR Data Collection';
+  @Input() activeNav = 'HTML Grid';
   @Output() logoutClicked = new EventEmitter<void>();
 }

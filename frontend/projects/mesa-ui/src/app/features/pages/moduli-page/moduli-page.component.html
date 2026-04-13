@@ -3,14 +3,14 @@
   <!-- Header -->
   <div class="mod-page__header">
     <div>
-      <h2 class="mod-page__title">Gestione Moduli</h2>
-      <p class="mod-page__subtitle">Aggiungi, modifica o rimuovi i moduli applicativi</p>
+      <h2 class="mod-page__title">{{ 'MODULES.TITLE' | translate }}</h2>
+      <p class="mod-page__subtitle">{{ 'MODULES.SUBTITLE' | translate }}</p>
     </div>
     <button class="mp-btn mp-btn--primary" (click)="openNew()" type="button">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
       </svg>
-      Nuovo modulo
+      {{ 'MODULES.NEW_MODULE' | translate }}
     </button>
   </div>
 
@@ -20,14 +20,16 @@
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
       </svg>
-      <input type="text" [(ngModel)]="filterText" placeholder="Cerca moduli…" class="mp-filter-bar__input"/>
+      <input type="text" [(ngModel)]="filterText"
+             [placeholder]="'MODULES.SEARCH_PLACEHOLDER' | translate"
+             class="mp-filter-bar__input"/>
       <button *ngIf="filterText" class="mp-filter-bar__clear" (click)="filterText=''" type="button">✕</button>
     </div>
-    <span class="mp-filter-bar__count">{{ filteredModuli.length }} / {{ moduli.length }} moduli</span>
+    <span class="mp-filter-bar__count">{{ filteredModuli.length }} / {{ moduli.length }} {{ 'MODULES.MODULES_LABEL' | translate }}</span>
   </div>
 
   <!-- Loading / Error -->
-  <div *ngIf="loading" class="mp-status">Caricamento…</div>
+  <div *ngIf="loading" class="mp-status">{{ 'COMMON.LOADING' | translate }}</div>
   <div *ngIf="error" class="mp-status mp-status--error">{{ error }}</div>
 
   <!-- Table -->
@@ -36,19 +38,19 @@
       <thead>
         <tr>
           <th class="mp-th--sortable" (click)="sort('name')">
-            Modulo <span class="mp-sort-icon">{{ sortIcon('name') }}</span>
+            {{ 'MODULES.MODULE' | translate }} <span class="mp-sort-icon">{{ sortIcon('name') }}</span>
           </th>
           <th class="mp-th--sortable" (click)="sort('code')">
-            Codice <span class="mp-sort-icon">{{ sortIcon('code') }}</span>
+            {{ 'MODULES.CODE' | translate }} <span class="mp-sort-icon">{{ sortIcon('code') }}</span>
           </th>
           <th class="mp-th--sortable" (click)="sort('moduleType')">
-            Tipo <span class="mp-sort-icon">{{ sortIcon('moduleType') }}</span>
+            {{ 'MODULES.TYPE' | translate }} <span class="mp-sort-icon">{{ sortIcon('moduleType') }}</span>
           </th>
           <th class="mp-th--sortable" (click)="sort('version')">
-            Versione <span class="mp-sort-icon">{{ sortIcon('version') }}</span>
+            {{ 'MODULES.VERSION' | translate }} <span class="mp-sort-icon">{{ sortIcon('version') }}</span>
           </th>
           <th class="mp-th--sortable" (click)="sort('isActive')">
-            Stato <span class="mp-sort-icon">{{ sortIcon('isActive') }}</span>
+            {{ 'MODULES.STATUS' | translate }} <span class="mp-sort-icon">{{ sortIcon('isActive') }}</span>
           </th>
           <th></th>
         </tr>
@@ -74,19 +76,20 @@
           <td>
             <button class="mp-status-badge" type="button"
                     [class.mp-status-badge--active]="m.isActive"
-                    (click)="toggleActive(m); $event.stopPropagation()" title="Clicca per cambiare">
-              {{ m.isActive ? 'Attivo' : 'Inattivo' }}
+                    (click)="toggleActive(m); $event.stopPropagation()"
+                    [title]="'COMMON.STATUS' | translate">
+              {{ (m.isActive ? 'MODULES.ACTIVE' : 'MODULES.INACTIVE') | translate }}
             </button>
           </td>
           <td>
             <div class="mp-actions" (click)="$event.stopPropagation()">
-              <button class="mp-icon-btn" (click)="openEdit(m)" title="Modifica" type="button">
+              <button class="mp-icon-btn" (click)="openEdit(m)" [title]="'COMMON.EDIT' | translate" type="button">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                   <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                 </svg>
               </button>
-              <button class="mp-icon-btn mp-icon-btn--danger" (click)="delete(m)" title="Elimina" type="button">
+              <button class="mp-icon-btn mp-icon-btn--danger" (click)="delete(m)" [title]="'COMMON.DELETE' | translate" type="button">
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polyline points="3 6 5 6 21 6"/>
                   <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
@@ -97,10 +100,10 @@
           </td>
         </tr>
         <tr *ngIf="filteredModuli.length === 0 && moduli.length > 0">
-          <td colspan="6" class="mp-empty">Nessun modulo corrisponde al filtro</td>
+          <td colspan="6" class="mp-empty">{{ 'MODULES.NO_MATCH' | translate }}</td>
         </tr>
         <tr *ngIf="moduli.length === 0">
-          <td colspan="6" class="mp-empty">Nessun modulo configurato</td>
+          <td colspan="6" class="mp-empty">{{ 'MODULES.NONE_FOUND' | translate }}</td>
         </tr>
       </tbody>
     </table>
@@ -121,33 +124,33 @@
     </div>
     <div class="mp-drawer__body">
       <div class="mp-drawer__field" *ngIf="drawerModule.description">
-        <span class="mp-drawer__label">Descrizione</span>
+        <span class="mp-drawer__label">{{ 'MODULES.DESCRIPTION' | translate }}</span>
         <span class="mp-drawer__value">{{ drawerModule.description }}</span>
       </div>
       <div class="mp-drawer__field">
-        <span class="mp-drawer__label">Tipo</span>
+        <span class="mp-drawer__label">{{ 'MODULES.TYPE' | translate }}</span>
         <span class="mp-drawer__value">{{ drawerModule.moduleType }}</span>
       </div>
       <div class="mp-drawer__field">
-        <span class="mp-drawer__label">Versione</span>
+        <span class="mp-drawer__label">{{ 'MODULES.VERSION' | translate }}</span>
         <span class="mp-drawer__value mp-mono">{{ drawerModule.version }}</span>
       </div>
       <div class="mp-drawer__field">
-        <span class="mp-drawer__label">Ordine</span>
+        <span class="mp-drawer__label">{{ 'MODULES.ORDER' | translate }}</span>
         <span class="mp-drawer__value">{{ drawerModule.sortOrder }}</span>
       </div>
       <div class="mp-drawer__field">
-        <span class="mp-drawer__label">Stato</span>
+        <span class="mp-drawer__label">{{ 'MODULES.STATUS' | translate }}</span>
         <button class="mp-status-badge" type="button"
                 [class.mp-status-badge--active]="drawerModule.isActive"
                 (click)="toggleActive(drawerModule)">
-          {{ drawerModule.isActive ? 'Attivo' : 'Inattivo' }}
+          {{ (drawerModule.isActive ? 'MODULES.ACTIVE' : 'MODULES.INACTIVE') | translate }}
         </button>
       </div>
     </div>
     <div class="mp-drawer__footer">
-      <button class="mp-btn mp-btn--outline" (click)="closeDetail()" type="button">Chiudi</button>
-      <button class="mp-btn mp-btn--primary" (click)="openEdit(drawerModule)" type="button">Modifica</button>
+      <button class="mp-btn mp-btn--outline" (click)="closeDetail()" type="button">{{ 'MODULES.CLOSE' | translate }}</button>
+      <button class="mp-btn mp-btn--primary" (click)="openEdit(drawerModule)" type="button">{{ 'COMMON.EDIT' | translate }}</button>
     </div>
   </div>
 </div>
@@ -157,7 +160,7 @@
   <div class="mp-modal" (click)="$event.stopPropagation()">
 
     <div class="mp-modal__header">
-      <h3>{{ editingId ? 'Modifica modulo' : 'Nuovo modulo' }}</h3>
+      <h3>{{ (editingId ? 'MODULES.EDIT_MODULE' : 'MODULES.NEW_MODULE') | translate }}</h3>
       <button class="mp-modal__close" (click)="cancel()" type="button">&times;</button>
     </div>
 
@@ -165,23 +168,23 @@
 
       <div class="mp-form-row">
         <label class="mp-field">
-          <span>Codice *</span>
+          <span>{{ 'MODULES.CODE' | translate }} *</span>
           <input type="text" [(ngModel)]="form.code" placeholder="es. esg" [disabled]="!!editingId"/>
         </label>
         <label class="mp-field">
-          <span>Nome *</span>
+          <span>{{ 'MODULES.NAME' | translate }} *</span>
           <input type="text" [(ngModel)]="form.name" placeholder="ESG Strategy"/>
         </label>
       </div>
 
       <label class="mp-field">
-        <span>Descrizione</span>
+        <span>{{ 'MODULES.DESCRIPTION' | translate }}</span>
         <input type="text" [(ngModel)]="form.description" placeholder="Breve descrizione del modulo"/>
       </label>
 
       <div class="mp-form-row">
         <label class="mp-field">
-          <span>Tipo</span>
+          <span>{{ 'MODULES.TYPE' | translate }}</span>
           <select [(ngModel)]="form.moduleType">
             <option value="capability">Capability</option>
             <option value="platform">Platform</option>
@@ -189,14 +192,14 @@
           </select>
         </label>
         <label class="mp-field">
-          <span>Versione</span>
+          <span>{{ 'MODULES.VERSION' | translate }}</span>
           <input type="text" [(ngModel)]="form.version" placeholder="1.0.0"/>
         </label>
       </div>
 
       <div class="mp-form-row">
         <label class="mp-field">
-          <span>Icona</span>
+          <span>{{ 'MODULES.ICON' | translate }}</span>
           <select [(ngModel)]="form.icon">
             <option value="">Nessuna</option>
             <option value="chart">Chart</option>
@@ -207,7 +210,7 @@
           </select>
         </label>
         <label class="mp-field">
-          <span>Colore</span>
+          <span>{{ 'MODULES.COLOR' | translate }}</span>
           <div class="mp-color-field">
             <input type="color" [(ngModel)]="form.color" class="mp-color-input"/>
             <input type="text" [(ngModel)]="form.color" placeholder="#95C11F" class="mp-color-text"/>
@@ -217,11 +220,11 @@
 
       <div class="mp-form-row">
         <label class="mp-field">
-          <span>Ordine</span>
+          <span>{{ 'MODULES.ORDER' | translate }}</span>
           <input type="number" [(ngModel)]="form.sortOrder" placeholder="0"/>
         </label>
         <label class="mp-field mp-field--inline">
-          <span>Attivo</span>
+          <span>{{ 'MODULES.ACTIVE' | translate }}</span>
           <button class="mp-switch" type="button"
                   [class.mp-switch--on]="form.isActive"
                   (click)="form.isActive = !form.isActive">
@@ -233,12 +236,12 @@
     </div>
 
     <div class="mp-modal__footer">
-      <button class="mp-btn mp-btn--outline" (click)="cancel()" type="button">Annulla</button>
+      <button class="mp-btn mp-btn--outline" (click)="cancel()" type="button">{{ 'MODULES.CANCEL' | translate }}</button>
       <button class="mp-btn mp-btn--primary"
               (click)="save()"
               [disabled]="saving || !form.code || !form.name"
               type="button">
-        {{ saving ? 'Salvataggio…' : (editingId ? 'Salva modifiche' : 'Crea modulo') }}
+        {{ (saving ? 'MODULES.SAVING' : (editingId ? 'MODULES.SAVE_CHANGES' : 'MODULES.CREATE_MODULE')) | translate }}
       </button>
     </div>
 

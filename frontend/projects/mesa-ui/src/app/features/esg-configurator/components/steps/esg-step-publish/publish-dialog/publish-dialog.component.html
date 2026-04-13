@@ -68,11 +68,20 @@
         <div *ngFor="let f of filterFields; trackBy: trackByField" class="cfg-form-row">
           <div class="cfg-field cfg-field--grow">
             <label [for]="'pub-filter-' + f.fieldName" class="cfg-label">{{ f.label }}</label>
-            <input [id]="'pub-filter-' + f.fieldName"
-                   class="cfg-input"
-                   [(ngModel)]="defaultFilterValues[f.fieldName]"
-                   [ngModelOptions]="{standalone: true}"
-                   placeholder="Leave blank for no default" />
+            <ng-container *ngIf="f.optionsLoading">
+              <span class="cfg-spinner cfg-spinner--sm"></span>
+            </ng-container>
+            <ng-container *ngIf="!f.optionsLoading">
+              <select *ngIf="!f.optionsError"
+                      [id]="'pub-filter-' + f.fieldName"
+                      class="cfg-input"
+                      [(ngModel)]="defaultFilterValues[f.fieldName]"
+                      [ngModelOptions]="{standalone: true}">
+                <option value="">— nessun default —</option>
+                <option *ngFor="let opt of f.options" [value]="opt">{{ opt }}</option>
+              </select>
+              <span *ngIf="f.optionsError" class="cfg-field__error" role="alert">{{ f.optionsError }}</span>
+            </ng-container>
           </div>
         </div>
       </div>

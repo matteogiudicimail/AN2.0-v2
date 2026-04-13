@@ -125,16 +125,17 @@ async function seed(): Promise<void> {
   // ── Application modules ───────────────────────────────────────────────────
   const modRepo = ds.getRepository(MesaApplicationModule);
   await modRepo.save([
-    { code: 'HR_DC', name: 'HR Data Collection', moduleType: 'capability', sortOrder: 1, isActive: true, version: '1.0.0' },
-    { code: 'ESG',   name: 'ESG Reporting',       moduleType: 'capability', sortOrder: 2, isActive: true, version: '1.0.0' },
+    { code: 'HR_DC', name: 'HTML Grid', moduleType: 'capability', sortOrder: 1, isActive: true, version: '1.0.0' },
+    { code: 'ESG',   name: 'Data Models',           moduleType: 'capability', sortOrder: 2, isActive: true, version: '1.0.0' },
   ]);
 
   // ── Navigation items ──────────────────────────────────────────────────────
   const navRepo = ds.getRepository(MesaNavigationItem);
   await navRepo.save([
     { menuKey: 'home',            label: 'Home',               route: '/',               icon: 'home',         sortOrder: 0, isActive: true, parentId: null, moduleCode: null },
-    { menuKey: 'cfs-report',      label: 'HR Data Collection', route: '/cfs',            icon: 'table_chart',  sortOrder: 1, isActive: true, parentId: null, moduleCode: 'HR_DC' },
-    { menuKey: 'esg-configurator',label: 'ESG Reporting',      route: '/esg',            icon: 'eco',          sortOrder: 2, isActive: true, parentId: null, moduleCode: 'ESG'   },
+    { menuKey: 'cfs-report',      label: 'HTML Grid',          route: '/cfs',            icon: 'table_chart',  sortOrder: 1, isActive: true, parentId: null, moduleCode: 'HR_DC' },
+    { menuKey: 'esg-reports',     label: 'Reports',            route: '/esg-reports',    icon: 'chart',        sortOrder: 2, isActive: true, parentId: null, moduleCode: 'ESG'   },
+    { menuKey: 'esg-configurator',label: 'Data Models',        route: '/esg',            icon: 'eco',          sortOrder: 3, isActive: true, parentId: null, moduleCode: 'ESG'   },
     { menuKey: 'moduli',          label: 'Moduli',             route: '/admin/modules',  icon: 'extension',    sortOrder: 4, isActive: true, parentId: null, moduleCode: null },
     { menuKey: 'users',           label: 'Utenti',             route: '/admin/users',    icon: 'people',       sortOrder: 5, isActive: true, parentId: null, moduleCode: null },
     { menuKey: 'nav',             label: 'Navigazione',        route: '/admin/nav',      icon: 'menu',         sortOrder: 6, isActive: true, parentId: null, moduleCode: null },
@@ -143,7 +144,7 @@ async function seed(): Promise<void> {
   // ── Report ────────────────────────────────────────────────────────────────
   const reportRepo = ds.getRepository(MesaReport);
   const report = await reportRepo.save({
-    code: 'HR-DIV-DC', name: 'HR Data Collection',
+    code: 'HR-DIV-DC', name: 'HTML Grid',
     description: 'Raccolta dati HR annuale - 20 società del Gruppo',
     period: 'Dicembre 2025', status: 'DRAFT',
   });

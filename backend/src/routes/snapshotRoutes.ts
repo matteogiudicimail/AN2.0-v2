@@ -126,9 +126,13 @@ router.put(
       await saveSnapshotCell(snapshotId, dto, getUserId(req));
       res.json({ ok: true });
     } catch (err) {
-      const code = (err as Error & { statusCode?: number }).statusCode;
-      if (code === 400) { res.status(400).json({ error: (err as Error).message }); return; }
-      if (code === 404) { res.status(404).json({ error: (err as Error).message }); return; }
+      const e = err as Error & { statusCode?: number; number?: number };
+      if (e.statusCode === 400) { res.status(400).json({ error: e.message }); return; }
+      if (e.statusCode === 404) { res.status(404).json({ error: e.message }); return; }
+      // SQL Server constraint errors (e.g. NOT NULL, FK violation) — surface as 400
+      if (e.number && e.number >= 515 && e.number <= 550) {
+        res.status(400).json({ error: `Vincolo database: ${e.message}` }); return;
+      }
       next(err);
     }
   },

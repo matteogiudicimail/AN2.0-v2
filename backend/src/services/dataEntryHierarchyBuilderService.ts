@@ -382,9 +382,14 @@ export async function buildGroupingParamHierarchy(
   const groupOrder = new Map<string, number>();
   const groupItems = new Map<string, Array<{ value: string; label: string; pr: NonNullable<ParamRowShape> }>>();
 
+  const naItems: Array<{ value: string; label: string; pr: NonNullable<ParamRowShape> }> = [];
+
   for (const [sourceValue, info] of pMap) {
     const g = info.paramRow.raggruppamento ?? '';
-    if (!g) continue;
+    if (!g) {
+      naItems.push({ value: sourceValue, label: info.label, pr: info.paramRow });
+      continue;
+    }
     if (!groupItems.has(g)) { groupItems.set(g, []); groupOrder.set(g, groupOrder.size); }
     groupItems.get(g)!.push({ value: sourceValue, label: info.label, pr: info.paramRow });
   }
@@ -409,5 +414,24 @@ export async function buildGroupingParamHierarchy(
       });
     }
   }
+
+  // Items without a raggruppamento → shown last under an empty-string group (displays as "N/A" in the UI)
+  if (naItems.length > 0) {
+    result.push({
+      depth: 0, fieldName: groupingFieldName, value: '',
+      label: '', isLeaf: false,
+      pathValues: { [groupingFieldName]: '' },
+      paramRow: null,
+    });
+    for (const item of naItems) {
+      result.push({
+        depth: 1, fieldName: sourceFieldName, value: item.value,
+        label: item.label, isLeaf: true,
+        pathValues: { [groupingFieldName]: '', [sourceFieldName]: item.value },
+        paramRow: item.pr,
+      });
+    }
+  }
+
   return result;
 }

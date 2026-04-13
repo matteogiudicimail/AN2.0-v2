@@ -9,6 +9,8 @@
     "start": "node dist/server.js",
     "migrate": "ts-node src/config/seed.ts",
     "mesaSeed": "ts-node -r tsconfig-paths/register src/scripts/mesaSeed.ts",
+    "importIspVol": "ts-node -r tsconfig-paths/register src/scripts/importIspVol.ts",
+    "importIspVolV2": "ts-node -r tsconfig-paths/register src/scripts/importIspVolV2.ts",
     "lint": "tsc --noEmit"
   },
   "dependencies": {

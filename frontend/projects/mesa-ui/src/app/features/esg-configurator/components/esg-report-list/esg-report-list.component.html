@@ -1,90 +1,187 @@
 <div class="cfg-list">
 
+  <!-- Header -->
   <div class="cfg-list__header">
-    <h2 class="cfg-list__title">Data Models</h2>
-    <button class="cfg-btn cfg-btn--primary" (click)="openWizard.emit(null)">+ New Data Model</button>
+    <div>
+      <h2 class="cfg-list__title">Data Models</h2>
+      <p class="cfg-list__subtitle">Definizione struttura dati — step 1-3</p>
+    </div>
+    <button class="cfg-btn cfg-btn--primary" (click)="openDefinition.emit(null)">+ New Data Model</button>
   </div>
 
-  <!-- Search bar -->
+  <!-- Search -->
   <div class="cfg-list__search-bar">
-    <input
-      type="search"
-      class="cfg-input cfg-list__search-input"
-      placeholder="Search by code, name or status…"
-      [(ngModel)]="searchText"
-      aria-label="Search data models" />
+    <input type="search"
+           class="cfg-input cfg-list__search-input"
+           placeholder="Search by code, name or status…"
+           [(ngModel)]="searchText"
+           aria-label="Search data models" />
+    <button class="cfg-btn cfg-btn--ghost cfg-btn--sm" (click)="load()" title="Ricarica">↻</button>
     <span *ngIf="searchText" class="cfg-list__search-count">
       {{ filteredReports.length }} / {{ reports.length }} shown
     </span>
   </div>
 
-  <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
+  <div *ngIf="errorMsg"  class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
   <div *ngIf="isLoading" class="cfg-loading" aria-live="polite">Loading…</div>
 
+  <!-- Table -->
   <table *ngIf="!isLoading && reports.length > 0" class="cfg-table" aria-label="Data Models">
     <thead>
       <tr>
-        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportCode')" tabindex="0"
-            (keydown.enter)="sortBy('reportCode')" [attr.aria-sort]="sortCol==='reportCode' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
-          Code <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('reportCode') }}</span>
+        <th scope="col" style="width:32px"></th>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportCode')"
+            tabindex="0" (keydown.enter)="sortBy('reportCode')">
+          Code <span class="cfg-sort-icon">{{ sortIcon('reportCode') }}</span>
         </th>
-        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportLabel')" tabindex="0"
-            (keydown.enter)="sortBy('reportLabel')" [attr.aria-sort]="sortCol==='reportLabel' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
-          Name <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('reportLabel') }}</span>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('reportLabel')"
+            tabindex="0" (keydown.enter)="sortBy('reportLabel')">
+          Name <span class="cfg-sort-icon">{{ sortIcon('reportLabel') }}</span>
         </th>
-        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('writebackMode')" tabindex="0"
-            (keydown.enter)="sortBy('writebackMode')" [attr.aria-sort]="sortCol==='writebackMode' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
-          Mode <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('writebackMode') }}</span>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('writebackMode')"
+            tabindex="0" (keydown.enter)="sortBy('writebackMode')">
+          Mode <span class="cfg-sort-icon">{{ sortIcon('writebackMode') }}</span>
         </th>
-        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('status')" tabindex="0"
-            (keydown.enter)="sortBy('status')" [attr.aria-sort]="sortCol==='status' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
-          Status <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('status') }}</span>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('status')"
+            tabindex="0" (keydown.enter)="sortBy('status')">
+          Status <span class="cfg-sort-icon">{{ sortIcon('status') }}</span>
         </th>
-        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('version')" tabindex="0"
-            (keydown.enter)="sortBy('version')" [attr.aria-sort]="sortCol==='version' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
-          Version <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('version') }}</span>
-        </th>
-        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('updatedAt')" tabindex="0"
-            (keydown.enter)="sortBy('updatedAt')" [attr.aria-sort]="sortCol==='updatedAt' ? (sortDir==='asc' ? 'ascending' : 'descending') : 'none'">
-          Updated <span class="cfg-sort-icon" aria-hidden="true">{{ sortIcon('updatedAt') }}</span>
+        <th scope="col" class="cfg-table__th--sortable" (click)="sortBy('updatedAt')"
+            tabindex="0" (keydown.enter)="sortBy('updatedAt')">
+          Updated <span class="cfg-sort-icon">{{ sortIcon('updatedAt') }}</span>
         </th>
         <th scope="col">Actions</th>
       </tr>
     </thead>
     <tbody>
-      <tr *ngFor="let r of filteredReports; trackBy: trackById"
-          class="cfg-table__row cfg-table__row--clickable"
-          (click)="openWizard.emit(r.reportId)"
-          tabindex="0"
-          (keydown.enter)="openWizard.emit(r.reportId)"
-          [attr.aria-label]="'Edit data model ' + r.reportLabel">
-        <td><code>{{ r.reportCode }}</code></td>
-        <td>{{ r.reportLabel }}</td>
-        <td>
-          <span class="cfg-badge"
-                [class.cfg-badge--delta]="r.writebackMode === 'Delta'"
-                [class.cfg-badge--overwrite]="r.writebackMode === 'Overwrite'">
-            {{ r.writebackMode }}
-          </span>
-        </td>
-        <td>
-          <span class="cfg-badge"
-                [class.cfg-badge--draft]="r.status === 'Draft'"
-                [class.cfg-badge--ready]="r.status === 'ReadyForPublish'"
-                [class.cfg-badge--published]="r.status === 'Published'"
-                [class.cfg-badge--archived]="r.status === 'Archived'">
-            {{ r.status }}
-          </span>
-        </td>
-        <td>{{ r.version }}</td>
-        <td>{{ r.updatedAt ? (r.updatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
-        <td class="cfg-table__actions">
-          <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
-                  (click)="openWizard.emit(r.reportId); $event.stopPropagation()">
-            Edit
-          </button>
-        </td>
-      </tr>
+      <ng-container *ngFor="let r of filteredReports; trackBy: trackById">
+
+        <!-- ── Data model row (definition) ── -->
+        <tr class="cfg-table__row cfg-table__row--clickable"
+            [class.cfg-table__row--expanded]="isExpanded(r.reportId)"
+            (click)="openDefinition.emit(r.reportId)"
+            tabindex="0"
+            (keydown.enter)="openDefinition.emit(r.reportId)"
+            [attr.aria-label]="'Modifica data model ' + r.reportLabel">
+
+          <!-- Expand toggle for Report Designer sub-section -->
+          <td class="cfg-list__expand-cell" (click)="toggleExpand(r.reportId, $event)">
+            <button class="cfg-list__expand-btn"
+                    type="button"
+                    [attr.aria-expanded]="isExpanded(r.reportId)"
+                    [attr.aria-label]="(isExpanded(r.reportId) ? 'Chiudi' : 'Apri') + ' Report Designer di ' + r.reportLabel"
+                    title="Report Designer">
+              {{ isExpanded(r.reportId) ? '▾' : '▸' }}
+            </button>
+          </td>
+
+          <td>
+            <div class="cfg-list__dm-code-cell">
+              <code>{{ r.reportCode }}</code>
+              <span *ngIf="tasksFor(r.reportId).length > 0"
+                    class="cfg-list__task-count"
+                    [title]="tasksFor(r.reportId).length + ' report pubblicati'">
+                {{ tasksFor(r.reportId).length }}
+              </span>
+            </div>
+          </td>
+          <td>{{ r.reportLabel }}</td>
+          <td>
+            <span class="cfg-badge"
+                  [class.cfg-badge--delta]="r.writebackMode === 'Delta'"
+                  [class.cfg-badge--overwrite]="r.writebackMode === 'Overwrite'">
+              {{ r.writebackMode }}
+            </span>
+          </td>
+          <td>
+            <span class="cfg-badge"
+                  [class.cfg-badge--draft]="r.status === 'Draft'"
+                  [class.cfg-badge--ready]="r.status === 'ReadyForPublish'"
+                  [class.cfg-badge--published]="r.status === 'Published'"
+                  [class.cfg-badge--archived]="r.status === 'Archived'">
+              {{ r.status }}
+            </span>
+          </td>
+          <td>{{ r.updatedAt ? (r.updatedAt | date:'dd/MM/yyyy HH:mm') : '—' }}</td>
+          <td class="cfg-table__actions" (click)="$event.stopPropagation()">
+            <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
+                    (click)="openDefinition.emit(r.reportId)"
+                    title="Modifica definizione data model (step 1-3)">
+              ✏️ Edit
+            </button>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--primary"
+                    (click)="openDesigner.emit(r.reportId); $event.stopPropagation()"
+                    title="Apri Report Designer (layout, preview, publish — step 4-6)">
+              ▦ Report Designer
+            </button>
+            <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
+                    [disabled]="duplicatingReport.has(r.reportId)"
+                    (click)="duplicateReport(r.reportId, $event)"
+                    [title]="duplicatingReport.has(r.reportId) ? 'Duplicazione in corso…' : 'Duplica questo Data Model'"
+                    [attr.aria-busy]="duplicatingReport.has(r.reportId)">
+              {{ duplicatingReport.has(r.reportId) ? '⏳' : '⧉' }} Duplica
+            </button>
+          </td>
+        </tr>
+
+        <!-- ── Report Designer sub-section ── -->
+        <tr *ngIf="isExpanded(r.reportId)" class="cfg-list__designer-row">
+          <td colspan="7" class="cfg-list__designer-cell">
+
+            <div class="cfg-list__designer-panel">
+
+              <!-- Designer header -->
+              <div class="cfg-list__designer-header">
+                <span class="cfg-list__designer-title">
+                  <span class="cfg-list__designer-icon">▦</span>
+                  Report Designer
+                  <span class="cfg-list__designer-hint">Layout · Preview · Publish — step 4-6</span>
+                </span>
+              </div>
+
+              <!-- Published tasks list -->
+              <div *ngIf="tasksFor(r.reportId).length > 0" class="cfg-list__tasks-section">
+                <div class="cfg-list__tasks-label">Report pubblicati</div>
+                <div class="cfg-list__tasks-grid">
+                  <div *ngFor="let t of tasksFor(r.reportId); trackBy: trackByTask"
+                       class="cfg-list__task-card">
+                    <div class="cfg-list__task-card-top">
+                      <span class="cfg-badge cfg-badge--sm" [ngClass]="taskStatusClass(t.status)">
+                        {{ t.status }}
+                      </span>
+                      <code class="cfg-list__task-code">{{ t.taskCode }}</code>
+                    </div>
+                    <div class="cfg-list__task-card-name">{{ t.label }}</div>
+                    <div class="cfg-list__task-card-date">
+                      {{ t.createdAt ? (t.createdAt | date:'dd/MM/yyyy') : '' }}
+                    </div>
+                    <div class="cfg-list__task-card-actions">
+                      <button class="cfg-btn cfg-btn--xs cfg-btn--ghost"
+                              (click)="openDesigner.emit(t.reportId); $event.stopPropagation()"
+                              title="Modifica questo report nel Report Designer">
+                        ✏️ Edit
+                      </button>
+                      <button class="cfg-btn cfg-btn--xs cfg-btn--ghost"
+                              [disabled]="duplicatingTask.has(t.taskId)"
+                              (click)="duplicateTask(t.taskId, $event)"
+                              [title]="duplicatingTask.has(t.taskId) ? 'Duplicazione in corso…' : 'Duplica questo designer'"
+                              [attr.aria-busy]="duplicatingTask.has(t.taskId)">
+                        {{ duplicatingTask.has(t.taskId) ? '⏳' : '⧉' }} Duplica
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div *ngIf="tasksFor(r.reportId).length === 0" class="cfg-list__tasks-empty">
+                Nessun report ancora pubblicato da questo data model.
+              </div>
+
+            </div>
+          </td>
+        </tr>
+
+      </ng-container>
     </tbody>
   </table>
 

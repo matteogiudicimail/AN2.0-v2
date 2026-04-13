@@ -61,6 +61,18 @@ export interface DataEntryGridResponse {
   writeRows:      WriteRow[];
   /** Sorted-JSON dimension keys of rows that have been approved (read-only in grid). */
   approvedRows:   string[];
+  /**
+   * For "pure dim-table-only" filtri fields (dimTable set, no paramTableId) whose dimTable
+   * matches a RIGHE field's dimTable: maps filterValue → array of row field values.
+   * Used by the frontend to filter visible rows when such a filter is active.
+   */
+  filtriDimMapping?: Record<string, Record<string, string[]>>;
+  /**
+   * For "pure dim-table-only" filtri fields whose dimTable matches a COLONNE field's dimTable:
+   * maps filterValue → array of colonna field values visible under that filter.
+   * Used by the frontend to filter visible column headers when such a filter is active.
+   */
+  filtriColonneMapping?: Record<string, Record<string, string[]>>;
 }
 
 export interface SaveCellDto {

@@ -65,6 +65,16 @@ router.post('/reports/:id/publish', async (req: Request, res: Response, next: Ne
   } catch (e) { next(e); }
 });
 
+// ── Duplicate data model ───────────────────────────────────────────────────────
+
+router.post('/reports/:id/duplicate', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = intParam(req.params['id']);
+    const newId = await cfg.duplicateReport(id, uid(req));
+    res.status(201).json(await cfg.getReport(newId));
+  } catch (e) { next(e); }
+});
+
 router.post('/reports/:id/archive', async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = intParam(req.params['id']);
@@ -331,6 +341,29 @@ router.post('/tasks/:taskId/archive', async (req: Request, res: Response, next: 
     await taskSvc.archiveTask(taskId, uid(req));
     res.status(204).send();
   } catch (e) { next(e); }
+});
+
+router.post('/tasks/:taskId/duplicate', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const taskId = intParam(req.params['taskId']);
+    if (!taskId) { res.status(400).json({ error: 'Invalid taskId' }); return; }
+    const newTaskId = await taskSvc.duplicateTask(taskId, uid(req));
+    const task = await taskSvc.getTask(newTaskId);
+    res.status(201).json(task);
+  } catch (e) { next(e); }
+});
+
+router.delete('/tasks/:taskId', async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const taskId = intParam(req.params['taskId']);
+    if (!taskId) { res.status(400).json({ error: 'Invalid taskId' }); return; }
+    await taskSvc.deleteTask(taskId, uid(req));
+    res.status(204).send();
+  } catch (e: unknown) {
+    const code = (e as { statusCode?: number }).statusCode;
+    if (code === 404) { res.status(404).json({ error: (e as Error).message }); return; }
+    next(e);
+  }
 });
 
 // POST /tasks/:taskId/repair ───────────────────────────────────────────────────

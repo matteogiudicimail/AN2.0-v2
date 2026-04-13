@@ -3,19 +3,24 @@
   <!-- Breadcrumb -->
   <div class="cfg-wizard__breadcrumb">
     <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Data Models</button>
-    <span class="cfg-wizard__report-name">{{ report?.reportLabel || 'New Data Model' }}</span>
+    <span class="cfg-wizard__report-name">
+      <span class="cfg-wizard__mode-badge">{{ modeIcon }} {{ modeTitle }}</span>
+      {{ report?.reportLabel || 'New Data Model' }}
+    </span>
   </div>
 
-  <!-- Step tabs -->
-  <nav class="cfg-wizard__tabs" aria-label="Wizard steps">
-    <button *ngFor="let s of steps"
+  <!-- Step tabs (hidden when only one step, e.g. designer mode) -->
+  <nav *ngIf="visibleSteps.length > 1" class="cfg-wizard__tabs" aria-label="Wizard steps">
+    <button *ngFor="let s of visibleSteps"
             class="cfg-wizard__tab"
             [class.cfg-wizard__tab--active]="step === s.index"
+            [class.cfg-wizard__tab--done]="step > s.index"
             [class.cfg-wizard__tab--disabled]="isStepDisabled(s.index)"
             [disabled]="isStepDisabled(s.index)"
             (click)="goTo(s.index)"
             [attr.aria-current]="step === s.index ? 'step' : null">
-      {{ s.label }}
+      <span class="cfg-wizard__tab-num">{{ s.displayNum }}</span>
+      <span class="cfg-wizard__tab-label">{{ s.label }}</span>
     </button>
   </nav>
 
@@ -25,46 +30,34 @@
   <!-- Step content -->
   <div class="cfg-wizard__body">
 
+    <!-- ── Definition mode: steps 1-3 ── -->
     <esg-step-basic
-      *ngIf="step === 1"
+      *ngIf="step === 1 && mode === 'definition'"
       [report]="report"
       [isSaving]="isSaving"
       (saved)="onBasicSaved($event)">
     </esg-step-basic>
 
     <esg-step-db-explorer
-      *ngIf="step === 2 && reportId"
+      *ngIf="step === 2 && reportId && mode === 'definition'"
       [reportId]="reportId"
       (back)="goTo(1)"
       (next)="goTo(3)">
     </esg-step-db-explorer>
 
     <esg-step-kpi-params
-      *ngIf="step === 3 && reportId"
+      *ngIf="step === 3 && reportId && mode === 'definition'"
       [reportId]="reportId"
       (back)="goTo(2)"
-      (next)="goTo(4)">
+      (next)="back.emit()">
     </esg-step-kpi-params>
 
-    <esg-step-entry-layout
-      *ngIf="step === 4 && reportId"
+    <!-- ── Designer mode: step 1 = Layout + Preview (fused, includes Publish) ── -->
+    <esg-step-layout-preview
+      *ngIf="step === 4 && reportId && mode === 'designer'"
       [reportId]="reportId"
-      (back)="goTo(3)"
-      (next)="goTo(5)">
-    </esg-step-entry-layout>
-
-    <esg-data-entry-sheet
-      *ngIf="step === 5 && reportId"
-      [reportId]="reportId"
-      (back)="goTo(4)"
-      (next)="goTo(6)">
-    </esg-data-entry-sheet>
-
-    <esg-step-publish
-      *ngIf="step === 6 && reportId"
-      [reportId]="reportId"
-      (back)="goTo(5)">
-    </esg-step-publish>
+      (back)="back.emit()">
+    </esg-step-layout-preview>
 
   </div>
 </div>

@@ -1,0 +1,292 @@
+<div class="cfg-lp-shell">
+
+  <!-- ══ Toolbar unificato (span 3 colonne) ═══════════════════════════════ -->
+  <div class="cfg-lp-toolbar">
+
+    <!-- Sezione sinistra: Layout Designer (col 1+2) -->
+    <div class="cfg-lp-toolbar__section cfg-lp-toolbar__section--main">
+      <span class="cfg-lp-toolbar__icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/>
+        </svg>
+      </span>
+      <span class="cfg-lp-toolbar__title">Layout Designer</span>
+      <span *ngIf="layoutDirty" class="cfg-lp-dirty-dot" title="Modifiche non salvate"></span>
+      <span *ngIf="layoutDirty" class="cfg-lp-dirty-label">Non salvato</span>
+      <button class="cfg-btn cfg-btn--primary cfg-btn--xs"
+              type="button"
+              (click)="saveLayoutFromParent()"
+              title="Salva il layout corrente (Ctrl+S)"
+              style="margin-left: auto">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+          <polyline points="17 21 17 13 7 13 7 21"/>
+          <polyline points="7 3 7 8 15 8"/>
+        </svg>
+        Salva layout
+      </button>
+      <button class="cfg-btn cfg-btn--ghost cfg-btn--xs"
+              type="button"
+              (click)="openPreviewPopup()"
+              title="Apri anteprima della griglia di inserimento dati">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+          <circle cx="12" cy="12" r="3"/>
+        </svg>
+        Anteprima
+        <span *ngIf="layoutDirty" title="Salva prima di visualizzare" style="opacity:.6; font-size:10px">⚠</span>
+      </button>
+    </div>
+
+    <!-- Separatore verticale -->
+    <div class="cfg-lp-toolbar__sep" aria-hidden="true"></div>
+
+    <!-- Sezione destra: Pubblicazioni (col 3) -->
+    <div class="cfg-lp-toolbar__section cfg-lp-toolbar__section--info">
+      <span class="cfg-lp-toolbar__icon">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+        </svg>
+      </span>
+      <span class="cfg-lp-toolbar__title">Pubblicazioni</span>
+      <span *ngIf="!pubLoading" class="cfg-lp-toolbar__count">{{ tasks.length }}</span>
+      <button class="cfg-btn cfg-btn--primary cfg-btn--xs"
+              type="button"
+              (click)="openNew()"
+              style="margin-left: auto"
+              title="Crea un nuovo report pubblicato">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
+        </svg>
+        Nuovo
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ══ 3-column split ═══════════════════════════════════════════════════ -->
+  <div class="cfg-lp-split">
+
+    <!-- ── Cols 1+2: Layout designer (fields | zones) ── -->
+    <div class="cfg-lp-split__main">
+      <esg-step-entry-layout
+        [reportId]="reportId"
+        [embedded]="true"
+        (next)="onLayoutSaved()"
+        (layoutChanged)="onLayoutChanged()">
+      </esg-step-entry-layout>
+    </div>
+
+    <!-- ── Col 3: Pubblicazioni ── -->
+    <div class="cfg-lp-split__info">
+
+      <!-- Alerts -->
+      <div *ngIf="pubError"   class="cfg-alert cfg-alert--error"   role="alert"   style="margin: 6px 10px 0; font-size: 12px">{{ pubError }}</div>
+      <div *ngIf="pubSuccess" class="cfg-alert cfg-alert--success"  role="status"  style="margin: 6px 10px 0; font-size: 12px">{{ pubSuccess }}</div>
+
+      <!-- Loading -->
+      <div *ngIf="pubLoading" class="cfg-lp-info-loading" role="status" aria-live="polite">
+        <span class="cfg-spinner cfg-spinner--xs"></span> Caricamento…
+      </div>
+
+      <!-- Task cards -->
+      <div *ngIf="!pubLoading" class="cfg-lp-info-body">
+
+        <!-- Empty guide -->
+        <div *ngIf="tasks.length === 0" class="cfg-lp-info-guide">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" opacity=".35">
+            <path d="M22 2L11 13"/><path d="M22 2L15 22 11 13 2 9l20-7z"/>
+          </svg>
+          <p class="cfg-lp-info-guide__title">Nessun report pubblicato</p>
+          <p class="cfg-lp-info-guide__hint">Salva il layout e pubblica per renderlo disponibile in MESAPPA.</p>
+          <button class="cfg-btn cfg-btn--primary cfg-btn--sm cfg-lp-info-guide__btn"
+                  type="button"
+                  (click)="openNew()">
+            Pubblica ora
+          </button>
+        </div>
+
+        <!-- Task cards -->
+        <div *ngFor="let t of tasks; trackBy: trackByTask" class="cfg-lp-task-card">
+
+          <!-- Status dot + name + badge -->
+          <div class="cfg-lp-task-card__header">
+            <span class="cfg-lp-task-card__dot cfg-lp-task-card__dot--{{ t.status.toLowerCase() }}"></span>
+            <span class="cfg-lp-task-card__label" [title]="t.label">{{ t.label }}</span>
+            <span class="cfg-badge cfg-badge--sm" [ngClass]="statusBadgeClass(t.status)">{{ t.status }}</span>
+          </div>
+
+          <!-- Minimal meta: codice + menu -->
+          <div class="cfg-lp-task-card__meta" *ngIf="t.taskCode || t.parentMenuCode">
+            <span *ngIf="t.taskCode" class="cfg-lp-task-card__meta-row">
+              <span class="cfg-lp-task-card__meta-key">Codice</span>
+              <span class="cfg-lp-task-card__meta-val">{{ t.taskCode }}</span>
+            </span>
+            <span *ngIf="t.parentMenuCode" class="cfg-lp-task-card__meta-row">
+              <span class="cfg-lp-task-card__meta-key">Menu</span>
+              <span class="cfg-lp-task-card__meta-val">{{ t.parentMenuCode }}</span>
+            </span>
+          </div>
+
+          <!-- Actions -->
+          <div class="cfg-lp-task-card__actions">
+            <button *ngIf="t.status === 'Active'"
+                    class="cfg-lp-action-btn cfg-lp-action-btn--primary"
+                    type="button"
+                    (click)="openViewer(t)"
+                    [attr.aria-label]="'Apri griglia ' + t.label"
+                    title="Apri griglia snapshot">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              Apri
+            </button>
+            <button *ngIf="t.status === 'Draft'"
+                    class="cfg-lp-action-btn cfg-lp-action-btn--primary"
+                    type="button"
+                    (click)="activate(t)"
+                    [attr.aria-label]="'Attiva ' + t.label"
+                    title="Attiva il report (Draft → Active)">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="5 3 19 12 5 21 5 3"/>
+              </svg>
+              Attiva
+            </button>
+            <button *ngIf="t.status === 'Active'"
+                    class="cfg-lp-action-btn"
+                    type="button"
+                    [disabled]="refreshing.has(t.taskId)"
+                    (click)="refreshSnapshot(t)"
+                    [attr.aria-label]="'Aggiorna snapshot ' + t.label"
+                    title="Rigenera snapshot con layout corrente">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                   [class.cfg-lp-action-btn__spin]="refreshing.has(t.taskId)">
+                <polyline points="1 4 1 10 7 10"/>
+                <path d="M3.51 15a9 9 0 1 0 .49-3.74"/>
+              </svg>
+              Aggiorna
+            </button>
+            <button class="cfg-lp-action-btn"
+                    type="button"
+                    (click)="openEdit(t)"
+                    [attr.aria-label]="'Modifica ' + t.label"
+                    title="Modifica configurazione">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+              </svg>
+              Modifica
+            </button>
+            <button *ngIf="t.status === 'Active'"
+                    class="cfg-lp-action-btn"
+                    type="button"
+                    (click)="archive(t)"
+                    [attr.aria-label]="'Archivia ' + t.label"
+                    title="Archivia il report">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="21 8 21 21 3 21 3 8"/>
+                <rect x="1" y="3" width="22" height="5"/>
+                <line x1="10" y1="12" x2="14" y2="12"/>
+              </svg>
+              Archivia
+            </button>
+            <button class="cfg-lp-action-btn cfg-lp-action-btn--danger"
+                    type="button"
+                    (click)="deleteTask(t)"
+                    [attr.aria-label]="'Elimina ' + t.label"
+                    title="Elimina definitivamente">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+                <path d="M10 11v6M14 11v6"/>
+              </svg>
+            </button>
+          </div>
+
+        </div><!-- /task-card -->
+
+      </div><!-- /info-body -->
+
+    </div><!-- /info panel -->
+
+  </div><!-- /split -->
+
+</div><!-- /shell -->
+
+
+<!-- Preview popup overlay -->
+<div *ngIf="showPreviewPopup"
+     class="cfg-lp-preview-overlay"
+     role="presentation"
+     (click)="closePreviewPopup()">
+  <div class="cfg-lp-preview-panel"
+       role="dialog"
+       aria-modal="true"
+       aria-label="Anteprima griglia"
+       (click)="$event.stopPropagation()">
+
+    <div class="cfg-lp-preview-panel__header">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0">
+        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+        <circle cx="12" cy="12" r="3"/>
+      </svg>
+      <span class="cfg-lp-preview-panel__title">Anteprima griglia</span>
+      <span *ngIf="layoutDirty" class="cfg-lp-status cfg-lp-status--warning">⚠ Layout non salvato</span>
+      <span *ngIf="reloading"   class="cfg-lp-status cfg-lp-status--loading">
+        <span class="cfg-spinner cfg-spinner--xs"></span> Aggiornamento…
+      </span>
+      <button class="cfg-btn cfg-btn--ghost cfg-btn--xs cfg-lp-preview-panel__close"
+              type="button"
+              (click)="closePreviewPopup()"
+              aria-label="Chiudi anteprima">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+        Chiudi
+      </button>
+    </div>
+
+    <div class="cfg-lp-preview-panel__body" [class.cfg-lp-pane-body--reloading]="reloading">
+      <esg-data-entry-sheet
+        *ngIf="showPreview"
+        [reportId]="reportId"
+        [embedded]="true">
+      </esg-data-entry-sheet>
+    </div>
+
+  </div>
+</div>
+
+
+<!-- Publish dialog -->
+<div *ngIf="dialogOpen" class="cfg-pub-overlay" role="presentation" (click)="closeDialog()"></div>
+<div *ngIf="dialogOpen" class="cfg-pub-overlay-content">
+  <publish-dialog
+    [reportId]="reportId"
+    [task]="dialogTask ?? null"
+    (saved)="onDialogSaved($event)"
+    (cancelled)="closeDialog()">
+  </publish-dialog>
+</div>
+
+
+<!-- Snapshot viewer -->
+<ng-container *ngIf="viewerSnapshotId">
+  <div class="cfg-sv-overlay"
+       role="presentation"
+       (click)="closeViewer()">
+    <div class="cfg-sv-panel"
+         role="dialog"
+         aria-modal="true"
+         [attr.aria-label]="'Snapshot — ' + viewerTaskLabel"
+         (click)="$event.stopPropagation()">
+      <snapshot-viewer
+        [snapshotId]="viewerSnapshotId"
+        [taskLabel]="viewerTaskLabel"
+        (closed)="closeViewer()">
+      </snapshot-viewer>
+    </div>
+  </div>
+</ng-container>

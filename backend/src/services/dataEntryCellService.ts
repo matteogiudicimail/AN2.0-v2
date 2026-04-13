@@ -42,8 +42,14 @@ async function ensureWriteLogTable(schema: string, logTable: string): Promise<vo
 // ── ensureWriteTable ──────────────────────────────────────────────────────────
 
 /**
- * Creates the _WRITE table if it doesn't exist.
+ * Creates the _WRITE table if it doesn't exist, or adds any missing columns
+ * if the table was created with an older schema (e.g. without righe dimTable fields).
  * DDL uses only bracket-quoted, allowlist-validated identifiers.
+ *
+ * NOTE: If new dim columns are added to an existing table they are added as NULLABLE
+ * (to avoid breaking existing rows) and are NOT added to the PK.  The affected
+ * existing rows will have NULL for the new column; a re-entry of data is required
+ * to populate them properly.
  */
 export async function ensureWriteTable(
   schema: string,
@@ -60,7 +66,8 @@ export async function ensureWriteTable(
   const valColsDdl = valoriFields.map((f) => `  [${f}] NVARCHAR(MAX) NULL`).join(',\n');
   const pkColsList = allDimFields.map((f) => `[${f}]`).join(', ');
 
-  const ddl = `
+  // 1. Create table if it does not exist yet (full schema with PK)
+  const createDdl = `
     IF OBJECT_ID('[${schema}].[${writeTable}]', 'U') IS NULL
     BEGIN
       CREATE TABLE [${schema}].[${writeTable}] (
@@ -73,7 +80,24 @@ ${valColsDdl},
     END`;
 
   const pool = await getPool();
-  await pool.request().query(ddl);
+  await pool.request().query(createDdl);
+
+  // 2. If the table already existed, add any missing dim or value columns.
+  //    New dim columns are added as NULLABLE (they cannot be added to the existing PK).
+  //    Existing rows will have NULL; users must re-enter data for those rows.
+  const allExpected = [
+    ...allDimFields.map((f) => ({ col: f, nullable: true,  type: 'NVARCHAR(200)' })),
+    ...valoriFields.map((f) => ({ col: f, nullable: true,  type: 'NVARCHAR(MAX)' })),
+  ];
+
+  for (const { col, type } of allExpected) {
+    const alterDdl = `
+      IF COL_LENGTH('[${schema}].[${writeTable}]', '${col}') IS NULL
+      BEGIN
+        ALTER TABLE [${schema}].[${writeTable}] ADD [${col}] ${type} NULL;
+      END`;
+    await pool.request().query(alterDdl);
+  }
 }
 
 // ── saveCell ──────────────────────────────────────────────────────────────────
@@ -113,15 +137,21 @@ export async function saveCell(
   const valoriFields  = layout.valori.map((f) => f.fieldName);
 
   // Virtual _Grouping fields are excluded from the write table (they don't exist as columns).
-  // Param-based fields (paramTableId set) are fact-level dimensions even when dimTable is also set.
-  // Pure dim-only fields (dimTable set, no paramTableId) are excluded.
   const isGroupingField = (f: { fieldName: string; paramTableId?: number | null }) =>
-    !!(f.paramTableId) && f.fieldName.endsWith('_Grouping');
-  const isFactDim = (f: { fieldName: string; paramTableId?: number | null }) =>
+    f.fieldName.endsWith('_Grouping') && !(f as any).paramTableId;
+
+  // FILTRI: exclude pure dim-table-only fields (they filter the view, not stored per row).
+  const isFactFiltro = (f: { fieldName: string; paramTableId?: number | null }) =>
     !isGroupingField(f) && (!(f as any).dimTable || !!(f as any).paramTableId);
 
-  const factFiltriFields  = layout.filtri.filter(isFactDim).map((f) => f.fieldName);
-  const factRigheFields   = layout.righe.filter(isFactDim).map((f) => f.fieldName);
+  // RIGHE: include ALL non-grouping fields — even dimTable-only ones.
+  // Row fields are the primary key of the WRITE table; every row dimension must be stored,
+  // regardless of whether it also has a dimTable join (e.g. Descrizione_KPI).
+  const isFactRiga = (f: { fieldName: string; paramTableId?: number | null }) =>
+    !isGroupingField(f);
+
+  const factFiltriFields  = layout.filtri.filter(isFactFiltro).map((f) => f.fieldName);
+  const factRigheFields   = layout.righe.filter(isFactRiga).map((f) => f.fieldName);
   const factColonneFields = layout.colonne.map((f) => f.fieldName);  // ALL colonne
   const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
 

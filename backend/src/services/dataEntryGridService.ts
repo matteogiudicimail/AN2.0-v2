@@ -24,6 +24,81 @@ function isGroupingItem(item: { fieldName: string; paramTableId?: number | null 
 }
 import { getRowApprovalsArray } from './rowApprovalService';
 
+// ── extendGroupingHierarchy ───────────────────────────────────────────────────
+
+/**
+ * Extends an existing 2-level Grouping → Dim2 hierarchy with one or more
+ * additional fact-based dimension levels (Dim3, Dim4, …).
+ *
+ * Each current leaf node becomes a non-leaf group; its children are the
+ * distinct values of the next additional dimension.  Recurses for further dims.
+ *
+ * If no values can be found for a dim (empty fact + write table, no param map)
+ * the hierarchy is returned as-is without further extension.
+ */
+async function extendGroupingHierarchy(
+  base:           DataEntryRigaOption[],
+  additionalDims: Array<{ fieldName: string; paramTableId: number | null; dimTable?: string | null }>,
+  schema:         string,
+  factTable:      string,
+): Promise<DataEntryRigaOption[]> {
+  if (additionalDims.length === 0) return base;
+
+  const dim = additionalDims[0];
+  assertValidIdentifier(dim.fieldName, `extend dim "${dim.fieldName}"`);
+
+  // Resolve values priority: param map → dim table → fact table → write table
+  let dimValues: string[] = [];
+
+  if (dim.paramTableId) {
+    const pm = await loadParamMap(dim.paramTableId);
+    dimValues = [...pm.keys()];
+  }
+
+  if (dimValues.length === 0 && dim.dimTable) {
+    try {
+      const [dimSchema, dimTbl] = splitFact(dim.dimTable);
+      assertValidIdentifier(dimTbl, `extend dimTable "${dimTbl}"`);
+      dimValues = await getDistinctColValues(dimSchema, dimTbl, dim.fieldName);
+    } catch { /* dim table might not have this column */ }
+  }
+
+  if (dimValues.length === 0) {
+    try { dimValues = await getDistinctColValues(schema, factTable, dim.fieldName); } catch { /* ignore */ }
+  }
+  if (dimValues.length === 0) {
+    try { dimValues = await getDistinctColValues(schema, `${factTable}_WRITE`, dim.fieldName); } catch { /* ignore */ }
+  }
+  if (dimValues.length === 0) return base; // can't extend — return as-is
+
+  const isLastDim = additionalDims.length === 1;
+  const result: DataEntryRigaOption[] = [];
+
+  for (const node of base) {
+    if (!node.isLeaf) {
+      result.push(node); // non-leaf group: keep untouched
+    } else {
+      // Promote leaf → non-leaf, then append children
+      result.push({ ...node, isLeaf: false });
+      for (const v of dimValues) {
+        result.push({
+          depth:      node.depth + 1,
+          fieldName:  dim.fieldName,
+          value:      v,
+          label:      v,
+          isLeaf:     isLastDim,
+          pathValues: { ...node.pathValues, [dim.fieldName]: v },
+          paramRow:   null,
+        });
+      }
+    }
+  }
+
+  return isLastDim
+    ? result
+    : extendGroupingHierarchy(result, additionalDims.slice(1), schema, factTable);
+}
+
 // ── getMultiLevelRigheOptions ─────────────────────────────────────────────────
 
 type ParamRowShape = DataEntryRigaOption['paramRow'];
@@ -48,8 +123,20 @@ export async function getMultiLevelRigheOptions(
   if (firstIsGrouping) {
     const gItem = righeLayout[0];
     if (righeLayout.length >= 2 && !isGroupingItem(righeLayout[1])) {
-      // Two-level hierarchy: Grouping → source column
-      return buildGroupingParamHierarchy(gItem.paramTableId!, gItem.fieldName, righeLayout[1].fieldName);
+      // Base 2-level: Grouping (depth 0) → Dim2 (depth 1, leaf)
+      const base2 = await buildGroupingParamHierarchy(
+        gItem.paramTableId!, gItem.fieldName, righeLayout[1].fieldName,
+      );
+      // If there are additional row dimensions beyond Dim2, extend the hierarchy
+      if (righeLayout.length > 2) {
+        const additionalDims = righeLayout.slice(2).map((r) => ({
+          fieldName:   r.fieldName,
+          paramTableId: r.paramTableId,
+          dimTable:    r.dimTable ?? null,
+        }));
+        return extendGroupingHierarchy(base2, additionalDims, schema, factTable);
+      }
+      return base2;
     }
     // Single-level: flat list of grouping values as row labels
     const groupings = await getDistinctParamGroupings(gItem.paramTableId!);
@@ -132,13 +219,47 @@ export async function getMultiLevelRigheOptions(
     });
   }
 
-  // Multi-level
+  // Multi-level — collect distinct dimension combinations from multiple sources.
   const selectCols = righeLayout.map((r) => `[${r.fieldName}]`).join(', ');
-  const combinations = await dbAll<Record<string, string>>(
-    `SELECT DISTINCT TOP(5000) ${selectCols}
-       FROM [${schema}].[${factTable}]
-      ORDER BY ${selectCols}`,
-  );
+  const orderCols  = selectCols; // same expression, valid for ORDER BY
+
+  let combinations: Record<string, string>[] = [];
+
+  // 1. Try source fact table
+  try {
+    combinations = await dbAll<Record<string, string>>(
+      `SELECT DISTINCT TOP(5000) ${selectCols}
+         FROM [${schema}].[${factTable}]
+        ORDER BY ${orderCols}`,
+    );
+  } catch { /* fact table might not have all columns — fall through */ }
+
+  // 2. Fallback: WRITE table (populated when user enters data)
+  if (combinations.length === 0) {
+    try {
+      combinations = await dbAll<Record<string, string>>(
+        `SELECT DISTINCT TOP(5000) ${selectCols}
+           FROM [${schema}].[${factTable}_WRITE]
+          ORDER BY ${orderCols}`,
+      );
+    } catch { /* write table might not exist yet */ }
+  }
+
+  // 3. Fallback: Cartesian product from param maps (covers new reports with no data yet).
+  //    Only used when ALL row dimensions have a configured param table.
+  if (combinations.length === 0 && paramMaps.every((pm) => pm.size > 0)) {
+    let product: Record<string, string>[] = [{}];
+    for (let d = 0; d < righeLayout.length; d++) {
+      const fn   = righeLayout[d].fieldName;
+      const keys = [...paramMaps[d].keys()];
+      const next: Record<string, string>[] = [];
+      for (const existing of product) {
+        for (const k of keys) next.push({ ...existing, [fn]: k });
+      }
+      product = next;
+    }
+    combinations = product;
+  }
 
   const result: DataEntryRigaOption[] = [];
   const seenPathKeys = new Set<string>();
@@ -174,7 +295,7 @@ export async function getMultiLevelRigheOptions(
 
 export async function loadWriteRows(
   schema: string, writeTable: string,
-  allDimFields: string[], valoriFields: string[],
+  _allDimFields: string[], valoriFields: string[],
 ): Promise<WriteRow[]> {
   assertValidIdentifier(schema, 'schema');
   assertValidIdentifier(writeTable, 'writeTable');
@@ -187,18 +308,273 @@ export async function loadWriteRows(
   );
   if (!exists || (exists.cnt as unknown as number) === 0) return [];
 
-  const selectCols = [...allDimFields, ...valoriFields].map((f) => `[${f}]`).join(', ');
+  // SELECT * so we get every column the WRITE table has, regardless of what isFactDim
+  // excludes. The table may have been created with more dimension columns than allDimFields
+  // currently lists (e.g. dimTable fields are still real fact-table columns).
   const rows = await dbAll<Record<string, unknown>>(
-    `SELECT ${selectCols} FROM [${schema}].[${writeTable}]`,
+    `SELECT * FROM [${schema}].[${writeTable}]`,
   );
+
+  const valoriSet = new Set(valoriFields);
+  const metaCols  = new Set(['UpdatedBy', 'UpdatedAt']);
 
   return rows.map((row) => {
     const dimensionValues: Record<string, string> = {};
-    allDimFields.forEach((f) => { dimensionValues[f] = row[f] != null ? String(row[f]) : ''; });
     const values: Record<string, string | null> = {};
-    valoriFields.forEach((f) => { values[f] = row[f] != null ? String(row[f]) : null; });
+    for (const [key, val] of Object.entries(row)) {
+      if (metaCols.has(key)) continue;
+      if (valoriSet.has(key)) {
+        values[key] = val != null ? String(val) : null;
+      } else {
+        dimensionValues[key] = val != null ? String(val) : '';
+      }
+    }
+    // Guarantee all declared value fields are present (null if missing from row)
+    valoriFields.forEach((f) => { if (!(f in values)) values[f] = null; });
     return { dimensionValues, values };
   });
+}
+
+// ── loadFiltriDimMapping ──────────────────────────────────────────────────────
+/**
+ * For "pure dim-table-only" filtri fields (dimTable set, no paramTableId) that map
+ * to ROWS (i.e. their dimTable does NOT match any colonne dimTable), builds:
+ *   fieldName → filterValue → array of primary-row field values
+ *
+ * When primaryRiga itself comes from a dimTable (e.g. DescrizioneKPI lives in the
+ * KPI dim, not directly in the fact table), the rowKey is read from the dim-table
+ * alias rather than from [f].  This matches the pathValues populated by
+ * loadAggregatedFactRows which now selects the display column from the dim table.
+ */
+export async function loadFiltriDimMapping(
+  schemaName: string,
+  factTable:  string,
+  joinConfig: Array<{ leftKey: string; rightTable: string; rightKey?: string; joinType?: string }>,
+  layout:     DataEntryGridResponse['layout'],
+  _reportId:  number,
+): Promise<Record<string, Record<string, string[]>>> {
+  const result: Record<string, Record<string, string[]>> = {};
+
+  const dimRighe = layout.righe.filter(
+    (f) => !!(f as any).dimTable && !(f as any).paramTableId && !isGroupingItem(f),
+  ) as any[];
+  if (dimRighe.length === 0) return result;
+
+  const primaryRiga    = dimRighe[dimRighe.length - 1];
+  const rigaFieldName  = primaryRiga.fieldName as string;
+  const rigaDimTable   = (primaryRiga as any).dimTable as string | null;
+  assertValidIdentifier(rigaFieldName, 'filtriMapping rigaFieldName');
+
+  // Resolve the righe dim join (used when rigaFieldName lives in a dim table, not in [f])
+  let rigaJoin: { leftKey: string; rightTable: string; rightKey?: string } | null = null;
+  if (rigaDimTable) {
+    const [, rTbl] = splitFact(rigaDimTable);
+    const idx = joinConfig.findIndex(
+      (j) => splitFact(j.rightTable)[1].toLowerCase() === rTbl.toLowerCase(),
+    );
+    if (idx >= 0) rigaJoin = joinConfig[idx];
+  }
+
+  // Colonne dimTables: filtri whose dimTable matches a colonne field are column filters
+  // and are handled by loadFiltriColonneMapping — skip them here.
+  const colonneDimTbls = new Set(
+    layout.colonne
+      .filter((f) => !!(f as any).dimTable && !(f as any).paramTableId)
+      .map((f) => splitFact((f as any).dimTable as string)[1].toLowerCase()),
+  );
+
+  const dimFiltri = layout.filtri.filter(
+    (f) => !!(f as any).dimTable && !(f as any).paramTableId && !isGroupingItem(f),
+  ) as any[];
+  if (dimFiltri.length === 0) return result;
+
+  for (const filtro of dimFiltri) {
+    const filtroFieldName = filtro.fieldName as string;
+    const filtroDimTable  = filtro.dimTable  as string;
+    const [fSchema, fTbl] = splitFact(filtroDimTable);
+
+    // Skip column-type filtri (handled by loadFiltriColonneMapping)
+    if (colonneDimTbls.has(fTbl.toLowerCase())) continue;
+
+    const filtroJoinIdx = joinConfig.findIndex(
+      (j) => splitFact(j.rightTable)[1].toLowerCase() === fTbl.toLowerCase(),
+    );
+    if (filtroJoinIdx < 0) continue;
+    const filtroJoin = joinConfig[filtroJoinIdx];
+
+    try {
+      assertValidIdentifier(filtroJoin.leftKey, 'filtriMapping filtroJoin.leftKey');
+      assertValidIdentifier(fTbl,               'filtriMapping fTbl');
+      assertValidIdentifier(filtroFieldName,    'filtriMapping filtroFieldName');
+
+      const filtroRKey = filtroJoin.rightKey ?? filtroJoin.leftKey;
+      assertValidIdentifier(filtroRKey, 'filtriMapping filtroRKey');
+
+      let sql: string;
+
+      if (rigaJoin) {
+        // rigaFieldName lives in a dim table — read it from the dim alias, not [f].
+        const rigaRKey    = rigaJoin.rightKey ?? rigaJoin.leftKey;
+        const [rSchema, rTbl] = splitFact(rigaDimTable!);
+        assertValidIdentifier(rigaJoin.leftKey, 'filtriMapping rigaJoin.leftKey');
+        assertValidIdentifier(rTbl,             'filtriMapping rigaTbl');
+        assertValidIdentifier(rigaRKey,         'filtriMapping rigaRKey');
+
+        // Same dim table for both riga and filtro → reuse a single join alias.
+        if (rTbl.toLowerCase() === fTbl.toLowerCase()) {
+          sql = `
+            SELECT DISTINCT
+              [fdim].[${rigaFieldName}]   AS [_rowKey],
+              [fdim].[${filtroFieldName}] AS [_filtroVal]
+            FROM   [${schemaName}].[${factTable}] [f]
+            LEFT JOIN [${fSchema}].[${fTbl}] [fdim]
+                   ON [f].[${filtroJoin.leftKey}] = [fdim].[${filtroRKey}]
+            WHERE  [fdim].[${rigaFieldName}]   IS NOT NULL
+              AND  [fdim].[${filtroFieldName}] IS NOT NULL
+          `;
+        } else {
+          // Different dim tables — two joins required.
+          sql = `
+            SELECT DISTINCT
+              [rdim].[${rigaFieldName}]   AS [_rowKey],
+              [fdim].[${filtroFieldName}] AS [_filtroVal]
+            FROM   [${schemaName}].[${factTable}] [f]
+            LEFT JOIN [${rSchema}].[${rTbl}] [rdim]
+                   ON [f].[${rigaJoin.leftKey}] = [rdim].[${rigaRKey}]
+            LEFT JOIN [${fSchema}].[${fTbl}] [fdim]
+                   ON [f].[${filtroJoin.leftKey}] = [fdim].[${filtroRKey}]
+            WHERE  [rdim].[${rigaFieldName}]   IS NOT NULL
+              AND  [fdim].[${filtroFieldName}] IS NOT NULL
+          `;
+        }
+      } else {
+        // Original path: rigaFieldName is a direct column in the fact table.
+        sql = `
+          SELECT DISTINCT
+            [f].[${rigaFieldName}]        AS [_rowKey],
+            [fdim].[${filtroFieldName}]   AS [_filtroVal]
+          FROM   [${schemaName}].[${factTable}] [f]
+          LEFT JOIN [${fSchema}].[${fTbl}] [fdim]
+                 ON [f].[${filtroJoin.leftKey}] = [fdim].[${filtroRKey}]
+          WHERE  [f].[${rigaFieldName}]      IS NOT NULL
+            AND  [fdim].[${filtroFieldName}] IS NOT NULL
+        `;
+      }
+
+      const rows = await dbAll<{ _rowKey: string; _filtroVal: string }>(sql);
+
+      const mapping: Record<string, string[]> = {};
+      for (const row of rows) {
+        const fv = String(row._filtroVal);
+        const rk = String(row._rowKey);
+        if (!mapping[fv]) mapping[fv] = [];
+        if (!mapping[fv].includes(rk)) mapping[fv].push(rk);
+      }
+      result[filtroFieldName] = mapping;
+    } catch (err) {
+      console.warn(
+        `[filtriDimMapping] could not build mapping for "${filtroFieldName}":`,
+        (err as Error).message,
+      );
+    }
+  }
+
+  return result;
+}
+
+// ── loadFiltriColonneMapping ──────────────────────────────────────────────────
+/**
+ * For "pure dim-table-only" filtri fields whose dimTable matches a COLONNE field's
+ * dimTable, builds a column-level filter mapping:
+ *   fieldName → filterValue → array of colonna field values visible under that filter.
+ *
+ * Used by the frontend to hide/show column headers when such a filter is active.
+ */
+export async function loadFiltriColonneMapping(
+  schemaName: string,
+  factTable:  string,
+  joinConfig: Array<{ leftKey: string; rightTable: string; rightKey?: string; joinType?: string }>,
+  layout:     DataEntryGridResponse['layout'],
+): Promise<Record<string, Record<string, string[]>>> {
+  const result: Record<string, Record<string, string[]>> = {};
+
+  // Colonne fields that come from a dim table
+  const dimColonne = layout.colonne.filter(
+    (f) => !!(f as any).dimTable && !(f as any).paramTableId && !isGroupingItem(f),
+  ) as any[];
+  if (dimColonne.length === 0) return result;
+
+  // Build a set of colonne dimTable names → their leaf fieldName
+  const colonneDimMap = new Map<string, { fieldName: string; dimTable: string }>();
+  for (const c of dimColonne) {
+    const [, tbl] = splitFact((c as any).dimTable as string);
+    colonneDimMap.set(tbl.toLowerCase(), { fieldName: c.fieldName, dimTable: (c as any).dimTable });
+  }
+
+  // Only process filtri that match a colonne dimTable
+  const colonneFiltri = layout.filtri.filter((f) => {
+    if (!(f as any).dimTable || (f as any).paramTableId || isGroupingItem(f)) return false;
+    const [, fTbl] = splitFact((f as any).dimTable as string);
+    return colonneDimMap.has(fTbl.toLowerCase());
+  }) as any[];
+  if (colonneFiltri.length === 0) return result;
+
+  for (const filtro of colonneFiltri) {
+    const filtroFieldName = filtro.fieldName as string;
+    const filtroDimTable  = filtro.dimTable  as string;
+    const [fSchema, fTbl] = splitFact(filtroDimTable);
+
+    // Find the colonna field that shares this dim table
+    const colonnaInfo = colonneDimMap.get(fTbl.toLowerCase());
+    if (!colonnaInfo) continue;
+    const colonnaFieldName = colonnaInfo.fieldName;
+
+    const filtroJoinIdx = joinConfig.findIndex(
+      (j) => splitFact(j.rightTable)[1].toLowerCase() === fTbl.toLowerCase(),
+    );
+    if (filtroJoinIdx < 0) continue;
+    const filtroJoin = joinConfig[filtroJoinIdx];
+
+    try {
+      assertValidIdentifier(filtroJoin.leftKey, 'filtriColMapping filtroJoin.leftKey');
+      assertValidIdentifier(fTbl,               'filtriColMapping fTbl');
+      assertValidIdentifier(filtroFieldName,    'filtriColMapping filtroFieldName');
+      assertValidIdentifier(colonnaFieldName,   'filtriColMapping colonnaFieldName');
+
+      const filtroRKey = filtroJoin.rightKey ?? filtroJoin.leftKey;
+      assertValidIdentifier(filtroRKey, 'filtriColMapping filtroRKey');
+
+      // Both colonnaFieldName and filtroFieldName live in the same dim table (fdim)
+      const sql = `
+        SELECT DISTINCT
+          [fdim].[${colonnaFieldName}]  AS [_colKey],
+          [fdim].[${filtroFieldName}]   AS [_filtroVal]
+        FROM   [${schemaName}].[${factTable}] [f]
+        LEFT JOIN [${fSchema}].[${fTbl}] [fdim]
+               ON [f].[${filtroJoin.leftKey}] = [fdim].[${filtroRKey}]
+        WHERE  [fdim].[${colonnaFieldName}]  IS NOT NULL
+          AND  [fdim].[${filtroFieldName}]   IS NOT NULL
+      `;
+
+      const rows = await dbAll<{ _colKey: string; _filtroVal: string }>(sql);
+
+      const mapping: Record<string, string[]> = {};
+      for (const row of rows) {
+        const fv = String(row._filtroVal);
+        const ck = String(row._colKey);
+        if (!mapping[fv]) mapping[fv] = [];
+        if (!mapping[fv].includes(ck)) mapping[fv].push(ck);
+      }
+      result[filtroFieldName] = mapping;
+    } catch (err) {
+      console.warn(
+        `[filtriColMapping] could not build mapping for "${filtroFieldName}":`,
+        (err as Error).message,
+      );
+    }
+  }
+
+  return result;
 }
 
 // ── resolveDistinctSource ─────────────────────────────────────────────────────
@@ -242,7 +618,8 @@ export async function loadAggregatedFactRows(
   // Pure dim-only righe/colonne: dimTable set AND no paramTableId → handled via JOIN
   const dimRighe   = layout.righe.filter((f) => !!(f as any).dimTable && !(f as any).paramTableId) as any[];
   const dimColonne = layout.colonne.filter((f) => !!(f as any).dimTable && !(f as any).paramTableId) as any[];
-  if (dimRighe.length === 0 && dimColonne.length === 0) return [];
+  // Return early only if there are no JOIN-based dims AND no direct fact-level dims to SELECT
+  if (dimRighe.length === 0 && dimColonne.length === 0 && factDimFields.length === 0) return [];
 
   const selectParts:  string[] = [];
   const groupByParts: string[] = [];
@@ -280,8 +657,11 @@ export async function loadAggregatedFactRows(
     joinClauses.push(
       `LEFT JOIN [${dSchema}].[${dTbl}] [${alias}] ON [f].[${j.leftKey}] = [${alias}].[${rKey}]`,
     );
-    selectParts.push(`[${alias}].[${rKey}] AS [${fieldName}]`);
-    groupByParts.push(`[${alias}].[${rKey}]`);
+    // Select the display column (fieldName) from the dim table, not the join key (rKey).
+    // The row headers are loaded from the fieldName column; fact rows must match them.
+    assertValidIdentifier(fieldName, `agg dim righe display field "${fieldName}"`);
+    selectParts.push(`[${alias}].[${fieldName}] AS [${fieldName}]`);
+    groupByParts.push(`[${alias}].[${fieldName}]`);
   }
 
   for (const c of dimColonne) {
@@ -397,7 +777,14 @@ export async function getDataEntryGrid(reportId: number): Promise<DataEntryGridR
         };
       } catch (err) {
         console.warn(`[filtriOptions] could not load values for "${f.fieldName}" from [${qSchema}].[${qTable}]:`, (err as Error).message);
-        return { fieldName: f.fieldName, label: f.label, values: [] };
+        // Fallback: try WRITE table (filter dims may only exist there, not in fact/join tables)
+        try {
+          const values = await getDistinctColValues(schemaName, writeTable, f.fieldName);
+          return { fieldName: f.fieldName, label: f.label, values };
+        } catch {
+          console.warn(`[filtriOptions] fallback WRITE table also failed for "${f.fieldName}" from [${schemaName}].[${writeTable}]`);
+          return { fieldName: f.fieldName, label: f.label, values: [] };
+        }
       }
     }),
   );
@@ -424,16 +811,16 @@ export async function getDataEntryGrid(reportId: number): Promise<DataEntryGridR
     }),
   );
 
-  // 6. Write rows — exclude virtual _Grouping fields (not stored in WRITE table).
-  // Param-based fields (paramTableId set) are fact-level dimensions and belong in the write
-  // table even when they also carry a dimTable (dimTable = hierarchy source, not exclusion flag).
-  // Pure dim-table-only fields (dimTable set, no paramTableId) are excluded — they are not
-  // columns in the fact/write table (e.g. a pure hierarchy like STAKEHOLDER from a dim view).
-  const isFactDim = (f: { paramTableId?: number | null; dimTable?: unknown }) =>
+  // 6. Compute expected dim fields (used for filtriOptions resolution; loadWriteRows uses SELECT *).
+  // FILTRI: exclude pure dim-table-only fields (they filter the view, not stored per row).
+  // RIGHE: include ALL non-grouping fields — row fields are the primary key of the WRITE table.
+  const isFactFiltro = (f: { paramTableId?: number | null; dimTable?: unknown }) =>
     !isGroupingItem(f as any) && (!(f as any).dimTable || !!(f as any).paramTableId);
+  const isFactRiga = (f: { paramTableId?: number | null; dimTable?: unknown }) =>
+    !isGroupingItem(f as any); // All row dims stored, including dimTable-only ones
 
-  const factFiltriFields  = layout.filtri.filter(isFactDim).map((f) => f.fieldName);
-  const factRigheFields   = layout.righe.filter(isFactDim).map((f) => f.fieldName);
+  const factFiltriFields  = layout.filtri.filter(isFactFiltro).map((f) => f.fieldName);
+  const factRigheFields   = layout.righe.filter(isFactRiga).map((f) => f.fieldName);
   const factColonneFields = layout.colonne.filter((f) => !isGroupingItem(f)).map((f) => f.fieldName);
   const allDimFields      = [...factFiltriFields, ...factRigheFields, ...factColonneFields];
 
@@ -475,6 +862,14 @@ export async function getDataEntryGrid(reportId: number): Promise<DataEntryGridR
   // 7. Approval state
   const approvedRows = await getRowApprovalsArray(reportId);
 
+  // 8. Filtri dim/colonne mappings for pure dim-table-only filtri fields.
+  //    Provides filterValue → [rowKey, ...] for row-level filtering, and
+  //    filterValue → [colKey, ...] for column-level filtering in the frontend.
+  const [filtriDimMapping, filtriColonneMapping] = await Promise.all([
+    loadFiltriDimMapping(schemaName, factTable, joinConfig, layout, reportId),
+    loadFiltriColonneMapping(schemaName, factTable, joinConfig, layout),
+  ]);
+
   return {
     bindingInfo: { factTable, schemaName, writeTable },
     layout,
@@ -483,5 +878,7 @@ export async function getDataEntryGrid(reportId: number): Promise<DataEntryGridR
     colonneOptions,
     writeRows,
     approvedRows,
+    filtriDimMapping:    Object.keys(filtriDimMapping).length    > 0 ? filtriDimMapping    : undefined,
+    filtriColonneMapping: Object.keys(filtriColonneMapping).length > 0 ? filtriColonneMapping : undefined,
   };
 }

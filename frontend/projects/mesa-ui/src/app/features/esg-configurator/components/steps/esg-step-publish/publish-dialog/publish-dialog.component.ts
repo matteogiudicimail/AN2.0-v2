@@ -9,8 +9,13 @@ import {
 import { SearchableSelectItem } from '../../../shared/cfg-searchable-select/cfg-searchable-select.component';
 
 interface FilterField {
-  fieldName: string;
-  label:     string;
+  fieldName:      string;
+  label:          string;
+  dimTable?:      string | null;
+  defaultValue?:  string | null;
+  options:        string[];
+  optionsLoading: boolean;
+  optionsError:   string | null;
 }
 
 @Component({
@@ -51,27 +56,49 @@ export class PublishDialogComponent implements OnInit {
     });
 
     forkJoin({
-      menu:   this.svc.getMenuTree().pipe(catchError(() => of([] as MenuTreeNode[]))),
-      layout: this.svc.getEntryLayout(this.reportId).pipe(catchError(() => of(null))),
-    }).subscribe(({ menu, layout }) => {
+      menu:    this.svc.getMenuTree().pipe(catchError(() => of([] as MenuTreeNode[]))),
+      layout:  this.svc.getEntryLayout(this.reportId).pipe(catchError(() => of(null))),
+      binding: this.svc.getBinding(this.reportId).pipe(catchError(() => of(null))),
+    }).subscribe(({ menu, layout, binding }) => {
       this.menuItems = this.flattenMenuTree(menu, 0);
 
       if (layout) {
-        this.filterFields = (layout.config as EntryLayoutConfig).filters.map((f) => ({
-          fieldName: f.fieldName,
-          label:     f.label,
+        const cfg = layout.config as EntryLayoutConfig;
+        this.filterFields = cfg.filters.map((f) => ({
+          fieldName:      f.fieldName,
+          label:          f.label,
+          dimTable:       f.dimTable ?? null,
+          defaultValue:   f.defaultValue ?? null,
+          options:        [],
+          optionsLoading: true,
+          optionsError:   null,
         }));
-        // Pre-populate from saved task
+
+        // Pre-populate: saved task values take priority, else layout defaultValue
         if (this.task?.defaultFilters) {
           try {
             const saved = JSON.parse(this.task.defaultFilters) as Record<string, string>;
             this.defaultFilterValues = { ...saved };
           } catch {
-            this.defaultFilterValues = {};
+            this.filterFields.forEach((f) => { this.defaultFilterValues[f.fieldName] = f.defaultValue ?? ''; });
           }
         } else {
-          this.filterFields.forEach((f) => { this.defaultFilterValues[f.fieldName] = ''; });
+          this.filterFields.forEach((f) => { this.defaultFilterValues[f.fieldName] = f.defaultValue ?? ''; });
         }
+
+        // Load distinct options for each filter field
+        const factTable = binding?.factTable ?? '';
+        this.filterFields.forEach((f) => {
+          const ctx = this.resolveDistinctContext(f, factTable);
+          if (!ctx) {
+            f.optionsLoading = false;
+            return;
+          }
+          this.svc.getDistinctValues(ctx.schema, ctx.table, ctx.column, 500).subscribe({
+            next:  (r) => { f.options = r.values ?? []; f.optionsLoading = false; },
+            error: ()  => { f.optionsError = 'Impossibile caricare i valori.'; f.optionsLoading = false; },
+          });
+        });
       }
       this.isLoading = false;
     });
@@ -131,4 +158,23 @@ export class PublishDialogComponent implements OnInit {
   }
 
   trackByField(_: number, f: FilterField): string { return f.fieldName; }
+
+  private resolveDistinctContext(
+    f: FilterField, factTable: string,
+  ): { schema: string; table: string; column: string } | null {
+    const splitFact = (t: string): [string, string] => {
+      if (!t) return ['dbo', ''];
+      const dot = t.lastIndexOf('.');
+      return dot >= 0 ? [t.slice(0, dot), t.slice(dot + 1)] : ['dbo', t];
+    };
+    if (f.dimTable) {
+      const [s, t] = splitFact(f.dimTable);
+      return { schema: s, table: t, column: f.fieldName };
+    }
+    if (factTable) {
+      const [s, t] = splitFact(factTable);
+      return { schema: s, table: t, column: f.fieldName };
+    }
+    return null;
+  }
 }

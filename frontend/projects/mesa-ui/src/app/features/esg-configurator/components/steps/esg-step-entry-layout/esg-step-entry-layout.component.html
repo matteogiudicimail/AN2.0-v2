@@ -1,13 +1,13 @@
-<div class="cfg-el-shell">
+<div class="cfg-el-shell" [class.cfg-el-shell--embedded]="embedded">
 
   <!-- Binding missing -->
   <div *ngIf="!isLoading && !binding" class="cfg-alert cfg-alert--info" role="status">
-    Configure the binding in Step 2 (Data Model) first.
+    Configura il binding nello Step 2 (Modello Dati) prima di procedere.
   </div>
 
   <!-- Loading -->
   <div *ngIf="isLoading" class="cfg-el-loading" role="status" aria-live="polite">
-    <span class="cfg-spinner"></span> Loading configuration…
+    <span class="cfg-spinner"></span> Caricamento configurazione…
   </div>
 
   <!-- Alert banners -->
@@ -16,227 +16,506 @@
 
   <ng-container *ngIf="!isLoading && binding">
 
-    <!-- Available fields pool — grouped by source table -->
-    <section class="cfg-el-pool" aria-label="Available fields">
-      <h3 class="cfg-el-pool__title">
-        Available Fields
-        <span *ngIf="usingDbFallback" class="cfg-badge cfg-badge--info"
-              title="No field mappings configured in Step 2 — showing all fact table columns">
-          DB columns
-        </span>
-      </h3>
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <!-- Excel-style PivotTable panel: fields (top) + 2×2 zones (bottom)  -->
+    <!-- ═══════════════════════════════════════════════════════════════════ -->
+    <div class="cfg-el-designer">
 
-      <ng-container *ngIf="fieldGroups.length > 0; else noGroups">
-        <div *ngFor="let group of fieldGroups; trackBy: trackByGroup" class="cfg-el-pool__group">
-          <h4 class="cfg-el-pool__group-label">{{ group }}</h4>
-          <div class="cfg-el-pool__chips" role="list">
-            <span *ngFor="let f of fieldsInGroup(group); trackBy: trackByField"
-                  class="cfg-el-chip cfg-el-chip--pool"
-                  [class.cfg-el-chip--assigned]="isAssigned(f.fieldName)"
-                  role="listitem"
-                  [title]="f.fieldName + (f.fieldType !== 'column' ? ' (' + f.fieldType + ')' : '')">
-              {{ fieldTypeIcon(f.fieldType) }} {{ f.label }}
-            </span>
-          </div>
+      <!-- ─── EXCEL PANEL: single vertical container ─── -->
+      <div class="cfg-el-excel-panel">
+
+      <!-- ─── TOP: field list ─── -->
+      <aside class="cfg-el-field-panel" aria-label="Campi disponibili">
+
+        <div class="cfg-el-field-panel__header">
+          <span class="cfg-el-field-panel__title">CAMPI DISPONIBILI</span>
+          <span class="cfg-badge">{{ allFields.length }}</span>
         </div>
-      </ng-container>
 
-      <ng-template #noGroups>
-        <div class="cfg-el-pool__chips" role="list">
-          <span *ngFor="let f of allFields; trackBy: trackByField"
-                class="cfg-el-chip cfg-el-chip--pool"
-                [class.cfg-el-chip--assigned]="isAssigned(f.fieldName)"
-                role="listitem">
-            {{ fieldTypeIcon(f.fieldType) }} {{ f.label }}
-          </span>
-          <span *ngIf="allFields.length === 0" class="cfg-text-muted">
-            No fields in binding — configure mappings in Step 2.
-          </span>
+        <div class="cfg-el-field-panel__search">
+          <input type="search"
+                 class="cfg-input cfg-el-field-panel__search-input"
+                 placeholder="🔍 Cerca campo…"
+                 [(ngModel)]="fieldPanelSearch"
+                 aria-label="Cerca campo" />
         </div>
-      </ng-template>
-    </section>
 
-    <!-- 2×2 zone grid: Filters | Columns / Rows | Values -->
-    <div class="cfg-el-zones">
+        <!-- Field groups -->
+        <div class="cfg-el-field-panel__list" role="list">
+          <ng-container *ngFor="let group of visibleFieldGroups; trackBy: trackByGroup">
+            <div class="cfg-el-field-group">
 
-      <ng-container *ngFor="let zone of zones; trackBy: trackByZone">
-        <section class="cfg-el-zone" [attr.aria-label]="zoneMeta[zone].title">
-
-          <!-- Zone header -->
-          <div class="cfg-el-zone__header">
-            <span class="cfg-el-zone__icon">{{ zoneMeta[zone].icon }}</span>
-            <h4 class="cfg-el-zone__title">{{ zoneMeta[zone].title }}</h4>
-            <span class="cfg-el-zone__count cfg-badge">
-              {{ zone === 'values' ? getValueItems().length : getAxisItems(zone).length }}
-            </span>
-          </div>
-          <p class="cfg-el-zone__hint">{{ zoneMeta[zone].hint }}</p>
-
-          <!-- Axis zone items (filters / rows / columns) with drag-drop -->
-          <div *ngIf="isAxisZone(zone)"
-               class="cfg-el-zone__items"
-               role="list"
-               cdkDropList
-               [cdkDropListData]="getAxisItems(zone)"
-               (cdkDropListDropped)="onDrop($event, zone)"
-               [attr.aria-label]="'Field order — ' + zoneMeta[zone].title + ', drag to reorder'">
-            <div *ngFor="let item of getAxisItems(zone); trackBy: trackByAxisItem"
-                 class="cfg-el-chip-row"
-                 role="listitem"
-                 cdkDrag
-                 [cdkDragData]="item">
-              <span class="cfg-el-chip__drag-handle"
-                    cdkDragHandle
-                    title="Drag to reorder"
-                    aria-label="Drag to reorder">⠿</span>
-              <span class="cfg-el-chip cfg-el-chip--assigned">
-                {{ item.label }}
-                <button class="cfg-el-chip__remove"
-                        (click)="removeFromZone(zone, item.fieldName)"
-                        [attr.aria-label]="'Remove ' + item.label + ' from ' + zoneMeta[zone].title">
-                  ✕
-                </button>
-              </span>
-              <!-- Param toggle -->
-              <button *ngIf="hasParamTable(item.fieldName)"
-                      class="cfg-el-param-toggle"
-                      [class.cfg-el-param-toggle--on]="isParamEnabled(zone, item.fieldName)"
-                      (click)="toggleParam(zone, item.fieldName)"
-                      [title]="isParamEnabled(zone, item.fieldName)
-                        ? 'PARAM values active — click to deactivate'
-                        : 'Activate PARAM values: ' + getParamTable(item.fieldName)?.paramTableName"
-                      [attr.aria-pressed]="isParamEnabled(zone, item.fieldName)">
-                ⚙ params
+              <!-- Group header -->
+              <button class="cfg-el-field-group__header"
+                      type="button"
+                      (click)="toggleFieldGroup(group)"
+                      [attr.aria-expanded]="!fieldGroupCollapsed[group]">
+                <span class="cfg-el-field-group__toggle">{{ fieldGroupCollapsed[group] ? '▶' : '▼' }}</span>
+                <span class="cfg-el-field-group__name">{{ group }}</span>
+                <span class="cfg-badge cfg-badge--sm">{{ fieldsInGroupFiltered(group).length }}</span>
               </button>
-              <!-- Dim table selector -->
-              <select *ngIf="joinedTables.length > 0"
-                      class="cfg-el-dim-select"
-                      [ngModel]="getDimTable(zone, item.fieldName)"
-                      (ngModelChange)="setDimTable(zone, item.fieldName, $event)"
-                      [title]="'Dim table for hierarchy (current: ' + (getDimTable(zone, item.fieldName) || 'none') + ')'"
-                      [attr.aria-label]="'Dim table for ' + item.label">
-                <option value="">— no dim —</option>
-                <option *ngFor="let t of joinedTables" [value]="t">🏔 {{ t }}</option>
-              </select>
-              <!-- Skip depths -->
-              <label *ngIf="zone === 'rows' && getDimTable(zone, item.fieldName)"
-                     class="cfg-el-skip-label"
-                     [title]="'Skip first N hierarchy levels (0 = show all)'">
-                Skip levels:
-                <input type="number" min="0" max="10" step="1"
-                       class="cfg-el-skip-input"
-                       [ngModel]="getSkipDepths(zone, item.fieldName)"
-                       (ngModelChange)="setSkipDepths(zone, item.fieldName, $event)" />
-              </label>
-              <!-- Locked members (columns zone only) — opens guided checklist dialog -->
-              <span *ngIf="zone === 'columns'" class="cfg-el-lock-wrap">
-                <button class="cfg-btn cfg-btn--xs cfg-btn--ghost cfg-el-lock-btn"
-                        type="button"
-                        [attr.aria-label]="'Lock members for ' + item.label"
-                        [title]="'Select which column values are locked (read-only) in the grid'"
-                        (click)="openLockDialog(item.fieldName)">
-                  🔒 Lock
-                  <span *ngIf="getLockedMembersCount(item.fieldName) > 0"
-                        class="cfg-el-lock-badge">
-                    {{ getLockedMembersCount(item.fieldName) }}
-                  </span>
-                </button>
-              </span>
-            </div>
-            <p *ngIf="getAxisItems(zone).length === 0" class="cfg-el-zone__empty">
-              No fields assigned
-            </p>
-          </div>
 
-          <!-- Values zone items with drag-drop -->
-          <div *ngIf="!isAxisZone(zone)"
-               class="cfg-el-zone__items"
-               role="list"
-               cdkDropList
-               [cdkDropListData]="getValueItems()"
-               (cdkDropListDropped)="onDrop($event, 'values')"
-               aria-label="Field order — Values, drag to reorder">
-            <div *ngFor="let item of getValueItems(); trackBy: trackByValueItem"
-                 class="cfg-el-chip-row cfg-el-chip-row--value"
-                 role="listitem"
-                 cdkDrag
-                 [cdkDragData]="item">
-              <span class="cfg-el-chip__drag-handle"
-                    cdkDragHandle
-                    title="Drag to reorder"
-                    aria-label="Drag to reorder">⠿</span>
-              <span class="cfg-el-chip cfg-el-chip--value">
-                {{ item.label }}
-                <button class="cfg-el-chip__remove"
-                        (click)="removeFromZone(zone, item.fieldName)"
-                        [attr.aria-label]="'Remove ' + item.label + ' from Values'">
-                  ✕
-                </button>
-              </span>
-              <select class="cfg-el-agg-select"
-                      [ngModel]="item.aggregation"
-                      (ngModelChange)="setAggregation(item.fieldName, $event)"
-                      [attr.aria-label]="'Aggregation for ' + item.label"
-                      title="Aggregation function">
-                <option *ngFor="let a of aggregations" [value]="a.value">{{ a.label }}</option>
-              </select>
-            </div>
-            <p *ngIf="getValueItems().length === 0" class="cfg-el-zone__empty">
-              No fields assigned
-            </p>
-          </div>
+              <!-- Field items -->
+              <div *ngIf="!fieldGroupCollapsed[group]" class="cfg-el-field-group__items" role="list">
+                <ng-container *ngFor="let f of fieldsInGroupFiltered(group); trackBy: trackByField">
 
-          <!-- Add field control -->
-          <div class="cfg-el-zone__add">
-            <select class="cfg-select cfg-el-zone__add-select"
-                    [(ngModel)]="addPending[zone]"
-                    [attr.aria-label]="'Add field to ' + zoneMeta[zone].title">
-              <option value="">— add field —</option>
-              <option *ngFor="let f of availableForZone(zone); trackBy: trackByField"
-                      [value]="f.fieldName">
-                {{ fieldTypeIcon(f.fieldType) }} {{ f.label }}{{ f.groupLabel ? ' (' + f.groupLabel + ')' : '' }}
-              </option>
-            </select>
-            <button class="cfg-btn cfg-btn--ghost cfg-btn--sm"
-                    [disabled]="!addPending[zone]"
-                    (click)="addToZone(zone)"
-                    [attr.aria-label]="'Add selected field to ' + zoneMeta[zone].title">
-              + Add
-            </button>
-          </div>
+                  <!-- Field row -->
+                  <div class="cfg-el-field-item"
+                       role="listitem"
+                       [class.cfg-el-field-item--assigned]="getFieldZone(f.fieldName) !== null"
+                       [class.cfg-el-field-item--active]="activePanelField === f.fieldName"
+                       (click)="togglePanelField(f.fieldName)">
 
-        </section>
-      </ng-container>
+                    <span class="cfg-el-field-item__icon" aria-hidden="true">{{ fieldTypeIcon(f.fieldType) }}</span>
+                    <span class="cfg-el-field-item__label">{{ f.label }}</span>
 
-    </div>
+                    <!-- Zone badge (assigned) -->
+                    <span *ngIf="getFieldZone(f.fieldName) as z"
+                          class="cfg-el-field-item__zone-badge cfg-el-field-item__zone-badge--{{ z }}"
+                          [title]="zoneMeta[z].title">
+                      {{ zoneBadge(z) }}
+                    </span>
 
-    <!-- Save bar -->
-    <div class="cfg-el-savebar">
-      <button class="cfg-btn cfg-btn--primary"
-              [disabled]="isSaving"
-              (click)="saveLayout()">
-        {{ isSaving ? 'Saving…' : 'Save Layout' }}
-      </button>
-      <span *ngIf="layoutId" class="cfg-text-muted" style="font-size:11px">
-        Layout ID {{ layoutId }}
-      </span>
-    </div>
+                    <!-- Plus (unassigned) -->
+                    <span *ngIf="!getFieldZone(f.fieldName)"
+                          class="cfg-el-field-item__add"
+                          aria-hidden="true">+</span>
+
+                  </div><!-- /field row -->
+
+                  <!-- Inline zone picker (expands below when field is active) -->
+                  <div *ngIf="activePanelField === f.fieldName"
+                       class="cfg-el-zone-picker"
+                       role="group"
+                       [attr.aria-label]="'Azioni per ' + f.label">
+
+                    <ng-container *ngIf="getFieldZone(f.fieldName) === null; else assignedActions">
+                      <!-- Unassigned: choose zone -->
+                      <p class="cfg-el-zone-picker__label">Aggiungi a:</p>
+                      <div class="cfg-el-zone-picker__btns">
+                        <button *ngFor="let z of zones; trackBy: trackByZone"
+                                class="cfg-btn cfg-btn--xs cfg-el-zone-picker__btn"
+                                [class.cfg-el-zone-picker__btn--filters]="z === 'filters'"
+                                [class.cfg-el-zone-picker__btn--rows]="z === 'rows'"
+                                [class.cfg-el-zone-picker__btn--columns]="z === 'columns'"
+                                [class.cfg-el-zone-picker__btn--values]="z === 'values'"
+                                [disabled]="!canAddToZone(f.fieldName, z)"
+                                type="button"
+                                (click)="addFromPanel(z, f.fieldName); $event.stopPropagation()"
+                                [title]="canAddToZone(f.fieldName, z) ? ('Aggiungi a ' + zoneMeta[z].title) : 'Non compatibile con questa zona'">
+                          {{ zoneMeta[z].icon }} {{ zoneMeta[z].title }}
+                        </button>
+                      </div>
+                    </ng-container>
+
+                    <!-- Assigned: settings or remove -->
+                    <ng-template #assignedActions>
+                      <p class="cfg-el-zone-picker__label">
+                        In <strong>{{ zoneMeta[getFieldZone(f.fieldName)!].title }}</strong>
+                      </p>
+                      <div class="cfg-el-zone-picker__btns">
+                        <button class="cfg-btn cfg-btn--xs cfg-btn--ghost"
+                                type="button"
+                                (click)="openSettingsFromPanel(f.fieldName); $event.stopPropagation()">
+                          ⚙ Impostazioni
+                        </button>
+                        <button class="cfg-btn cfg-btn--xs cfg-btn--danger"
+                                type="button"
+                                (click)="removeFromPanel(f.fieldName); $event.stopPropagation()">
+                          ✕ Rimuovi
+                        </button>
+                      </div>
+                      <!-- Move to filters (if not already there) -->
+                      <div *ngIf="getFieldZone(f.fieldName) !== 'filters'"
+                           class="cfg-el-zone-picker__btns cfg-el-zone-picker__btns--secondary">
+                        <button class="cfg-btn cfg-btn--xs cfg-btn--ghost"
+                                type="button"
+                                (click)="moveToFilters(getFieldZone(f.fieldName)!, f.fieldName); activePanelField = null; $event.stopPropagation()">
+                          🔽 Copia a Filtri
+                        </button>
+                      </div>
+                    </ng-template>
+
+                  </div><!-- /zone picker -->
+
+                </ng-container>
+              </div><!-- /field items -->
+
+            </div><!-- /field group -->
+          </ng-container>
+
+          <p *ngIf="visibleFieldGroups.length === 0" class="cfg-el-field-panel__empty">
+            Nessun campo trovato.
+          </p>
+        </div><!-- /list -->
+
+      </aside><!-- /field panel -->
+
+      <!-- ─── RIGHT PANEL: zone dropzones ─── -->
+      <div class="cfg-el-zones-panel">
+
+        <!-- 2×2 zone grid: Filtri | Righe / Colonne | Valori -->
+        <div class="cfg-el-zones-grid">
+
+          <ng-container *ngFor="let zone of zones; trackBy: trackByZone">
+            <section class="cfg-el-zone cfg-el-zone--{{ zone }}"
+                     [attr.aria-label]="zoneMeta[zone].title">
+
+              <!-- Zone header -->
+              <div class="cfg-el-zone__header"
+                   role="button"
+                   (click)="toggleZoneCollapse(zone)"
+                   [attr.aria-expanded]="!zoneCollapsed[zone]">
+                <span class="cfg-el-zone__icon">{{ zoneMeta[zone].icon }}</span>
+                <h4 class="cfg-el-zone__title">{{ zoneMeta[zone].title }}</h4>
+                <span class="cfg-el-zone__count cfg-badge cfg-badge--sm">
+                  {{ zone === 'values' ? getValueItems().length : getAxisItems(zone).length }}
+                </span>
+                <span class="cfg-el-zone__collapse-icon">{{ zoneCollapsed[zone] ? '▶' : '▼' }}</span>
+              </div>
+
+              <!-- Zone body -->
+              <div *ngIf="!zoneCollapsed[zone]" class="cfg-el-zone__body">
+
+                <!-- Axis zone drag-drop list (filters / rows / columns) -->
+                <div *ngIf="isAxisZone(zone)"
+                     class="cfg-el-zone__items"
+                     role="list"
+                     cdkDropList
+                     [cdkDropListData]="getAxisItems(zone)"
+                     (cdkDropListDropped)="onDrop($event, zone)"
+                     [attr.aria-label]="'Campi — ' + zoneMeta[zone].title">
+                  <div *ngFor="let item of getAxisItems(zone); trackBy: trackByAxisItem"
+                       class="cfg-el-chip-row"
+                       role="listitem"
+                       cdkDrag
+                       [cdkDragData]="item">
+                    <span class="cfg-el-chip__drag-handle"
+                          cdkDragHandle
+                          title="Trascina per riordinare"
+                          aria-hidden="true">⠿</span>
+                    <span class="cfg-el-chip cfg-el-chip--assigned cfg-el-chip--zone">
+                      {{ item.label }}
+                    </span>
+                    <!-- Role badge (rows only) -->
+                    <span *ngIf="zone === 'rows'"
+                          class="cfg-el-role-badge"
+                          [class.cfg-el-role-badge--grouping]="getRowRole(item.fieldName) === 'grouping'"
+                          [class.cfg-el-role-badge--detail]="getRowRole(item.fieldName) === 'detail'"
+                          [title]="getRowRole(item.fieldName) === 'grouping' ? 'Raggruppamento' : 'Dettaglio'">
+                      {{ getRowRole(item.fieldName) === 'grouping' ? 'G' : 'D' }}
+                    </span>
+                    <button class="cfg-btn cfg-btn--xs cfg-btn--ghost cfg-el-settings-btn"
+                            [class.cfg-el-settings-btn--has-default]="zone === 'filters' && item.defaultValue"
+                            type="button"
+                            (click)="openSettingsPopup(zone, item.fieldName)"
+                            [attr.aria-label]="'Impostazioni per ' + item.label"
+                            [title]="zone === 'filters' && item.defaultValue ? 'Impostazioni — default: ' + item.defaultValue : 'Impostazioni'">⚙</button>
+                    <button class="cfg-btn cfg-btn--xs cfg-btn--ghost cfg-el-remove-btn"
+                            type="button"
+                            (click)="removeFromZone(zone, item.fieldName)"
+                            [attr.aria-label]="'Rimuovi ' + item.label"
+                            title="Rimuovi">✕</button>
+                  </div>
+                  <p *ngIf="getAxisItems(zone).length === 0" class="cfg-el-zone__empty">
+                    Nessun campo — selezionane uno dal pannello sopra
+                  </p>
+                </div>
+
+                <!-- Values zone drag-drop list -->
+                <div *ngIf="!isAxisZone(zone)"
+                     class="cfg-el-zone__items"
+                     role="list"
+                     cdkDropList
+                     [cdkDropListData]="getValueItems()"
+                     (cdkDropListDropped)="onDrop($event, 'values')"
+                     aria-label="Campi — Valori">
+                  <div *ngFor="let item of getValueItems(); trackBy: trackByValueItem"
+                       class="cfg-el-chip-row cfg-el-chip-row--value"
+                       role="listitem"
+                       cdkDrag
+                       [cdkDragData]="item">
+                    <span class="cfg-el-chip__drag-handle"
+                          cdkDragHandle
+                          title="Trascina per riordinare"
+                          aria-hidden="true">⠿</span>
+                    <span class="cfg-el-chip cfg-el-chip--value">
+                      {{ item.label }}
+                      <small class="cfg-el-chip__agg-label">{{ aggLabel(item.aggregation) }}</small>
+                    </span>
+                    <button class="cfg-btn cfg-btn--xs cfg-btn--ghost cfg-el-settings-btn"
+                            type="button"
+                            (click)="openSettingsPopup(zone, item.fieldName)"
+                            [attr.aria-label]="'Impostazioni per ' + item.label"
+                            title="Impostazioni">⚙</button>
+                    <button class="cfg-btn cfg-btn--xs cfg-btn--ghost cfg-el-remove-btn"
+                            type="button"
+                            (click)="removeFromZone('values', item.fieldName)"
+                            [attr.aria-label]="'Rimuovi ' + item.label"
+                            title="Rimuovi">✕</button>
+                  </div>
+                  <p *ngIf="getValueItems().length === 0" class="cfg-el-zone__empty">
+                    Nessun campo — selezionane uno dal pannello sopra
+                  </p>
+                </div>
+
+              </div><!-- /zone body -->
+
+            </section>
+          </ng-container>
+
+        </div><!-- /zones grid -->
+
+        <!-- Save bar -->
+        <div class="cfg-el-savebar" *ngIf="!embedded">
+          <button class="cfg-btn cfg-btn--primary"
+                  [disabled]="isSaving"
+                  (click)="saveLayout()">
+            {{ isSaving ? 'Salvataggio…' : 'Salva Layout' }}
+          </button>
+          <span *ngIf="layoutDirty" class="cfg-badge cfg-badge--warning cfg-el-dirty-badge">
+            Non salvato
+          </span>
+        </div>
+
+        <!-- Footer nav -->
+        <div class="cfg-kpi-footer" *ngIf="!embedded">
+          <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Indietro</button>
+          <button class="cfg-btn cfg-btn--primary"
+                  *ngIf="layoutId"
+                  (click)="next.emit()">
+            Avanti: Anteprima →
+          </button>
+        </div>
+
+      </div><!-- /zones panel -->
+
+      </div><!-- /excel-panel -->
+
+    </div><!-- /designer -->
 
   </ng-container>
 
-  <!-- Footer nav -->
-  <div class="cfg-kpi-footer">
-    <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Back</button>
-    <button class="cfg-btn cfg-btn--primary"
-            *ngIf="layoutId"
-            (click)="next.emit()">
-      Next: Preview →
-    </button>
-  </div>
-
 </div>
 
-<!-- Lock members dialog (rendered outside main flow to avoid z-index issues) -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<!-- Field Settings Popup (overlay)                                        -->
+<!-- ═══════════════════════════════════════════════════════════════════════ -->
+<div class="cfg-el-popup-backdrop"
+     *ngIf="settingsPopupField && settingsPopupZone"
+     (click)="closeSettingsPopup()">
+  <div class="cfg-el-popup cfg-el-popup--settings"
+       [class.cfg-el-popup--settings-wide]="settingsPopupZone === 'columns'"
+       (click)="$event.stopPropagation()"
+       role="dialog"
+       [attr.aria-label]="'Impostazioni: ' + settingsPopupField">
+
+    <div class="cfg-el-popup__header">
+      <h4 class="cfg-el-popup__title">
+        {{ getFieldInfo(settingsPopupField)?.label || settingsPopupField }}
+      </h4>
+      <button class="cfg-el-popup__close"
+              type="button"
+              (click)="closeSettingsPopup()"
+              aria-label="Chiudi">✕</button>
+    </div>
+
+    <div class="cfg-el-popup__body">
+
+      <!-- Param toggle (axis zones, if hasParamTable) -->
+      <div class="cfg-el-popup__row"
+           *ngIf="isAxisZone(settingsPopupZone!) && hasParamTable(settingsPopupField)">
+        <label class="cfg-el-popup__label">
+          Valori PARAM
+          <small class="cfg-text-muted">{{ getParamTable(settingsPopupField)?.paramTableName }}</small>
+        </label>
+        <button class="cfg-el-param-toggle"
+                [class.cfg-el-param-toggle--on]="isParamEnabled(settingsPopupZone!, settingsPopupField)"
+                (click)="toggleParam(settingsPopupZone!, settingsPopupField)"
+                [attr.aria-pressed]="isParamEnabled(settingsPopupZone!, settingsPopupField)">
+          {{ isParamEnabled(settingsPopupZone!, settingsPopupField) ? 'Attivo' : 'Disattivo' }}
+        </button>
+      </div>
+
+      <!-- Dim table selector (axis zones, if joinedTables exist) -->
+      <div class="cfg-el-popup__row"
+           *ngIf="isAxisZone(settingsPopupZone!) && joinedTables.length > 0">
+        <label class="cfg-el-popup__label" [for]="'dimtable-' + settingsPopupField">
+          Tabella dimensionale
+        </label>
+        <select class="cfg-select cfg-el-dim-select"
+                [id]="'dimtable-' + settingsPopupField"
+                [ngModel]="getDimTable(settingsPopupZone!, settingsPopupField)"
+                (ngModelChange)="setDimTable(settingsPopupZone!, settingsPopupField, $event)"
+                [attr.aria-label]="'Tabella dimensionale per ' + settingsPopupField">
+          <option value="">— nessuna dim —</option>
+          <option *ngFor="let t of joinedTables" [value]="t">{{ t }}</option>
+        </select>
+      </div>
+
+      <!-- Role toggle: Raggruppamento / Dettaglio (rows only) -->
+      <div class="cfg-el-popup__row cfg-el-popup__row--stacked" *ngIf="settingsPopupZone === 'rows'">
+        <label class="cfg-el-popup__label">
+          Tipo riga
+          <small>Raggruppamento = collassabile &nbsp;·&nbsp; Dettaglio = sempre visibile</small>
+        </label>
+        <div class="cfg-de-save-toggle" role="group" aria-label="Tipo riga">
+          <button class="cfg-de-save-toggle__btn"
+                  type="button"
+                  [class.cfg-de-save-toggle__btn--active]="getRowRole(settingsPopupField) === 'grouping'"
+                  (click)="setRowRole(settingsPopupField, 'grouping')"
+                  [attr.aria-pressed]="getRowRole(settingsPopupField) === 'grouping'">
+            G &nbsp;—&nbsp; Raggruppamento
+          </button>
+          <button class="cfg-de-save-toggle__btn"
+                  type="button"
+                  [class.cfg-de-save-toggle__btn--active]="getRowRole(settingsPopupField) === 'detail'"
+                  (click)="setRowRole(settingsPopupField, 'detail')"
+                  [attr.aria-pressed]="getRowRole(settingsPopupField) === 'detail'">
+            D &nbsp;—&nbsp; Dettaglio
+          </button>
+        </div>
+      </div>
+
+      <!-- Skip depths (rows, if dimTable set) -->
+      <div class="cfg-el-popup__row"
+           *ngIf="settingsPopupZone === 'rows' && getDimTable('rows', settingsPopupField)">
+        <label class="cfg-el-popup__label" [for]="'skip-' + settingsPopupField">
+          Salta livelli
+          <small class="cfg-text-muted">0 = mostra tutti</small>
+        </label>
+        <input type="number" min="0" max="10" step="1"
+               class="cfg-input cfg-el-skip-input"
+               [id]="'skip-' + settingsPopupField"
+               [ngModel]="getSkipDepths('rows', settingsPopupField)"
+               (ngModelChange)="setSkipDepths('rows', settingsPopupField, $event)" />
+      </div>
+
+      <!-- Lock members (columns only) -->
+      <div class="cfg-el-popup__lock-section" *ngIf="settingsPopupZone === 'columns'">
+        <div class="cfg-el-popup__lock-header">
+          <span class="cfg-el-popup__lock-title">🔒 Blocca membri</span>
+          <span class="cfg-el-popup__lock-hint">Colonne in sola lettura nella griglia</span>
+          <span *ngIf="lockInlineChecked.size > 0" class="cfg-badge cfg-badge--sm">
+            {{ lockInlineChecked.size }} bloccati
+          </span>
+        </div>
+        <div *ngIf="lockInlineLoading" class="cfg-el-popup__lock-loading">
+          <span class="cfg-spinner cfg-spinner--xs"></span> Caricamento valori…
+        </div>
+        <div *ngIf="lockInlineError && !lockInlineLoading"
+             class="cfg-alert cfg-alert--error" style="margin:8px 14px;font-size:11px">
+          {{ lockInlineError }}
+        </div>
+        <div *ngIf="!lockInlineLoading && !lockInlineError" class="cfg-el-popup__lock-toolbar">
+          <input type="search"
+                 class="cfg-input cfg-el-popup__lock-search"
+                 placeholder="Cerca valore…"
+                 [(ngModel)]="lockInlineSearch"
+                 aria-label="Cerca valore da bloccare" />
+          <button class="cfg-btn cfg-btn--xs cfg-btn--ghost" type="button"
+                  (click)="lockInlineSelectAll()">Seleziona tutti</button>
+          <button class="cfg-btn cfg-btn--xs cfg-btn--ghost" type="button"
+                  (click)="lockInlineDeselectAll()">Deseleziona tutti</button>
+        </div>
+        <div *ngIf="!lockInlineLoading && !lockInlineError"
+             class="cfg-el-popup__lock-list"
+             role="group" aria-label="Valori da bloccare">
+          <label *ngFor="let v of lockInlineFiltered"
+                 class="cfg-el-popup__lock-item"
+                 [class.cfg-el-popup__lock-item--checked]="lockInlineChecked.has(v)">
+            <input type="checkbox"
+                   class="cfg-el-popup__lock-check"
+                   [checked]="lockInlineChecked.has(v)"
+                   (change)="toggleLockInline(v)"
+                   [attr.aria-label]="v" />
+            <span class="cfg-el-popup__lock-val">{{ v }}</span>
+          </label>
+          <p *ngIf="lockInlineFiltered.length === 0" class="cfg-el-popup__empty">
+            Nessun valore trovato.
+          </p>
+        </div>
+        <div *ngIf="!lockInlineLoading && !lockInlineError" class="cfg-el-popup__lock-footer">
+          <span class="cfg-el-popup__lock-count">{{ lockInlineChecked.size }} selezionati</span>
+          <button class="cfg-btn cfg-btn--primary cfg-btn--sm" type="button" (click)="applyLockInline()">
+            Applica
+          </button>
+        </div>
+      </div>
+
+      <!-- Aggregation selector (values only) -->
+      <ng-container *ngIf="settingsPopupZone === 'values'">
+        <div class="cfg-el-popup__row"
+             *ngFor="let item of getValueItems(); trackBy: trackByValueItem">
+          <ng-container *ngIf="item.fieldName === settingsPopupField">
+            <label class="cfg-el-popup__label" [for]="'agg-' + settingsPopupField">
+              Aggregazione
+            </label>
+            <select class="cfg-select cfg-el-agg-select"
+                    [id]="'agg-' + settingsPopupField"
+                    [ngModel]="item.aggregation"
+                    (ngModelChange)="setAggregation(settingsPopupField, $event)"
+                    [attr.aria-label]="'Aggregazione per ' + settingsPopupField">
+              <option *ngFor="let a of aggregations" [value]="a.value">{{ a.label }}</option>
+            </select>
+          </ng-container>
+        </div>
+      </ng-container>
+
+      <!-- Default filter value (filters zone only) -->
+      <div class="cfg-el-popup__row cfg-el-popup__row--stacked" *ngIf="settingsPopupZone === 'filters'">
+        <label class="cfg-el-popup__label">
+          Valore predefinito
+          <small class="cfg-text-muted">Applicato all'apertura della griglia</small>
+        </label>
+        <div *ngIf="filterDefaultLoading" class="cfg-el-defval-loading">
+          <span class="cfg-spinner cfg-spinner--xs"></span> Caricamento valori…
+        </div>
+        <div *ngIf="filterDefaultError && !filterDefaultLoading"
+             class="cfg-alert cfg-alert--error" style="font-size:11px;margin:0">
+          {{ filterDefaultError }}
+        </div>
+        <select *ngIf="!filterDefaultLoading && !filterDefaultError"
+                class="cfg-select cfg-el-defval-select"
+                [id]="'defval-' + settingsPopupField"
+                [ngModel]="getFilterDefault(settingsPopupField)"
+                (ngModelChange)="setFilterDefault(settingsPopupField, $event)"
+                [attr.aria-label]="'Valore predefinito per ' + settingsPopupField">
+          <option value="">— nessuno —</option>
+          <option *ngFor="let v of filterDefaultOptions" [value]="v">{{ v }}</option>
+        </select>
+      </div>
+
+      <!-- Move to filters (when NOT already in filters) -->
+      <div class="cfg-el-popup__row" *ngIf="settingsPopupZone !== 'filters'">
+        <button class="cfg-btn cfg-btn--sm cfg-btn--ghost"
+                type="button"
+                (click)="moveToFilters(settingsPopupZone!, settingsPopupField)"
+                [attr.aria-label]="'Copia ' + settingsPopupField + ' a Filtri'">
+          🔽 Copia a Filtri
+        </button>
+      </div>
+
+      <!-- Confirm / remove row -->
+      <div class="cfg-el-popup__row cfg-el-popup__row--confirm">
+        <button class="cfg-btn cfg-btn--primary cfg-btn--sm"
+                type="button"
+                (click)="closeSettingsPopup()"
+                [attr.aria-label]="'Conferma impostazioni per ' + settingsPopupField">
+          ✓ Conferma
+        </button>
+        <button class="cfg-btn cfg-btn--sm cfg-btn--danger"
+                type="button"
+                (click)="removeFromZone(settingsPopupZone!, settingsPopupField)">
+          ✕ Rimuovi
+        </button>
+      </div>
+
+    </div><!-- /popup body -->
+  </div>
+</div>
+
+<!-- Lock members dialog -->
 <ng-container *ngIf="lockDialogField">
   <lock-members-dialog
     [schemaName]="getLockDialogContext(lockDialogField).schema"

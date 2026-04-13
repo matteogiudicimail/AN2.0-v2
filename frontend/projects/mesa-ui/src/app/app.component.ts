@@ -5,7 +5,7 @@ import { AuthService } from './core/services/auth.service';
 import { environment } from '../environments/environment';
 import { InputData } from 'cfs-report';
 
-export type ActiveView = 'welcome' | 'moduli' | 'users' | 'nav-manager' | 'cfs-report' | 'esg-configurator' | 'esg-task';
+export type ActiveView = 'welcome' | 'moduli' | 'users' | 'nav-manager' | 'cfs-report' | 'esg-configurator' | 'esg-task' | 'esg-reports';
 
 /**
  * Maps MESA roles to CFS roles.
@@ -88,8 +88,16 @@ export class AppComponent implements OnInit {
     this.activeTaskId = taskId;
     this.activeView = 'cfs-report';
   }
+  /** Clicking "Reports" in the sidebar → goes to the published reports grid. */
+  onNavEsgReports(): void { this.activeView = 'esg-reports'; }
+  /** Clicking "Report Designer" in the sidebar → goes to the configurator wizard. */
   onNavEsgConfigurator(): void { this.esgOpenReportId = null; this.activeView = 'esg-configurator'; }
-  /** Opens the published-report snapshot view for a specific task. */
+  /** Opens the configurator (from within the reports page, optionally for a specific report). */
+  onOpenEsgConfigurator(reportId: number | null): void {
+    this.esgOpenReportId = reportId;
+    this.activeView = 'esg-configurator';
+  }
+  /** Opens the published-report snapshot view for a specific task (legacy nav-tree items). */
   onNavEsgTask(ev: { taskId: number; label: string }): void {
     this.activeEsgTaskId    = ev.taskId;
     this.activeEsgTaskLabel = ev.label;

@@ -193,6 +193,10 @@ export interface EntryAxisItem {
   lockedMembers?: string[];
   /** Set when the axis item is a Parent-Child hierarchy field. */
   hierarchyDefId?: number;
+  /** For rows zone: 'grouping' = collapsible parent row; 'detail' = always-visible leaf row. */
+  role?: 'grouping' | 'detail';
+  /** For filters zone: pre-selected default value applied when the grid opens. */
+  defaultValue?: string | null;
 }
 
 export type AggregationFn = 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX' | 'NONE';
@@ -263,14 +267,14 @@ export interface DataEntryGridResponse {
     writeTable: string;
   };
   layout: {
-    filters:  Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null }>;
-    rows:     Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; skipDepths?: number }>;
+    filters:  Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; defaultValue?: string | null }>;
+    rows:     Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; skipDepths?: number; role?: 'grouping' | 'detail' }>;
     /** colonne items may include lockedMembers: string[] */
     columns:  Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; lockedMembers?: string[] }>;
     values:   Array<{ fieldName: string; label: string; aggregation: string }>;
     // legacy keys still accepted from backend until full migration
-    filtri?:  Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null }>;
-    righe?:   Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; skipDepths?: number }>;
+    filtri?:  Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; defaultValue?: string | null }>;
+    righe?:   Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; skipDepths?: number; role?: 'grouping' | 'detail' }>;
     colonne?: Array<{ fieldName: string; label: string; paramTableId: number | null; dimTable?: string | null; lockedMembers?: string[] }>;
     valori?:  Array<{ fieldName: string; label: string; aggregation: string }>;
   };
@@ -280,6 +284,18 @@ export interface DataEntryGridResponse {
   writeRows:      WriteRow[];
   /** Sorted-JSON dimension keys of approved (read-only) rows. */
   approvedRows:   string[];
+  /**
+   * For pure dim-table-only filtri fields whose dimTable matches a RIGHE field:
+   * maps filterValue → array of primary-row field values sharing that filter value.
+   * Used by visibleRows to filter visible rows based on the active filter selection.
+   */
+  filtriDimMapping?: Record<string, Record<string, string[]>>;
+  /**
+   * For pure dim-table-only filtri fields whose dimTable matches a COLONNE field:
+   * maps filterValue → array of colonna field values visible under that filter.
+   * Used by columnCombinations to hide/show columns based on the active filter selection.
+   */
+  filtriColonneMapping?: Record<string, Record<string, string[]>>;
   // legacy keys
   filtriOptions?:  DataEntryFilterOption[];
   righeOptions?:   DataEntryRowOption[];
@@ -376,6 +392,10 @@ export interface TaskSummary {
   columnOrder:    string | null;
   accessReaders:  string | null;
   accessWriters:  string | null;
+  reportCode:     string | null;
+  reportLabel:    string | null;
+  description:    string | null;
+  createdAt:      string | null;
 }
 
 export interface UpsertTaskDto {

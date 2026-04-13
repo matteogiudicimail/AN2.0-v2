@@ -2,7 +2,25 @@ import { Component, EventEmitter, Input, OnInit, Output } from '@angular/core';
 import { EsgConfiguratorService } from '../../services/esg-configurator.service';
 import { DataModelDetail, CreateDataModelDto, UpdateDataModelDto } from '../../models/esg-configurator.models';
 
-type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
+type WizardStep = 1 | 2 | 3 | 4;
+
+export type WizardMode = 'definition' | 'designer';
+
+interface StepDef {
+  label:      string;
+  index:      WizardStep;  // internal step index (used in *ngIf)
+  displayNum: number;      // number shown to the user (always starts from 1)
+}
+
+const DEFINITION_STEPS: StepDef[] = [
+  { label: 'Info',       index: 1, displayNum: 1 },
+  { label: 'Database',   index: 2, displayNum: 2 },
+  { label: 'Parameters', index: 3, displayNum: 3 },
+];
+
+const DESIGNER_STEPS: StepDef[] = [
+  { label: 'Layout + Preview', index: 4, displayNum: 1 },
+];
 
 @Component({
   selector: 'esg-report-wizard',
@@ -11,6 +29,7 @@ type WizardStep = 1 | 2 | 3 | 4 | 5 | 6;
 export class EsgReportWizardComponent implements OnInit {
   @Input()  reportId:    number | null = null;
   @Input()  initialStep: WizardStep    = 1;
+  @Input()  mode: WizardMode = 'definition';
   @Output() back = new EventEmitter<void>();
 
   step: WizardStep = 1;
@@ -19,21 +38,29 @@ export class EsgReportWizardComponent implements OnInit {
   isSaving = false;
   errorMsg: string | null = null;
 
-  readonly steps: { label: string; index: WizardStep }[] = [
-    { label: '1. Basic Info',       index: 1 },
-    { label: '2. Data Model',       index: 2 },
-    { label: '3. Parameters',       index: 3 },
-    { label: '4. Report Designer',  index: 4 },
-    { label: '5. Preview',          index: 5 },
-    { label: '6. Publish',          index: 6 },
-  ];
-
   constructor(private svc: EsgConfiguratorService) {}
 
+  get visibleSteps(): StepDef[] {
+    return this.mode === 'definition' ? DEFINITION_STEPS : DESIGNER_STEPS;
+  }
+
+  get modeTitle(): string {
+    return this.mode === 'definition' ? 'Data Model' : 'Report Designer';
+  }
+
+  get modeIcon(): string {
+    return this.mode === 'definition' ? '⬡' : '▦';
+  }
+
   ngOnInit(): void {
+    this.step = this.mode === 'designer' ? 4 : 1;
+
     if (this.reportId) {
       this.loadReport();
-      if (this.initialStep > 1) { this.step = this.initialStep; }
+      const valid = this.visibleSteps.map(s => s.index);
+      if (valid.includes(this.initialStep)) {
+        this.step = this.initialStep;
+      }
     } else {
       this.isNew = true;
     }

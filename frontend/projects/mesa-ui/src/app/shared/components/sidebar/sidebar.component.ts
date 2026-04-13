@@ -41,6 +41,7 @@ export class SidebarComponent implements OnInit, OnChanges {
   @Output() usersSelected      = new EventEmitter<void>();
   @Output() navManagerSelected = new EventEmitter<void>();
   @Output() cfsReportSelected    = new EventEmitter<number | null>();
+  @Output() esgReportsSelected      = new EventEmitter<void>();
   @Output() esgConfiguratorSelected = new EventEmitter<void>();
   /** Emitted when the user clicks a published ESG task — carries taskId + label. */
   @Output() esgTaskSelected         = new EventEmitter<{ taskId: number; label: string }>();
@@ -78,7 +79,6 @@ export class SidebarComponent implements OnInit, OnChanges {
 
   ngOnInit(): void {
     this.loadNav();
-    this.loadEsgTasks();
   }
 
   ngOnChanges(changes: SimpleChanges): void {
@@ -92,10 +92,6 @@ export class SidebarComponent implements OnInit, OnChanges {
       // Reset selected child when leaving cfs-report view
       if (curr !== 'cfs-report') {
         this.activeChildId = null;
-      }
-      // Reset selected ESG task when leaving both esg-configurator and esg-task views
-      if (curr !== 'esg-configurator' && curr !== 'esg-task') {
-        this.activeEsgTaskId = null;
       }
     }
   }
@@ -177,6 +173,8 @@ export class SidebarComponent implements OnInit, OnChanges {
       this.navManagerSelected.emit();
     } else if (route.startsWith('/cfs') || key === 'cfs-report') {
       this.cfsReportSelected.emit(taskId);
+    } else if (route === '/esg-reports' || key === 'esg-reports') {
+      this.esgReportsSelected.emit();
     } else if (route.startsWith('/esg-task/')) {
       // NavigationItem child pointing to a specific ESG published task
       const tid = parseInt(route.split('/').pop() ?? '', 10);
@@ -209,7 +207,8 @@ export class SidebarComponent implements OnInit, OnChanges {
     if (route.startsWith('/admin/users') || key === 'users') return this.activeView === 'users';
     if (route.startsWith('/admin/nav') || key === 'nav') return this.activeView === 'nav-manager';
     if (route.startsWith('/cfs') || key === 'cfs-report') return this.activeView === 'cfs-report' && this.activeChildId === null;
-    if (route.startsWith('/esg') || key === 'esg-configurator') return this.activeView === 'esg-configurator';
+    if (route === '/esg-reports' || key === 'esg-reports') return this.activeView === 'esg-reports';
+    if (route.startsWith('/esg') || key === 'esg-configurator') return this.activeView === 'esg-configurator' || this.activeView === 'esg-task';
     return false;
   }
 

@@ -36,6 +36,18 @@ export interface EntryAxisItem {
   skipDepths?: number;
   /** When the axis item is a P&C hierarchy field, stores the HierarchyDefId. */
   hierarchyDefId?: number;
+  /**
+   * For righe items only: display role.
+   * 'grouping' = collapsible group header (like an OLAP pivot row field with subtotals).
+   * 'detail'   = always-visible leaf rows (like an OLAP pivot detail/tabular field, no toggle).
+   * Defaults to 'grouping' when absent.
+   */
+  role?: 'grouping' | 'detail';
+  /**
+   * For filtri items only: pre-selected default value applied when the data-entry grid opens.
+   * Null or absent means no pre-selection (show "All").
+   */
+  defaultValue?: string | null;
 }
 
 export type AggregationFn = 'SUM' | 'COUNT' | 'AVG' | 'MIN' | 'MAX' | 'NONE';

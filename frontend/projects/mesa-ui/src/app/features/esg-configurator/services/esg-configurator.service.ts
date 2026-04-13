@@ -295,6 +295,15 @@ export class EsgConfiguratorService {
     );
   }
 
+  /** Lists ALL tasks across reports (uses /api/tasks, not /api/configurator). */
+  listAllTasks(opts?: { status?: string; domain?: string }): Observable<TaskSummary[]> {
+    const params: string[] = [];
+    if (opts?.status) params.push(`status=${encodeURIComponent(opts.status)}`);
+    if (opts?.domain) params.push(`domain=${encodeURIComponent(opts.domain)}`);
+    const qs = params.length ? '?' + params.join('&') : '';
+    return this.http.get<TaskSummary[]>(`/api/tasks${qs}`, { headers: this.headers() });
+  }
+
   createTask(reportId: number, dto: UpsertTaskDto): Observable<TaskSummary> {
     return this.http.post<TaskSummary>(
       `${this.base}/reports/${reportId}/tasks`,
@@ -323,6 +332,29 @@ export class EsgConfiguratorService {
     return this.http.post<void>(
       `${this.base}/tasks/${taskId}/archive`,
       {},
+      { headers: this.headers() },
+    );
+  }
+
+  duplicateReport(reportId: number): Observable<DataModelDetail> {
+    return this.http.post<DataModelDetail>(
+      `${this.base}/reports/${reportId}/duplicate`,
+      {},
+      { headers: this.headers() },
+    );
+  }
+
+  duplicateTask(taskId: number): Observable<TaskSummary> {
+    return this.http.post<TaskSummary>(
+      `${this.base}/tasks/${taskId}/duplicate`,
+      {},
+      { headers: this.headers() },
+    );
+  }
+
+  deleteTask(taskId: number): Observable<void> {
+    return this.http.delete<void>(
+      `${this.base}/tasks/${taskId}`,
       { headers: this.headers() },
     );
   }

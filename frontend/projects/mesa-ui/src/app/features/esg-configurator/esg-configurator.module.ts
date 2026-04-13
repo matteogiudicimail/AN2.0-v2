@@ -14,6 +14,7 @@ import { KpiParamGridComponent }             from './components/steps/esg-step-k
 import { KpiMetadataLensComponent }          from './components/steps/esg-step-kpi-params/kpi-metadata-lens/kpi-metadata-lens.component';
 import { KpiCustomColumnManagerComponent }   from './components/steps/esg-step-kpi-params/kpi-custom-column-manager/kpi-custom-column-manager.component';
 import { EsgStepEntryLayoutComponent }       from './components/steps/esg-step-entry-layout/esg-step-entry-layout.component';
+import { EsgStepLayoutPreviewComponent }    from './components/steps/esg-step-layout-preview/esg-step-layout-preview.component';
 import { EsgDataEntrySheetComponent }        from './components/steps/esg-data-entry-sheet/esg-data-entry-sheet.component';
 import { InsertRowDialogComponent }          from './components/steps/esg-data-entry-sheet/insert-row-dialog/insert-row-dialog.component';
 import { SnapshotViewerComponent }           from './components/steps/esg-step-publish/snapshot-viewer/snapshot-viewer.component';
@@ -36,6 +37,7 @@ import { DimTableCrudComponent }             from './components/shared/dim-table
     KpiMetadataLensComponent,
     KpiCustomColumnManagerComponent,
     EsgStepEntryLayoutComponent,
+    EsgStepLayoutPreviewComponent,
     EsgDataEntrySheetComponent,
     InsertRowDialogComponent,
     EsgStepPublishComponent,

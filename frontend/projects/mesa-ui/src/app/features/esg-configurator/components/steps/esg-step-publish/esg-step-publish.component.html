@@ -61,10 +61,24 @@
               📊 Apri
             </button>
             <button *ngIf="t.status === 'Active'"
+                    class="cfg-btn cfg-btn--secondary cfg-btn--sm"
+                    [disabled]="refreshing.has(t.taskId)"
+                    (click)="refreshSnapshot(t)"
+                    [attr.aria-label]="'Aggiorna snapshot per ' + t.label"
+                    title="Rigenera lo snapshot con il layout corrente (dopo aver salvato modifiche al layout)">
+              {{ refreshing.has(t.taskId) ? '⏳' : '♻️' }} Aggiorna
+            </button>
+            <button *ngIf="t.status === 'Active'"
                     class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                     (click)="archive(t)"
                     [attr.aria-label]="'Archive ' + t.label">
               Archive
+            </button>
+            <button class="cfg-btn cfg-btn--danger cfg-btn--sm"
+                    (click)="deleteTask(t)"
+                    [attr.aria-label]="'Elimina ' + t.label"
+                    title="Elimina definitivamente questo report pubblicato">
+              🗑 Elimina
             </button>
           </td>
         </tr>
@@ -104,6 +118,7 @@
       <snapshot-viewer
         [snapshotId]="viewerSnapshotId"
         [taskLabel]="viewerTaskLabel"
+        [taskDefaultFilters]="viewerDefaultFilters"
         (closed)="closeViewer()">
       </snapshot-viewer>
     </div>

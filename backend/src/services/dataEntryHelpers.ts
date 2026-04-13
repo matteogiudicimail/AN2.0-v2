@@ -68,6 +68,25 @@ export function validateLayoutIdentifiers(
 }
 
 /**
+ * Normalises a raw layout JSON (parsed from DB) to always expose Italian key names
+ * (filtri / righe / colonne / valori), accepting both Italian and English aliases.
+ * Layouts created before the Italian-key migration may have English-only keys.
+ */
+export function normalizeLayoutKeys(raw: Record<string, any>): {
+  filtri:  any[];
+  righe:   any[];
+  colonne: any[];
+  valori:  any[];
+} {
+  return {
+    filtri:  raw['filtri']  ?? raw['filters']  ?? [],
+    righe:   raw['righe']   ?? raw['rows']     ?? [],
+    colonne: raw['colonne'] ?? raw['columns']  ?? [],
+    valori:  raw['valori']  ?? raw['values']   ?? [],
+  };
+}
+
+/**
  * Checks whether a column exists in a table or view (case-insensitive).
  * Used to detect optional columns like InLevelOrder or FolderFatherKey.
  */
