@@ -168,8 +168,7 @@
                     class="cfg-sv-filter-popup__item"
                     [class.cfg-sv-filter-popup__item--selected]="selectedFiltri[f.fieldName] === v"
                     (click)="selectFiltro(f.fieldName, v); closeFilterSearch()">
-                  <span class="cfg-sv-filter-popup__item-label">{{ v }}</span>
-                  <span class="cfg-sv-filter-popup__item-count">{{ getFilterValueRowCount(f.fieldName, v) }}</span>
+                  {{ v }}
                 </li>
               </ul>
             </div>
