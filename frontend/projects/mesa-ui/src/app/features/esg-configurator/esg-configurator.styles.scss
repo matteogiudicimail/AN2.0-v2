@@ -3977,6 +3977,52 @@
   gap: 8px;
 }
 
+.cfg-pub-filter-row {
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.cfg-pub-filter-hide {
+  flex-shrink: 0;
+  padding-bottom: 2px;
+
+  &__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 6px;
+    border: 1px solid var(--cfg-border, #e2e8f0);
+    background: #f8f9fa;
+    color: var(--cfg-text-muted, #6b7280);
+    font-size: 12px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, color .15s;
+    white-space: nowrap;
+
+    &:hover {
+      border-color: var(--cfg-primary, #2563eb);
+      color: var(--cfg-primary, #2563eb);
+      background: rgba(37, 99, 235, .05);
+    }
+
+    &--hidden {
+      background: #fff7ed;
+      border-color: #fb923c;
+      color: #c2410c;
+
+      &:hover {
+        background: #ffedd5;
+        border-color: #ea580c;
+      }
+    }
+  }
+
+  &__label {
+    font-weight: 500;
+  }
+}
+
 // ── Input row (label + button side by side) ───────────────────────────────────
 
 .cfg-field__input-row {

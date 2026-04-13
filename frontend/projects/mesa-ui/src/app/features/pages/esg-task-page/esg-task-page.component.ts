@@ -19,6 +19,7 @@ export class EsgTaskPageComponent implements OnChanges {
   @Input() taskId:         number | null = null;
   @Input() taskLabel     = '';
   @Input() defaultFilters: string | null = null;
+  @Input() hiddenFilters:  string | null = null;
   @Input() breadcrumbs:    Array<{ label: string; action?: () => void }> = [];
 
   snapshotId: number | null = null;

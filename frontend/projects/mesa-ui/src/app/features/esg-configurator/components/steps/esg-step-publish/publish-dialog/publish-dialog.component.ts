@@ -41,6 +41,9 @@ export class PublishDialogComponent implements OnInit {
   /** key → user-entered default value */
   defaultFilterValues: Record<string, string> = {};
 
+  /** Set of filter field names the admin wants to hide from the user */
+  hiddenFilterFields = new Set<string>();
+
   get isNew(): boolean { return this.task === null; }
 
   constructor(private svc: EsgConfiguratorService, private fb: FormBuilder) {}
@@ -84,6 +87,14 @@ export class PublishDialogComponent implements OnInit {
           }
         } else {
           this.filterFields.forEach((f) => { this.defaultFilterValues[f.fieldName] = f.defaultValue ?? ''; });
+        }
+
+        // Pre-populate hidden filter flags
+        if (this.task?.hiddenFilters) {
+          try {
+            const hidden = JSON.parse(this.task.hiddenFilters) as string[];
+            this.hiddenFilterFields = new Set(hidden);
+          } catch { /* ignore */ }
         }
 
         // Load distinct options for each filter field
@@ -133,6 +144,7 @@ export class PublishDialogComponent implements OnInit {
       accessReaders:  v.accessReaders?.trim() || undefined,
       accessWriters:  v.accessWriters?.trim() || undefined,
       defaultFilters: this.buildDefaultFiltersJson(),
+      hiddenFilters:  this.buildHiddenFiltersJson(),
     };
 
     this.isSaving = true;
@@ -155,6 +167,19 @@ export class PublishDialogComponent implements OnInit {
       if (v?.trim()) { result[k] = v.trim(); hasValue = true; }
     }
     return hasValue ? JSON.stringify(result) : undefined;
+  }
+
+  private buildHiddenFiltersJson(): string | undefined {
+    const hidden = [...this.hiddenFilterFields];
+    return hidden.length > 0 ? JSON.stringify(hidden) : undefined;
+  }
+
+  toggleHiddenFilter(fieldName: string): void {
+    if (this.hiddenFilterFields.has(fieldName)) {
+      this.hiddenFilterFields.delete(fieldName);
+    } else {
+      this.hiddenFilterFields.add(fieldName);
+    }
   }
 
   trackByField(_: number, f: FilterField): string { return f.fieldName; }

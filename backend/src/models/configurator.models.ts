@@ -299,6 +299,8 @@ export interface TaskDef {
   allowedEntities: number[] | null;
   /** JSON string of default filter values applied when the report opens. */
   defaultFilters:  string | null;
+  /** JSON array of filter field names hidden from the user (but still applied via defaultFilters). */
+  hiddenFilters:   string | null;
   /** Comma-separated user IDs / role names allowed to read this report. */
   accessReaders:   string | null;
   /** Comma-separated user IDs / role names allowed to write this report. */
@@ -324,6 +326,7 @@ export interface CreateTaskDto {
   allowedRoles?:   string;
   allowedEntities?: number[];
   defaultFilters?: string;
+  hiddenFilters?:  string;
   accessReaders?:  string;
   accessWriters?:  string;
 }
@@ -340,6 +343,7 @@ export interface UpdateTaskDto {
   allowedRoles?:   string;
   allowedEntities?: number[];
   defaultFilters?: string;
+  hiddenFilters?:  string;
   accessReaders?:  string;
   accessWriters?:  string;
 }

@@ -26,6 +26,7 @@ interface EsgPublishedTask {
   label:           string;
   parentMenuCode?: string | null;
   defaultFilters?: string | null;
+  hiddenFilters?:  string | null;
 }
 
 @Component({
@@ -44,8 +45,8 @@ export class SidebarComponent implements OnInit, OnChanges {
   @Output() cfsReportSelected    = new EventEmitter<number | null>();
   @Output() esgReportsSelected      = new EventEmitter<void>();
   @Output() esgConfiguratorSelected = new EventEmitter<void>();
-  /** Emitted when the user clicks a published ESG task — carries taskId, label and defaultFilters. */
-  @Output() esgTaskSelected         = new EventEmitter<{ taskId: number; label: string; defaultFilters?: string | null }>();
+  /** Emitted when the user clicks a published ESG task — carries taskId, label, defaultFilters and hiddenFilters. */
+  @Output() esgTaskSelected         = new EventEmitter<{ taskId: number; label: string; defaultFilters?: string | null; hiddenFilters?: string | null }>();
   /** @deprecated — kept for any legacy bindings; use esgTaskSelected for ESG tasks. */
   @Output() esgReportSelected       = new EventEmitter<number>();
   @Output() logoutSelected       = new EventEmitter<void>();
@@ -140,7 +141,7 @@ export class SidebarComponent implements OnInit, OnChanges {
 
   selectEsgTask(task: EsgPublishedTask): void {
     this.activeEsgTaskId = task.taskId;
-    this.esgTaskSelected.emit({ taskId: task.taskId, label: task.label, defaultFilters: task.defaultFilters ?? null });
+    this.esgTaskSelected.emit({ taskId: task.taskId, label: task.label, defaultFilters: task.defaultFilters ?? null, hiddenFilters: task.hiddenFilters ?? null });
   }
 
   selectNavItem(item: SidebarNavItem): void {
@@ -182,7 +183,7 @@ export class SidebarComponent implements OnInit, OnChanges {
       const task = this.esgTasks.find((t) => t.taskId === tid);
       if (task) {
         this.activeEsgTaskId = task.taskId;
-        this.esgTaskSelected.emit({ taskId: task.taskId, label: task.label, defaultFilters: task.defaultFilters ?? null });
+        this.esgTaskSelected.emit({ taskId: task.taskId, label: task.label, defaultFilters: task.defaultFilters ?? null, hiddenFilters: task.hiddenFilters ?? null });
       }
     } else if (route.startsWith('/esg') || key === 'esg-configurator') {
       this.esgConfiguratorSelected.emit();

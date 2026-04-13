@@ -13,7 +13,8 @@ type TaskRow = {
   WritebackMode: string | null; ContextFilters: string | null;
   RouteUrl: string | null; MenuItemCode: string | null; ParentMenuCode: string | null;
   AllowedRoles: string | null; AllowedEntities: string | null;
-  DefaultFilters: string | null; AccessReaders: string | null; AccessWriters: string | null;
+  DefaultFilters: string | null; HiddenFilters: string | null;
+  AccessReaders: string | null; AccessWriters: string | null;
   CreatedBy: string; CreatedAt: string;
   ReportDomain: string | null;
   ReportCode: string | null;
@@ -37,6 +38,7 @@ function mapTask(r: TaskRow): TaskDef {
     allowedRoles:    r.AllowedRoles,
     allowedEntities: r.AllowedEntities ? JSON.parse(r.AllowedEntities) : null,
     defaultFilters:  r.DefaultFilters  ?? null,
+    hiddenFilters:   r.HiddenFilters   ?? null,
     accessReaders:   r.AccessReaders   ?? null,
     accessWriters:   r.AccessWriters   ?? null,
     createdBy:       r.CreatedBy,
@@ -63,7 +65,8 @@ export async function listTasks(options?: {
             t.WritebackMode, t.ContextFilters, t.RouteUrl, t.MenuItemCode, t.ParentMenuCode,
             t.AllowedRoles, t.AllowedEntities, t.DefaultFilters, t.AccessReaders, t.AccessWriters,
             t.CreatedBy, t.CreatedAt,
-            r.Domain AS ReportDomain, r.ReportCode, r.ReportLabel
+            r.Domain AS ReportDomain, r.ReportCode, r.ReportLabel,
+            CASE WHEN COL_LENGTH('cfg_Task','HiddenFilters') IS NOT NULL THEN t.HiddenFilters ELSE NULL END AS HiddenFilters
        FROM cfg_Task t
   LEFT JOIN cfg_Report r ON r.ReportId = t.ReportId
      ${where} ORDER BY t.CreatedAt DESC`,
@@ -77,7 +80,8 @@ export async function getTask(taskId: number): Promise<TaskDef | null> {
     `SELECT TOP 1 TaskId, TaskCode, Label, Description, ReportId, ReportVersion, Status,
             WritebackMode, ContextFilters, RouteUrl, MenuItemCode, ParentMenuCode,
             AllowedRoles, AllowedEntities, DefaultFilters, AccessReaders, AccessWriters,
-            CreatedBy, CreatedAt
+            CreatedBy, CreatedAt,
+            CASE WHEN COL_LENGTH('cfg_Task','HiddenFilters') IS NOT NULL THEN HiddenFilters ELSE NULL END AS HiddenFilters
      FROM cfg_Task WHERE TaskId=?`,
     taskId
   );
@@ -109,11 +113,17 @@ export async function createTask(dto: CreateTaskDto, userId: string): Promise<nu
     userId, now
   );
 
-  // Set ParentMenuCode separately so the INSERT above succeeds even before migration.
+  // Set ParentMenuCode and HiddenFilters separately so the INSERT above succeeds even before migration.
   if (dto.parentMenuCode) {
     try {
       await dbRun(`UPDATE cfg_Task SET ParentMenuCode = ? WHERE TaskId = ?`, dto.parentMenuCode, taskId);
     } catch { /* column not yet migrated — parentMenuCode will take effect after 010_snapshot.sql */ }
+  }
+
+  if (dto.hiddenFilters) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, dto.hiddenFilters, taskId);
+    } catch { /* column not yet migrated */ }
   }
 
   await logConfigEvent('TaskCreated', 'Task', String(taskId), dto.reportId, null, dto, userId, taskId);
@@ -139,10 +149,11 @@ export async function updateTask(taskId: number, dto: UpdateTaskDto, userId: str
   if (dto.defaultFilters !== undefined) { fields.push('DefaultFilters=?'); params.push(dto.defaultFilters ?? null); }
   if (dto.accessReaders  !== undefined) { fields.push('AccessReaders=?');  params.push(dto.accessReaders  ?? null); }
   if (dto.accessWriters  !== undefined) { fields.push('AccessWriters=?');  params.push(dto.accessWriters  ?? null); }
-  // ParentMenuCode handled separately below for backward-compat (may not exist pre-migration).
+  // ParentMenuCode and HiddenFilters handled separately below for backward-compat (may not exist pre-migration).
   const pendingParentMenuCode = dto.parentMenuCode;
+  const pendingHiddenFilters  = dto.hiddenFilters;
 
-  if (fields.length === 0 && pendingParentMenuCode === undefined) return;
+  if (fields.length === 0 && pendingParentMenuCode === undefined && pendingHiddenFilters === undefined) return;
 
   if (fields.length > 0) {
     fields.push('UpdatedBy=?'); params.push(userId);
@@ -155,6 +166,12 @@ export async function updateTask(taskId: number, dto: UpdateTaskDto, userId: str
     try {
       await dbRun(`UPDATE cfg_Task SET ParentMenuCode = ? WHERE TaskId = ?`, pendingParentMenuCode ?? null, taskId);
     } catch { /* column not yet migrated */ }
+  }
+
+  if (pendingHiddenFilters !== undefined) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, pendingHiddenFilters ?? null, taskId);
+    } catch { /* column not yet migrated — will take effect after migration adds HiddenFilters column */ }
   }
 
   const reportId = old?.reportId ?? null;

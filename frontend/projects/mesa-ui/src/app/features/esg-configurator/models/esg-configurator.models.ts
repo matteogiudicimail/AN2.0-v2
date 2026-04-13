@@ -390,6 +390,7 @@ export interface TaskSummary {
   allowedRoles:   string | null;
   allowedEntities: string | null;
   defaultFilters: string | null;
+  hiddenFilters:  string | null;
   rowOrder:       string | null;
   columnOrder:    string | null;
   accessReaders:  string | null;
@@ -408,6 +409,7 @@ export interface UpsertTaskDto {
   routeUrl?:       string;
   allowedRoles?:   string;
   defaultFilters?: string;
+  hiddenFilters?:  string;
   rowOrder?:       string;
   columnOrder?:    string;
   accessReaders?:  string;

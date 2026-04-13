@@ -65,7 +65,7 @@
         Pre-select filter values that will be applied when the report opens.
       </p>
       <div class="cfg-pub-filters">
-        <div *ngFor="let f of filterFields; trackBy: trackByField" class="cfg-form-row">
+        <div *ngFor="let f of filterFields; trackBy: trackByField" class="cfg-form-row cfg-pub-filter-row">
           <div class="cfg-field cfg-field--grow">
             <label [for]="'pub-filter-' + f.fieldName" class="cfg-label">{{ f.label }}</label>
             <ng-container *ngIf="f.optionsLoading">
@@ -82,6 +82,24 @@
               </select>
               <span *ngIf="f.optionsError" class="cfg-field__error" role="alert">{{ f.optionsError }}</span>
             </ng-container>
+          </div>
+          <!-- Hide-filter toggle -->
+          <div class="cfg-pub-filter-hide"
+               [title]="hiddenFilterFields.has(f.fieldName)
+                 ? 'Filtro nascosto — l\'utente non può modificarlo (il valore default viene comunque applicato)'
+                 : 'Filtro visibile — clicca per nasconderlo agli utenti'">
+            <button type="button"
+                    class="cfg-pub-filter-hide__btn"
+                    [class.cfg-pub-filter-hide__btn--hidden]="hiddenFilterFields.has(f.fieldName)"
+                    (click)="toggleHiddenFilter(f.fieldName)"
+                    [attr.aria-label]="(hiddenFilterFields.has(f.fieldName) ? 'Mostra' : 'Nascondi') + ' filtro ' + f.label"
+                    [attr.aria-pressed]="hiddenFilterFields.has(f.fieldName)">
+              <span *ngIf="!hiddenFilterFields.has(f.fieldName)" aria-hidden="true">👁</span>
+              <span *ngIf="hiddenFilterFields.has(f.fieldName)"  aria-hidden="true">🙈</span>
+              <span class="cfg-pub-filter-hide__label">
+                {{ hiddenFilterFields.has(f.fieldName) ? 'Nascosto' : 'Visibile' }}
+              </span>
+            </button>
           </div>
         </div>
       </div>

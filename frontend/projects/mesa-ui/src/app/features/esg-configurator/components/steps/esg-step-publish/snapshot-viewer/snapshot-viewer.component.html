@@ -125,10 +125,12 @@
           </label>
         </div>
 
-        <!-- Filters -->
-        <div class="cfg-de-filtri" *ngIf="layoutFilters.length > 0">
+        <!-- Filters — hidden ones are still applied (via selectedFiltri) but not shown to the user -->
+        <div class="cfg-de-filtri" *ngIf="visibleLayoutFilters.length > 0">
           <span class="cfg-de-filtri__label">Filtri:</span>
-          <label *ngFor="let f of layoutFilters; trackBy: trackByField" class="cfg-de-filtri__item">
+          <ng-container *ngFor="let f of layoutFilters; trackBy: trackByField">
+          <label *ngIf="!hiddenFilterSet.has(f.fieldName)"
+                 class="cfg-de-filtri__item">
             <span class="cfg-de-filtri__name">{{ f.label }}</span>
             <div class="cfg-sv-filter-group">
               <select class="cfg-select cfg-de-filtri__select cfg-sv-filter-select"
@@ -172,6 +174,7 @@
               </ul>
             </div>
           </label>
+          </ng-container>
         </div>
 
         <!-- ── Excel toolbar ── -->

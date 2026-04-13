@@ -62,6 +62,7 @@ export class EsgStepPublishComponent implements OnInit {
   viewerSnapshotId:      number | null = null;
   viewerTaskLabel        = '';
   viewerDefaultFilters:  string | null = null;
+  viewerHiddenFilters:   string | null = null;
 
   openViewer(t: TaskSummary): void {
     this.errorMsg = null;
@@ -70,12 +71,13 @@ export class EsgStepPublishComponent implements OnInit {
         this.viewerSnapshotId     = snap.snapshotId;
         this.viewerTaskLabel      = t.label;
         this.viewerDefaultFilters = t.defaultFilters ?? null;
+        this.viewerHiddenFilters  = t.hiddenFilters  ?? null;
       },
       error: ()     => { this.errorMsg = 'Nessuno snapshot trovato per questo task. Riattivare per crearlo.'; },
     });
   }
 
-  closeViewer(): void { this.viewerSnapshotId = null; this.viewerTaskLabel = ''; this.viewerDefaultFilters = null; }
+  closeViewer(): void { this.viewerSnapshotId = null; this.viewerTaskLabel = ''; this.viewerDefaultFilters = null; this.viewerHiddenFilters = null; }
 
   refreshSnapshot(t: TaskSummary): void {
     if (this.refreshing.has(t.taskId)) return;

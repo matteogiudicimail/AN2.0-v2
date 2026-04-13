@@ -67,6 +67,19 @@ export class SnapshotViewerComponent implements OnInit {
   @Input() breadcrumbs: Array<{ label: string; action?: () => void }> = [];
   /** JSON string of default filter values from the task — applied on initial load. */
   @Input() taskDefaultFilters?: string | null;
+  /** JSON array of filter field names the admin has hidden from the user. */
+  @Input() taskHiddenFilters?: string | null;
+
+  /** Parsed set of hidden filter field names (lazy, from taskHiddenFilters). */
+  get hiddenFilterSet(): Set<string> {
+    if (!this.taskHiddenFilters) return new Set();
+    try { return new Set(JSON.parse(this.taskHiddenFilters) as string[]); } catch { return new Set(); }
+  }
+
+  /** Layout filters that are visible to the user (not in hiddenFilterSet). */
+  get visibleLayoutFilters(): any[] {
+    return this.layoutFilters.filter((f: any) => !this.hiddenFilterSet.has(f.fieldName));
+  }
 
   @Output() closed = new EventEmitter<void>();
 

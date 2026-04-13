@@ -49,7 +49,7 @@
     </app-esg-reports-page>
     <app-esg-configurator-page  *ngIf="activeView === 'esg-configurator'" [openReportId]="esgOpenReportId" [openStep]="5"
                                 (openTask)="onNavEsgTask($event)"></app-esg-configurator-page>
-    <app-esg-task-page          *ngIf="activeView === 'esg-task'"         [taskId]="activeEsgTaskId" [taskLabel]="activeEsgTaskLabel" [defaultFilters]="activeEsgTaskDefaultFilters" [breadcrumbs]="activeEsgTaskBreadcrumbs"></app-esg-task-page>
+    <app-esg-task-page          *ngIf="activeView === 'esg-task'"         [taskId]="activeEsgTaskId" [taskLabel]="activeEsgTaskLabel" [defaultFilters]="activeEsgTaskDefaultFilters" [hiddenFilters]="activeEsgTaskHiddenFilters" [breadcrumbs]="activeEsgTaskBreadcrumbs"></app-esg-task-page>
 
   </div>
 </div>
