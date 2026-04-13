@@ -169,9 +169,8 @@ export class PublishDialogComponent implements OnInit {
     return hasValue ? JSON.stringify(result) : undefined;
   }
 
-  private buildHiddenFiltersJson(): string | undefined {
-    const hidden = [...this.hiddenFilterFields];
-    return hidden.length > 0 ? JSON.stringify(hidden) : undefined;
+  private buildHiddenFiltersJson(): string {
+    return JSON.stringify([...this.hiddenFilterFields]);
   }
 
   toggleHiddenFilter(fieldName: string): void {
