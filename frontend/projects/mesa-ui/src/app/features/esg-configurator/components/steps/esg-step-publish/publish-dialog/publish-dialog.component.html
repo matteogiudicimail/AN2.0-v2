@@ -2,70 +2,70 @@
 
   <div class="cfg-pub-dialog__header">
     <h3 id="pub-dialog-title" class="cfg-pub-dialog__title">
-      {{ isNew ? 'New Published Report' : 'Edit Published Report' }}
+      {{ isNew ? 'Nuovo Report Pubblicato' : 'Modifica Report Pubblicato' }}
     </h3>
-    <button class="cfg-btn-icon" (click)="cancelled.emit()" aria-label="Close dialog">✕</button>
+    <button class="cfg-btn-icon" (click)="cancelled.emit()" aria-label="Chiudi finestra">✕</button>
   </div>
 
   <div *ngIf="isLoading" class="cfg-pub-dialog__loading" role="status">
-    <span class="cfg-spinner"></span> Loading…
+    <span class="cfg-spinner"></span> Caricamento…
   </div>
 
   <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
 
   <form *ngIf="!isLoading" [formGroup]="form" (ngSubmit)="save()" novalidate class="cfg-pub-dialog__body">
 
-    <!-- ── Section 1: Basic Info ───────────────────────────────────────── -->
+    <!-- ── Sezione 1: Informazioni base ───────────────────────────────────── -->
     <section class="cfg-pub-section">
-      <h4 class="cfg-pub-section__title">Basic Info</h4>
+      <h4 class="cfg-pub-section__title">Informazioni base</h4>
       <div class="cfg-form-row">
         <div class="cfg-field cfg-field--grow">
-          <label for="pub-label" class="cfg-label">Label <span aria-hidden="true">*</span></label>
+          <label for="pub-label" class="cfg-label">Etichetta <span aria-hidden="true">*</span></label>
           <input id="pub-label" class="cfg-input" formControlName="label"
-                 placeholder="Name shown in menu"
+                 placeholder="Nome mostrato nel menu"
                  [class.cfg-input--error]="form.get('label')?.invalid && form.get('label')?.touched" />
           <span *ngIf="form.get('label')?.invalid && form.get('label')?.touched"
-                class="cfg-field__error" role="alert">Required</span>
+                class="cfg-field__error" role="alert">Obbligatorio</span>
         </div>
       </div>
       <div class="cfg-form-row">
         <div class="cfg-field cfg-field--grow">
-          <label for="pub-desc" class="cfg-label">Description</label>
+          <label for="pub-desc" class="cfg-label">Descrizione</label>
           <input id="pub-desc" class="cfg-input" formControlName="description"
-                 placeholder="Optional description" />
+                 placeholder="Descrizione opzionale" />
         </div>
       </div>
     </section>
 
-    <!-- ── Section 2: Menu Placement ──────────────────────────────────── -->
+    <!-- ── Sezione 2: Posizione nel Menu ──────────────────────────────────── -->
     <section class="cfg-pub-section">
-      <h4 class="cfg-pub-section__title">Menu Placement</h4>
+      <h4 class="cfg-pub-section__title">Posizione nel Menu</h4>
       <div class="cfg-form-row">
         <div class="cfg-field cfg-field--grow">
-          <label class="cfg-label">Parent Menu Item</label>
+          <label class="cfg-label">Voce di menu padre</label>
           <cfg-searchable-select
             [items]="menuItems"
-            [placeholder]="'— select parent menu —'"
+            [placeholder]="'— seleziona menu padre —'"
             [value]="form.get('parentMenuCode')?.value"
             (selectionChange)="onParentMenuChange($event)">
           </cfg-searchable-select>
         </div>
         <div class="cfg-field">
-          <label for="pub-menu-code" class="cfg-label">Menu Item Code</label>
+          <label for="pub-menu-code" class="cfg-label">Codice voce menu</label>
           <input id="pub-menu-code" class="cfg-input" formControlName="menuItemCode"
-                 placeholder="Auto-generated if blank" />
+                 placeholder="Generato automaticamente se vuoto" />
         </div>
       </div>
     </section>
 
-    <!-- ── Section 3: Default Filters ─────────────────────────────────── -->
+    <!-- ── Sezione 3: Filtri predefiniti ─────────────────────────────────── -->
     <section class="cfg-pub-section" *ngIf="filterFields.length > 0">
-      <h4 class="cfg-pub-section__title">Default Filters</h4>
+      <h4 class="cfg-pub-section__title">Filtri predefiniti</h4>
       <p class="cfg-pub-section__hint">
-        Pre-select filter values that will be applied when the report opens.
+        Pre-seleziona i valori dei filtri che verranno applicati all'apertura del report.
       </p>
       <div class="cfg-pub-filters">
-        <div *ngFor="let f of filterFields; trackBy: trackByField" class="cfg-form-row">
+        <div *ngFor="let f of filterFields; trackBy: trackByField" class="cfg-form-row cfg-pub-filter-row">
           <div class="cfg-field cfg-field--grow">
             <label [for]="'pub-filter-' + f.fieldName" class="cfg-label">{{ f.label }}</label>
             <ng-container *ngIf="f.optionsLoading">
@@ -83,36 +83,131 @@
               <span *ngIf="f.optionsError" class="cfg-field__error" role="alert">{{ f.optionsError }}</span>
             </ng-container>
           </div>
+          <!-- Hide-filter toggle -->
+          <div class="cfg-pub-filter-hide"
+               [title]="hiddenFilterFields.has(f.fieldName)
+                 ? 'Filtro nascosto — l\'utente non può modificarlo (il valore default viene comunque applicato)'
+                 : 'Filtro visibile — clicca per nasconderlo agli utenti'">
+            <button type="button"
+                    class="cfg-pub-filter-hide__btn"
+                    [class.cfg-pub-filter-hide__btn--hidden]="hiddenFilterFields.has(f.fieldName)"
+                    (click)="toggleHiddenFilter(f.fieldName)"
+                    [attr.aria-label]="(hiddenFilterFields.has(f.fieldName) ? 'Mostra' : 'Nascondi') + ' filtro ' + f.label"
+                    [attr.aria-pressed]="hiddenFilterFields.has(f.fieldName)">
+              <span *ngIf="!hiddenFilterFields.has(f.fieldName)" aria-hidden="true">👁</span>
+              <span *ngIf="hiddenFilterFields.has(f.fieldName)"  aria-hidden="true">🙈</span>
+              <span class="cfg-pub-filter-hide__label">
+                {{ hiddenFilterFields.has(f.fieldName) ? 'Nascosto' : 'Visibile' }}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <!-- ── Section 4: Authorization ───────────────────────────────────── -->
+    <!-- ── Sezione 4: Controlli snapshot viewer ────────────────────────────── -->
     <section class="cfg-pub-section">
-      <h4 class="cfg-pub-section__title">Authorization</h4>
+      <h4 class="cfg-pub-section__title">Controlli snapshot viewer</h4>
       <p class="cfg-pub-section__hint">
-        Comma-separated user IDs or role names. Leave blank to allow all.
+        Scegli quali controlli mostrare all'utente nella griglia pubblicata.
+      </p>
+      <div class="cfg-pub-viewer-settings">
+        <label class="cfg-pub-viewer-toggle">
+          <input type="checkbox"
+                 [(ngModel)]="viewerSettings.showSaveMode"
+                 [ngModelOptions]="{standalone: true}"
+                 class="cfg-pub-viewer-toggle__check"
+                 id="vs-save-mode" />
+          <span class="cfg-pub-viewer-toggle__label">
+            <strong>Salva: Auto / Manuale</strong>
+            <span class="cfg-pub-viewer-toggle__hint">Permette all'utente di scegliere tra salvataggio automatico e manuale.</span>
+          </span>
+        </label>
+        <div class="cfg-pub-viewer-default" *ngIf="viewerSettings.showSaveMode">
+          <span class="cfg-pub-viewer-default__label">Default:</span>
+          <label class="cfg-pub-viewer-default__opt">
+            <input type="radio"
+                   [(ngModel)]="viewerSettings.defaultSaveMode"
+                   [ngModelOptions]="{standalone: true}"
+                   value="auto" />
+            Auto
+          </label>
+          <label class="cfg-pub-viewer-default__opt">
+            <input type="radio"
+                   [(ngModel)]="viewerSettings.defaultSaveMode"
+                   [ngModelOptions]="{standalone: true}"
+                   value="manual" />
+            Manuale
+          </label>
+        </div>
+        <label class="cfg-pub-viewer-toggle">
+          <input type="checkbox"
+                 [(ngModel)]="viewerSettings.showExcelExport"
+                 [ngModelOptions]="{standalone: true}"
+                 class="cfg-pub-viewer-toggle__check"
+                 id="vs-excel-export" />
+          <span class="cfg-pub-viewer-toggle__label">
+            <strong>Excel: Griglia / Pivot / Importa</strong>
+            <span class="cfg-pub-viewer-toggle__hint">Mostra i pulsanti di esportazione e importazione Excel.</span>
+          </span>
+        </label>
+        <label class="cfg-pub-viewer-toggle">
+          <input type="checkbox"
+                 [(ngModel)]="viewerSettings.showSoloConDati"
+                 [ngModelOptions]="{standalone: true}"
+                 class="cfg-pub-viewer-toggle__check"
+                 id="vs-solo-con-dati" />
+          <span class="cfg-pub-viewer-toggle__label">
+            <strong>Solo con dati</strong>
+            <span class="cfg-pub-viewer-toggle__hint">Permette all'utente di nascondere righe/colonne senza valori.</span>
+          </span>
+        </label>
+        <div class="cfg-pub-viewer-default" *ngIf="viewerSettings.showSoloConDati">
+          <span class="cfg-pub-viewer-default__label">Default:</span>
+          <label class="cfg-pub-viewer-default__opt">
+            <input type="radio"
+                   [(ngModel)]="viewerSettings.defaultSoloConDati"
+                   [ngModelOptions]="{standalone: true}"
+                   [value]="false" />
+            Tutti i dati
+          </label>
+          <label class="cfg-pub-viewer-default__opt">
+            <input type="radio"
+                   [(ngModel)]="viewerSettings.defaultSoloConDati"
+                   [ngModelOptions]="{standalone: true}"
+                   [value]="true" />
+            Solo con dati
+          </label>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Sezione 5: Autorizzazioni ───────────────────────────────────── -->
+    <section class="cfg-pub-section">
+      <h4 class="cfg-pub-section__title">Autorizzazioni</h4>
+      <p class="cfg-pub-section__hint">
+        ID utente o nomi di ruolo separati da virgola. Lascia vuoto per consentire a tutti.
       </p>
       <div class="cfg-form-row">
         <div class="cfg-field cfg-field--grow">
-          <label for="pub-readers" class="cfg-label">Readers</label>
+          <label for="pub-readers" class="cfg-label">Lettori</label>
           <input id="pub-readers" class="cfg-input" formControlName="accessReaders"
-                 placeholder="e.g. user1, role_finance" />
+                 placeholder="es. utente1, ruolo_finance" />
         </div>
         <div class="cfg-field cfg-field--grow">
-          <label for="pub-writers" class="cfg-label">Writers</label>
+          <label for="pub-writers" class="cfg-label">Scrittori</label>
           <input id="pub-writers" class="cfg-input" formControlName="accessWriters"
-                 placeholder="e.g. user2, role_admin" />
+                 placeholder="es. utente2, ruolo_admin" />
         </div>
       </div>
     </section>
 
-    <!-- ── Dialog footer ──────────────────────────────────────────────── -->
+    <!-- ── Footer dialog ──────────────────────────────────────────────── -->
     <div class="cfg-pub-dialog__footer">
       <button type="submit" class="cfg-btn cfg-btn--primary" [disabled]="isSaving">
-        {{ isSaving ? 'Saving…' : (isNew ? 'Create' : 'Save Changes') }}
+        {{ isSaving ? 'Salvataggio…' : (isNew ? 'Crea' : 'Salva modifiche') }}
       </button>
-      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="cancelled.emit()">Cancel</button>
+      <button type="button" class="cfg-btn cfg-btn--ghost" (click)="cancelled.emit()">Annulla</button>
     </div>
 
   </form>

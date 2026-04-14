@@ -13,12 +13,35 @@ type TaskRow = {
   WritebackMode: string | null; ContextFilters: string | null;
   RouteUrl: string | null; MenuItemCode: string | null; ParentMenuCode: string | null;
   AllowedRoles: string | null; AllowedEntities: string | null;
-  DefaultFilters: string | null; AccessReaders: string | null; AccessWriters: string | null;
+  DefaultFilters: string | null; HiddenFilters: string | null; ViewerSettings: string | null;
+  AccessReaders: string | null; AccessWriters: string | null;
   CreatedBy: string; CreatedAt: string;
   ReportDomain: string | null;
   ReportCode: string | null;
   ReportLabel: string | null;
 };
+
+/** Cached result of whether HiddenFilters column exists (null = not yet checked). */
+let _hasHiddenFilters: boolean | null = null;
+async function hasHiddenFiltersCol(): Promise<boolean> {
+  if (_hasHiddenFilters !== null) return _hasHiddenFilters;
+  const r = await dbGet<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM sys.columns WHERE object_id = OBJECT_ID('cfg_Task') AND name = 'HiddenFilters'`
+  );
+  _hasHiddenFilters = (r?.n ?? 0) > 0;
+  return _hasHiddenFilters;
+}
+
+/** Cached result of whether ViewerSettings column exists (null = not yet checked). */
+let _hasViewerSettings: boolean | null = null;
+async function hasViewerSettingsCol(): Promise<boolean> {
+  if (_hasViewerSettings !== null) return _hasViewerSettings;
+  const r = await dbGet<{ n: number }>(
+    `SELECT COUNT(*) AS n FROM sys.columns WHERE object_id = OBJECT_ID('cfg_Task') AND name = 'ViewerSettings'`
+  );
+  _hasViewerSettings = (r?.n ?? 0) > 0;
+  return _hasViewerSettings;
+}
 
 function mapTask(r: TaskRow): TaskDef {
   return {
@@ -37,6 +60,8 @@ function mapTask(r: TaskRow): TaskDef {
     allowedRoles:    r.AllowedRoles,
     allowedEntities: r.AllowedEntities ? JSON.parse(r.AllowedEntities) : null,
     defaultFilters:  r.DefaultFilters  ?? null,
+    hiddenFilters:   r.HiddenFilters   ?? null,
+    viewerSettings:  r.ViewerSettings  ? JSON.parse(r.ViewerSettings) : null,
     accessReaders:   r.AccessReaders   ?? null,
     accessWriters:   r.AccessWriters   ?? null,
     createdBy:       r.CreatedBy,
@@ -57,13 +82,18 @@ export async function listTasks(options?: {
   if (options?.domain)   { conditions.push('r.Domain=?');   params.push(options.domain); }
 
   const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
+  const hf = await hasHiddenFiltersCol();
+  const hfSelect = hf ? 't.HiddenFilters' : 'NULL AS HiddenFilters';
+  const vs = await hasViewerSettingsCol();
+  const vsSelect = vs ? 't.ViewerSettings' : 'NULL AS ViewerSettings';
 
   const rows = await dbAll<TaskRow>(
     `SELECT t.TaskId, t.TaskCode, t.Label, t.Description, t.ReportId, t.ReportVersion, t.Status,
             t.WritebackMode, t.ContextFilters, t.RouteUrl, t.MenuItemCode, t.ParentMenuCode,
             t.AllowedRoles, t.AllowedEntities, t.DefaultFilters, t.AccessReaders, t.AccessWriters,
             t.CreatedBy, t.CreatedAt,
-            r.Domain AS ReportDomain, r.ReportCode, r.ReportLabel
+            r.Domain AS ReportDomain, r.ReportCode, r.ReportLabel,
+            ${hfSelect}, ${vsSelect}
        FROM cfg_Task t
   LEFT JOIN cfg_Report r ON r.ReportId = t.ReportId
      ${where} ORDER BY t.CreatedAt DESC`,
@@ -73,11 +103,16 @@ export async function listTasks(options?: {
 }
 
 export async function getTask(taskId: number): Promise<TaskDef | null> {
+  const hf = await hasHiddenFiltersCol();
+  const hfSelect = hf ? 'HiddenFilters' : 'NULL AS HiddenFilters';
+  const vs = await hasViewerSettingsCol();
+  const vsSelect = vs ? 'ViewerSettings' : 'NULL AS ViewerSettings';
   const row = await dbGet<Parameters<typeof mapTask>[0]>(
     `SELECT TOP 1 TaskId, TaskCode, Label, Description, ReportId, ReportVersion, Status,
             WritebackMode, ContextFilters, RouteUrl, MenuItemCode, ParentMenuCode,
             AllowedRoles, AllowedEntities, DefaultFilters, AccessReaders, AccessWriters,
-            CreatedBy, CreatedAt
+            CreatedBy, CreatedAt,
+            ${hfSelect}, ${vsSelect}
      FROM cfg_Task WHERE TaskId=?`,
     taskId
   );
@@ -109,11 +144,26 @@ export async function createTask(dto: CreateTaskDto, userId: string): Promise<nu
     userId, now
   );
 
-  // Set ParentMenuCode separately so the INSERT above succeeds even before migration.
+  // Set ParentMenuCode, HiddenFilters, and ViewerSettings separately so the INSERT above
+  // succeeds even before migration.
   if (dto.parentMenuCode) {
     try {
       await dbRun(`UPDATE cfg_Task SET ParentMenuCode = ? WHERE TaskId = ?`, dto.parentMenuCode, taskId);
     } catch { /* column not yet migrated — parentMenuCode will take effect after 010_snapshot.sql */ }
+  }
+
+  if (dto.hiddenFilters) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, dto.hiddenFilters, taskId);
+      _hasHiddenFilters = true; // column confirmed to exist
+    } catch { /* column not yet migrated */ }
+  }
+
+  if (dto.viewerSettings != null) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET ViewerSettings = ? WHERE TaskId = ?`, JSON.stringify(dto.viewerSettings), taskId);
+      _hasViewerSettings = true; // column confirmed to exist
+    } catch { /* column not yet migrated */ }
   }
 
   await logConfigEvent('TaskCreated', 'Task', String(taskId), dto.reportId, null, dto, userId, taskId);
@@ -139,10 +189,13 @@ export async function updateTask(taskId: number, dto: UpdateTaskDto, userId: str
   if (dto.defaultFilters !== undefined) { fields.push('DefaultFilters=?'); params.push(dto.defaultFilters ?? null); }
   if (dto.accessReaders  !== undefined) { fields.push('AccessReaders=?');  params.push(dto.accessReaders  ?? null); }
   if (dto.accessWriters  !== undefined) { fields.push('AccessWriters=?');  params.push(dto.accessWriters  ?? null); }
-  // ParentMenuCode handled separately below for backward-compat (may not exist pre-migration).
+  // ParentMenuCode, HiddenFilters, and ViewerSettings handled separately below
+  // for backward-compat (may not exist pre-migration).
   const pendingParentMenuCode = dto.parentMenuCode;
+  const pendingHiddenFilters  = dto.hiddenFilters;
+  const pendingViewerSettings = dto.viewerSettings;
 
-  if (fields.length === 0 && pendingParentMenuCode === undefined) return;
+  if (fields.length === 0 && pendingParentMenuCode === undefined && pendingHiddenFilters === undefined && pendingViewerSettings === undefined) return;
 
   if (fields.length > 0) {
     fields.push('UpdatedBy=?'); params.push(userId);
@@ -154,6 +207,21 @@ export async function updateTask(taskId: number, dto: UpdateTaskDto, userId: str
   if (pendingParentMenuCode !== undefined) {
     try {
       await dbRun(`UPDATE cfg_Task SET ParentMenuCode = ? WHERE TaskId = ?`, pendingParentMenuCode ?? null, taskId);
+    } catch { /* column not yet migrated */ }
+  }
+
+  if (pendingHiddenFilters !== undefined) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, pendingHiddenFilters ?? null, taskId);
+      _hasHiddenFilters = true; // column confirmed to exist
+    } catch { /* column not yet migrated */ }
+  }
+
+  if (pendingViewerSettings !== undefined) {
+    try {
+      const json = pendingViewerSettings != null ? JSON.stringify(pendingViewerSettings) : null;
+      await dbRun(`UPDATE cfg_Task SET ViewerSettings = ? WHERE TaskId = ?`, json, taskId);
+      _hasViewerSettings = true; // column confirmed to exist
     } catch { /* column not yet migrated */ }
   }
 
@@ -350,6 +418,18 @@ export async function duplicateTask(sourceTaskId: number, userId: string): Promi
     source.allowedEntities ? JSON.stringify(source.allowedEntities) : null,
     userId, now
   );
+
+  // Copy HiddenFilters and ViewerSettings (best-effort — columns may not exist pre-migration)
+  if (source.hiddenFilters) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET HiddenFilters = ? WHERE TaskId = ?`, source.hiddenFilters, newTaskId);
+    } catch { /* column not yet migrated */ }
+  }
+  if (source.viewerSettings != null) {
+    try {
+      await dbRun(`UPDATE cfg_Task SET ViewerSettings = ? WHERE TaskId = ?`, JSON.stringify(source.viewerSettings), newTaskId);
+    } catch { /* column not yet migrated */ }
+  }
 
   // 2. Copy active snapshot layout (so the clone has the same frozen grid config)
   const activeSnap = await getActiveSnapshot(sourceTaskId);

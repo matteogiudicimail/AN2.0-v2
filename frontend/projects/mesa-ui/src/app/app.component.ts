@@ -37,8 +37,10 @@ export class AppComponent implements OnInit {
   sidebarCollapsed = false;
   activeTaskId: number | null = null;
   esgOpenReportId: number | null = null;
-  activeEsgTaskId:    number | null = null;
-  activeEsgTaskLabel = '';
+  activeEsgTaskId:            number | null = null;
+  activeEsgTaskLabel        = '';
+  activeEsgTaskDefaultFilters: string | null = null;
+  activeEsgTaskHiddenFilters:  string | null = null;
   activeEsgTaskBreadcrumbs: Array<{ label: string; action?: () => void }> = [];
 
   constructor(
@@ -99,9 +101,11 @@ export class AppComponent implements OnInit {
     this.activeView = 'esg-configurator';
   }
   /** Opens the published-report snapshot view for a specific task. */
-  onNavEsgTask(ev: { taskId: number; label: string; breadcrumbs?: Array<{ label: string; action?: () => void }> }): void {
-    this.activeEsgTaskId    = ev.taskId;
-    this.activeEsgTaskLabel = ev.label;
+  onNavEsgTask(ev: { taskId: number; label: string; defaultFilters?: string | null; hiddenFilters?: string | null; breadcrumbs?: Array<{ label: string; action?: () => void }> }): void {
+    this.activeEsgTaskId             = ev.taskId;
+    this.activeEsgTaskLabel          = ev.label;
+    this.activeEsgTaskDefaultFilters = ev.defaultFilters ?? null;
+    this.activeEsgTaskHiddenFilters  = ev.hiddenFilters  ?? null;
     // Inject back-navigation actions: 'Reports' → esg-reports, 'Data Models' → esg-configurator
     this.activeEsgTaskBreadcrumbs = (ev.breadcrumbs ?? []).map((b) => ({
       label:  b.label,

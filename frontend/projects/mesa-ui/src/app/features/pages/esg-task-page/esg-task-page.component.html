@@ -13,6 +13,8 @@
     *ngIf="snapshotId !== null && !loading"
     [snapshotId]="snapshotId"
     [taskLabel]="taskLabel"
+    [taskDefaultFilters]="defaultFilters"
+    [taskHiddenFilters]="hiddenFilters"
     [breadcrumbs]="breadcrumbs">
   </snapshot-viewer>
 

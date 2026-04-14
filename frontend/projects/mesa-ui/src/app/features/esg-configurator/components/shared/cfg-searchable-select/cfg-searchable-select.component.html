@@ -15,7 +15,7 @@
     <button *ngIf="value && !disabled"
             type="button"
             class="cfg-ss__clear"
-            aria-label="Clear selection"
+            aria-label="Cancella selezione"
             (click)="clear($event)">✕</button>
     <span class="cfg-ss__arrow" aria-hidden="true">{{ isOpen ? '▲' : '▼' }}</span>
   </button>
@@ -29,12 +29,12 @@
         #searchInput
         type="text"
         class="cfg-ss__search"
-        placeholder="Search…"
+        placeholder="Cerca…"
         autocomplete="off"
         [(ngModel)]="searchText"
         (ngModelChange)="focusIndex = -1"
         (click)="$event.stopPropagation()"
-        aria-label="Search options"
+        aria-label="Cerca opzioni"
       />
     </div>
 
@@ -76,7 +76,7 @@
     </div>
 
     <!-- Empty state -->
-    <div *ngIf="filteredItems.length === 0" class="cfg-ss__empty">No results found.</div>
+    <div *ngIf="filteredItems.length === 0" class="cfg-ss__empty">Nessun risultato trovato.</div>
 
   </div>
 </div>

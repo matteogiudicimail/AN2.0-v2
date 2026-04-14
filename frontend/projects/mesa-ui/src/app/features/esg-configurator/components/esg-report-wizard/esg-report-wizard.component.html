@@ -5,7 +5,7 @@
     <button class="cfg-btn cfg-btn--ghost" (click)="back.emit()">← Data Models</button>
     <span class="cfg-wizard__report-name">
       <span class="cfg-wizard__mode-badge">{{ modeIcon }} {{ modeTitle }}</span>
-      {{ report?.reportLabel || 'New Data Model' }}
+      {{ report?.reportLabel || 'Nuovo Data Model' }}
     </span>
   </div>
 
@@ -35,7 +35,8 @@
       *ngIf="step === 1 && mode === 'definition'"
       [report]="report"
       [isSaving]="isSaving"
-      (saved)="onBasicSaved($event)">
+      (saved)="onBasicSaved($event)"
+      (reportChanged)="report = $event">
     </esg-step-basic>
 
     <esg-step-db-explorer

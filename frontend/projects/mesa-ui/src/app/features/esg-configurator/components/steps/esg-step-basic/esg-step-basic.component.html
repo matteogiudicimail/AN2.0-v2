@@ -1,12 +1,12 @@
 <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate class="cfg-step">
 
-  <h3 class="cfg-step__title">Basic Info</h3>
-  <p class="cfg-step__hint">Define the code, name and writeback mode for this Data Model.</p>
+  <h3 class="cfg-step__title">Informazioni base</h3>
+  <p class="cfg-step__hint">Definisci il codice, il nome e la modalità di writeback per questo Data Model.</p>
 
   <!-- Data Model Code -->
   <div class="cfg-field">
     <label for="dm-code" class="cfg-field__label">
-      Data Model Code <span class="cfg-field__required" aria-hidden="true">*</span>
+      Codice Data Model <span class="cfg-field__required" aria-hidden="true">*</span>
     </label>
     <input
       id="dm-code"
@@ -16,18 +16,18 @@
       [class.cfg-field__input--invalid]="codeCtrl.invalid && codeCtrl.touched"
       aria-required="true"
       maxlength="50"
-      placeholder="e.g. FAST_CLOSING_2025 (letters, digits, _ -)"
+      placeholder="es. FAST_CLOSING_2025 (lettere, cifre, _ -)"
     />
     <span *ngIf="codeCtrl.invalid && codeCtrl.touched" class="cfg-field__error" role="alert">
-      Code is required. Only letters, digits, _ and - (max 50 characters).
+      Il codice è obbligatorio. Sono ammessi solo lettere, cifre, _ e - (max 50 caratteri).
     </span>
-    <span *ngIf="report?.reportId" class="cfg-field__hint">The code cannot be changed after creation.</span>
+    <span *ngIf="report?.reportId" class="cfg-field__hint">Il codice non può essere modificato dopo la creazione.</span>
   </div>
 
   <!-- Data Model Name -->
   <div class="cfg-field">
     <label for="dm-label" class="cfg-field__label">
-      Name <span class="cfg-field__required" aria-hidden="true">*</span>
+      Nome <span class="cfg-field__required" aria-hidden="true">*</span>
     </label>
     <input
       id="dm-label"
@@ -37,33 +37,33 @@
       [class.cfg-field__input--invalid]="labelCtrl.invalid && labelCtrl.touched"
       aria-required="true"
       maxlength="200"
-      placeholder="e.g. Fast Closing 2025"
+      placeholder="es. Fast Closing 2025"
     />
     <span *ngIf="labelCtrl.invalid && labelCtrl.touched" class="cfg-field__error" role="alert">
-      Name is required (max 200 characters).
+      Il nome è obbligatorio (max 200 caratteri).
     </span>
   </div>
 
   <!-- Description -->
   <div class="cfg-field">
-    <label for="dm-desc" class="cfg-field__label">Description</label>
+    <label for="dm-desc" class="cfg-field__label">Descrizione</label>
     <textarea
       id="dm-desc"
       formControlName="description"
       class="cfg-field__textarea"
       rows="3"
-      placeholder="Optional — describe the purpose of this Data Model.">
+      placeholder="Opzionale — descrivi lo scopo di questo Data Model.">
     </textarea>
   </div>
 
   <!-- Writeback Mode -->
   <fieldset class="cfg-fieldset">
     <legend class="cfg-fieldset__legend">
-      Writeback Mode <span class="cfg-field__required" aria-hidden="true">*</span>
+      Modalità writeback <span class="cfg-field__required" aria-hidden="true">*</span>
     </legend>
     <p class="cfg-fieldset__hint">
-      <strong>Delta</strong> — each save is additive (journal-style, recommended for data collection).<br>
-      <strong>Overwrite</strong> — each save replaces the previous value.
+      <strong>Delta</strong> — ogni salvataggio è additivo (stile giornale, consigliato per la raccolta dati).<br>
+      <strong>Overwrite</strong> — ogni salvataggio sostituisce il valore precedente.
     </p>
     <label class="cfg-radio">
       <input type="radio" formControlName="writebackMode" value="Delta" class="cfg-radio__input" />
@@ -77,10 +77,31 @@
     </label>
   </fieldset>
 
+  <!-- Tracking toggle (only for existing reports) -->
+  <fieldset *ngIf="report?.reportId" class="cfg-fieldset">
+    <legend class="cfg-fieldset__legend">Tracciatura inserimenti</legend>
+    <p class="cfg-fieldset__hint">
+      Quando abilitata, ogni salvataggio di cella viene registrato nella tabella di log
+      (<code>_WRITE_LOG</code>) e accessibile come storico con tasto destro sulla cella.
+    </p>
+    <label class="cfg-de-toggle">
+      <input type="checkbox"
+             class="cfg-de-toggle__check"
+             [checked]="trackingEnabled"
+             [disabled]="isSavingTracking"
+             (change)="toggleTracking($any($event.target).checked)" />
+      <span class="cfg-de-toggle__label">
+        <span *ngIf="isSavingTracking"><span class="cfg-spinner cfg-spinner--xs"></span> Salvataggio…</span>
+        <span *ngIf="!isSavingTracking">Abilita tracciatura inserimenti</span>
+      </span>
+    </label>
+    <div *ngIf="trackingSaveError" class="cfg-field__error" role="alert">{{ trackingSaveError }}</div>
+  </fieldset>
+
   <!-- Actions -->
   <div class="cfg-step__actions">
     <button type="submit" class="cfg-btn cfg-btn--primary" [disabled]="isSaving">
-      {{ isSaving ? 'Saving…' : 'Save & continue →' }}
+      {{ isSaving ? 'Salvataggio…' : 'Salva e continua →' }}
     </button>
   </div>
 

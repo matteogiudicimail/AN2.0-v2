@@ -5,6 +5,7 @@ import { EsgConfiguratorService } from '../../../services/esg-configurator.servi
 import {
   DbTableInfo, DbColumnInfo,
   DatasetBinding, UpsertDatasetBindingDto, FieldMapping, JoinConfig, HierarchyDef,
+  TaskSummary,
 } from '../../../models/esg-configurator.models';
 import { SearchableSelectItem } from '../../shared/cfg-searchable-select/cfg-searchable-select.component';
 
@@ -67,6 +68,43 @@ export class EsgStepDbExplorerComponent implements OnInit {
   openMasterData(rightTable: string): void  { this.masterDataModalTable = rightTable; }
   closeMasterData(): void                   { this.masterDataModalTable = null; }
 
+  // ── Report Pubblicati drawer ─────────────────────────────────────────────────
+  drawerOpen        = false;
+  tasks:            TaskSummary[] = [];
+  tasksLoading      = false;
+  tasksError:       string | null = null;
+
+  /** null = closed, undefined = new task, TaskSummary = edit */
+  dialogTask: TaskSummary | null | undefined = null;
+  get dialogOpen(): boolean { return this.dialogTask !== null; }
+
+  openDrawer(): void {
+    this.drawerOpen = true;
+    this.loadTasks();
+  }
+
+  closeDrawer(): void { this.drawerOpen = false; }
+
+  private loadTasks(): void {
+    this.tasksLoading = true;
+    this.tasksError   = null;
+    this.svc.listTasks(this.reportId).subscribe({
+      next:  (list) => { this.tasks = list; this.tasksLoading = false; },
+      error: ()     => { this.tasksError = 'Impossibile caricare i report pubblicati.'; this.tasksLoading = false; },
+    });
+  }
+
+  openNewTask(): void     { this.dialogTask = undefined; }
+  openEditTask(t: TaskSummary): void { this.dialogTask = t; }
+  closeDialog(): void     { this.dialogTask = null; }
+
+  onDialogSaved(saved: TaskSummary): void {
+    this.closeDialog();
+    this.loadTasks();
+  }
+
+  trackByTask(_: number, t: TaskSummary): number { return t.taskId; }
+
   constructor(
     private svc: EsgConfiguratorService,
     private fb: FormBuilder,
@@ -117,7 +155,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
           this.loadColumnsFor(schema, table);
         }
       },
-      error: () => { this.errorMsg = 'Could not load tables.'; this.isLoadingTables = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare le tabelle.'; this.isLoadingTables = false; },
     });
   }
 
@@ -198,7 +236,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
         this.colSelectItems = this.buildColSelectItems(c);
         this.isLoadingColumns = false;
       },
-      error: () => { this.errorMsg = 'Could not load columns.'; this.isLoadingColumns = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare le colonne.'; this.isLoadingColumns = false; },
     });
   }
 
@@ -273,7 +311,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
         this.dimColSelectItems = this.buildColSelectItems(c);
         this.isLoadingDimColumns = false;
       },
-      error: () => { this.errorMsg = 'Could not load dim table columns.'; this.isLoadingDimColumns = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare le colonne della tabella dimensione.'; this.isLoadingDimColumns = false; },
     });
   }
 
@@ -337,7 +375,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
           smartName:  j.smartName ?? '',
         });
       },
-      error: () => { this.errorMsg = 'Could not load dim columns.'; this.isLoadingDimColumns = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare le colonne dimensione.'; this.isLoadingDimColumns = false; },
     });
   }
 
@@ -363,7 +401,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
         this.hierColSelectItems = this.buildColSelectItems(c);
         this.isLoadingHierCols = false;
       },
-      error: () => { this.errorMsg = 'Could not load hierarchy table columns.'; this.isLoadingHierCols = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare le colonne della tabella gerarchia.'; this.isLoadingHierCols = false; },
     });
   }
 
@@ -396,7 +434,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
           smartName:   h.smartName ?? '',
         });
       },
-      error: () => { this.errorMsg = 'Could not load hierarchy dim columns.'; this.isLoadingHierCols = false; },
+      error: () => { this.errorMsg = 'Impossibile caricare le colonne gerarchia dimensione.'; this.isLoadingHierCols = false; },
     });
   }
 
@@ -434,7 +472,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
         const idx = this.hierarchyDefs.indexOf(def);
         if (idx >= 0) this.hierarchyDefs[idx] = saved;
       },
-      error: () => { this.errorMsg = 'Could not save hierarchy definition.'; },
+      error: () => { this.errorMsg = 'Impossibile salvare la definizione della gerarchia.'; },
     });
     this.cancelHierarchyForm();
   }
@@ -443,7 +481,7 @@ export class EsgStepDbExplorerComponent implements OnInit {
     const def = this.hierarchyDefs[i];
     if (def.hierarchyDefId) {
       this.svc.deleteHierarchyDef(def.hierarchyDefId).subscribe({
-        error: () => { this.errorMsg = 'Could not delete hierarchy definition.'; },
+        error: () => { this.errorMsg = 'Impossibile eliminare la definizione della gerarchia.'; },
       });
     }
     this.hierarchyDefs.splice(i, 1);
@@ -465,8 +503,8 @@ export class EsgStepDbExplorerComponent implements OnInit {
     };
 
     this.svc.upsertBinding(this.reportId, dto).subscribe({
-      next:  (b) => { this.binding = b; this.isSaving = false; this.successMsg = 'Data Model binding saved.'; },
-      error: ()  => { this.errorMsg = 'Could not save binding.'; this.isSaving = false; },
+      next:  (b) => { this.binding = b; this.isSaving = false; this.successMsg = 'Binding del Data Model salvato.'; },
+      error: ()  => { this.errorMsg = 'Impossibile salvare il binding.'; this.isSaving = false; },
     });
   }
 

@@ -58,7 +58,7 @@ export class KpiCustomColumnManagerComponent implements OnInit {
     this.errorMsg = null;
     this.svc.updateCustomColumns(this.paramTableId, this.defs).subscribe({
       next:  (info) => { this.isSaving = false; this.saved.emit(info); },
-      error: ()     => { this.errorMsg = 'Could not save custom columns.'; this.isSaving = false; },
+      error: ()     => { this.errorMsg = 'Impossibile salvare le colonne personalizzate.'; this.isSaving = false; },
     });
   }
 

@@ -1,10 +1,10 @@
 <div class="cfg-kpi-modal__backdrop" (click)="onBackdropClick($event)" role="dialog"
-     aria-modal="true" [attr.aria-label]="'Compilation Guide — ' + row.label">
+     aria-modal="true" [attr.aria-label]="'Guida compilazione — ' + row.label">
 
   <div class="cfg-kpi-modal__panel" role="document">
     <div class="cfg-kpi-modal__header">
       <h2 class="cfg-kpi-modal__title" id="lens-title">{{ row.label }}</h2>
-      <button class="cfg-btn-icon" (click)="closed.emit()" aria-label="Close compilation guide">✕</button>
+      <button class="cfg-btn-icon" (click)="closed.emit()" aria-label="Chiudi guida compilazione">✕</button>
     </div>
 
     <div *ngIf="errorMsg" class="cfg-alert cfg-alert--error" role="alert">{{ errorMsg }}</div>
@@ -16,27 +16,27 @@
 
     <!-- Edit mode -->
     <div *ngIf="isEditing" class="cfg-kpi-modal__body">
-      <label for="lens-editor" class="cfg-label">Compilation Guide (HTML allowed)</label>
+      <label for="lens-editor" class="cfg-label">Guida compilazione (HTML consentito)</label>
       <textarea
         id="lens-editor"
         class="cfg-textarea cfg-kpi-guide-editor"
         [(ngModel)]="editValue"
         rows="10"
-        placeholder="<p>Enter compilation instructions here...</p>"
-        aria-label="Compilation guide editor">
+        placeholder="<p>Inserisci le istruzioni di compilazione qui...</p>"
+        aria-label="Editor guida compilazione">
       </textarea>
     </div>
 
     <div class="cfg-kpi-modal__footer">
       <ng-container *ngIf="!isEditing">
-        <button class="cfg-btn cfg-btn--secondary" (click)="startEdit()">Edit</button>
-        <button class="cfg-btn cfg-btn--ghost" (click)="closed.emit()">Close</button>
+        <button class="cfg-btn cfg-btn--secondary" (click)="startEdit()">Modifica</button>
+        <button class="cfg-btn cfg-btn--ghost" (click)="closed.emit()">Chiudi</button>
       </ng-container>
       <ng-container *ngIf="isEditing">
         <button class="cfg-btn cfg-btn--primary" [disabled]="isSaving" (click)="saveEdit()">
-          {{ isSaving ? 'Saving...' : 'Save' }}
+          {{ isSaving ? 'Salvataggio…' : 'Salva' }}
         </button>
-        <button class="cfg-btn cfg-btn--ghost" (click)="cancelEdit()">Cancel</button>
+        <button class="cfg-btn cfg-btn--ghost" (click)="cancelEdit()">Annulla</button>
       </ng-container>
     </div>
   </div>

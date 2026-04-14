@@ -383,10 +383,52 @@ export class EsgConfiguratorService {
     ).pipe(map(r => this.normalizeGridResponse(r)));
   }
 
+  getSnapshotCellHistory(snapshotId: number, req: CellHistoryRequest): Observable<CellHistoryEntry[]> {
+    return this.http.post<CellHistoryEntry[]>(
+      `${this.base}/snapshots/${snapshotId}/cell-history`,
+      req,
+      { headers: this.headers() },
+    );
+  }
+
+  setReportTracking(reportId: number, enabled: boolean): Observable<DataModelDetail> {
+    return this.http.put<DataModelDetail>(
+      `${this.base}/reports/${reportId}/tracking`,
+      { enabled },
+      { headers: this.headers() },
+    );
+  }
+
   saveSnapshotCell(snapshotId: number, dto: SaveCellDto): Observable<{ ok: boolean }> {
     return this.http.put<{ ok: boolean }>(
       `${this.base}/snapshots/${snapshotId}/cell`,
       dto,
+      { headers: this.headers() },
+    );
+  }
+
+  exportSnapshotExcel(
+    snapshotId: number,
+    mode: 'grid' | 'pivot',
+    filters: Record<string, string>,
+  ): Observable<Blob> {
+    return this.http.post(
+      `${this.base}/snapshots/${snapshotId}/excel/export`,
+      { mode, filters },
+      { headers: this.headers(), responseType: 'blob' },
+    );
+  }
+
+  importSnapshotExcel(
+    snapshotId: number,
+    file: File,
+  ): Observable<{ imported: number; errors: string[] }> {
+    const fd = new FormData();
+    fd.append('file', file);
+    // No Content-Type header: browser sets multipart/form-data + boundary automatically
+    return this.http.post<{ imported: number; errors: string[] }>(
+      `${this.base}/snapshots/${snapshotId}/excel/import`,
+      fd,
       { headers: this.headers() },
     );
   }

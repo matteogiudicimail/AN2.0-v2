@@ -3,23 +3,23 @@
   <!-- ── Left panel: table list ── -->
   <div class="cfg-mdm__sidebar">
     <div class="cfg-mdm__sidebar-header">
-      <span class="cfg-mdm__sidebar-title">📂 Master Data Tables</span>
+      <span class="cfg-mdm__sidebar-title">📂 Tabelle Master Data</span>
       <button type="button"
               class="cfg-btn cfg-btn--primary cfg-btn--sm"
               (click)="openRegisterForm()"
-              aria-label="Register a new master data table">
-        + Register
+              aria-label="Registra una nuova tabella master data">
+        + Registra
       </button>
     </div>
 
     <div *ngIf="tablesLoading" class="cfg-mdm__loading">
-      <span class="cfg-spinner cfg-spinner--xs"></span> Loading…
+      <span class="cfg-spinner cfg-spinner--xs"></span> Caricamento…
     </div>
     <div *ngIf="tablesError" class="cfg-alert cfg-alert--error" role="alert">{{ tablesError }}</div>
 
     <ul class="cfg-mdm__table-list" role="list" *ngIf="!tablesLoading">
       <li *ngIf="tables.length === 0" class="cfg-mdm__no-tables">
-        No tables registered yet.
+        Nessuna tabella registrata.
       </li>
       <li *ngFor="let t of tables; trackBy: trackByMd"
           class="cfg-mdm__table-item"
@@ -38,8 +38,8 @@
         <button type="button"
                 class="cfg-mdm__unregister-btn"
                 (click)="$event.stopPropagation(); unregisterTable(t)"
-                [attr.aria-label]="'Unregister ' + t.label"
-                title="Unregister (does not drop the DB table)">
+                [attr.aria-label]="'Deregistra ' + t.label"
+                title="Deregistra (non elimina la tabella DB)">
           ✕
         </button>
       </li>
@@ -49,28 +49,28 @@
     <div *ngIf="showRegisterForm"
          class="cfg-mdm__register-form"
          role="region"
-         aria-label="Register master data table">
-      <div class="cfg-mdm__register-title">Register Table</div>
+         aria-label="Registra tabella master data">
+      <div class="cfg-mdm__register-title">Registra Tabella</div>
 
       <label class="cfg-field__label" for="mdm-schema">Schema</label>
       <input id="mdm-schema" type="text" class="cfg-field__input"
              [(ngModel)]="registerDto.schemaName" placeholder="dbo" maxlength="128" />
 
-      <label class="cfg-field__label" for="mdm-table">Table Name</label>
+      <label class="cfg-field__label" for="mdm-table">Nome Tabella</label>
       <input id="mdm-table" type="text" class="cfg-field__input"
-             [(ngModel)]="registerDto.tableName" placeholder="dim_example" maxlength="128" />
+             [(ngModel)]="registerDto.tableName" placeholder="dim_esempio" maxlength="128" />
 
-      <label class="cfg-field__label" for="mdm-label">Display Label</label>
+      <label class="cfg-field__label" for="mdm-label">Etichetta</label>
       <input id="mdm-label" type="text" class="cfg-field__input"
-             [(ngModel)]="registerDto.label" placeholder="Example Dimension" maxlength="200" />
+             [(ngModel)]="registerDto.label" placeholder="Dimensione Esempio" maxlength="200" />
 
-      <label class="cfg-field__label" for="mdm-pk">Primary Key Column</label>
+      <label class="cfg-field__label" for="mdm-pk">Colonna Chiave Primaria</label>
       <input id="mdm-pk" type="text" class="cfg-field__input"
              [(ngModel)]="registerDto.primaryKeyCol" placeholder="Id" maxlength="128" />
 
-      <label class="cfg-field__label" for="mdm-cols">Editable Columns <span class="cfg-field__hint">(comma-separated)</span></label>
+      <label class="cfg-field__label" for="mdm-cols">Colonne Modificabili <span class="cfg-field__hint">(separate da virgola)</span></label>
       <input id="mdm-cols" type="text" class="cfg-field__input"
-             [(ngModel)]="editableColsInput" placeholder="Name, Description" />
+             [(ngModel)]="editableColsInput" placeholder="Nome, Descrizione" />
 
       <div *ngIf="registerError" class="cfg-alert cfg-alert--error cfg-alert--sm" role="alert">
         {{ registerError }}
@@ -81,15 +81,15 @@
                 class="cfg-btn cfg-btn--primary cfg-btn--sm"
                 [disabled]="registerLoading"
                 (click)="submitRegister()"
-                aria-label="Submit registration">
+                aria-label="Conferma registrazione">
           <span *ngIf="registerLoading"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-          Save
+          Salva
         </button>
         <button type="button"
                 class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                 (click)="cancelRegister()"
-                aria-label="Cancel registration">
-          Cancel
+                aria-label="Annulla registrazione">
+          Annulla
         </button>
       </div>
     </div>
@@ -99,7 +99,7 @@
   <div class="cfg-mdm__content">
 
     <div *ngIf="!selectedTable" class="cfg-mdm__select-hint">
-      ← Select a table from the left panel.
+      ← Seleziona una tabella dal pannello di sinistra.
     </div>
 
     <ng-container *ngIf="selectedTable">
@@ -112,13 +112,13 @@
                 class="cfg-btn cfg-btn--primary cfg-btn--sm"
                 (click)="startNewRow()"
                 [disabled]="!!editingRow"
-                aria-label="Add new row">
-          + Add Row
+                aria-label="Aggiungi nuova riga">
+          + Aggiungi riga
         </button>
       </div>
 
       <div *ngIf="rowsLoading" class="cfg-mdm__loading">
-        <span class="cfg-spinner cfg-spinner--xs"></span> Loading rows…
+        <span class="cfg-spinner cfg-spinner--xs"></span> Caricamento righe…
       </div>
       <div *ngIf="rowsError" class="cfg-alert cfg-alert--error" role="alert">{{ rowsError }}</div>
       <div *ngIf="saveRowError" class="cfg-alert cfg-alert--error" role="alert">{{ saveRowError }}</div>
@@ -127,19 +127,19 @@
       <div *ngIf="deleteConfirmPk"
            class="cfg-mdm__del-confirm"
            role="alertdialog"
-           [attr.aria-label]="'Confirm deletion of row ' + deleteConfirmPk">
-        <span>Delete row <strong>{{ deleteConfirmPk }}</strong>? This action cannot be undone.</span>
+           [attr.aria-label]="'Conferma eliminazione riga ' + deleteConfirmPk">
+        <span>Eliminare la riga <strong>{{ deleteConfirmPk }}</strong>? Questa operazione non può essere annullata.</span>
         <button type="button"
                 class="cfg-btn cfg-btn--danger cfg-btn--sm"
                 [disabled]="deleting"
                 (click)="confirmDeleteRow()">
           <span *ngIf="deleting"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-          Delete
+          Elimina
         </button>
         <button type="button"
                 class="cfg-btn cfg-btn--ghost cfg-btn--sm"
                 (click)="cancelDelete()">
-          Cancel
+          Annulla
         </button>
       </div>
 
@@ -147,11 +147,11 @@
       <div class="cfg-mdm__row-search-bar" *ngIf="!rowsLoading && rows.length > 0">
         <input type="search"
                class="cfg-input cfg-mdm__row-search"
-               placeholder="Search rows…"
+               placeholder="Cerca righe…"
                [(ngModel)]="rowSearch"
-               aria-label="Search rows" />
+               aria-label="Cerca righe" />
         <span *ngIf="rowSearch" class="cfg-mdm__row-search-count">
-          {{ filteredRows.length }} / {{ rows.length }} shown
+          {{ filteredRows.length }} / {{ rows.length }} mostrati
         </span>
       </div>
 
@@ -169,7 +169,7 @@
                 {{ col }}
                 <span class="cfg-sort-icon" aria-hidden="true">{{ rowSortIcon(col) }}</span>
               </th>
-              <th class="cfg-table__actions">Actions</th>
+              <th class="cfg-table__actions">Azioni</th>
             </tr>
           </thead>
           <tbody>
@@ -187,15 +187,15 @@
                         class="cfg-btn cfg-btn--primary cfg-btn--xs"
                         [disabled]="savingRow"
                         (click)="saveRow()"
-                        aria-label="Save new row">
+                        aria-label="Salva nuova riga">
                   <span *ngIf="savingRow"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-                  Save
+                  Salva
                 </button>
                 <button type="button"
                         class="cfg-btn cfg-btn--ghost cfg-btn--xs"
                         (click)="cancelEdit()"
-                        aria-label="Cancel new row">
-                  Cancel
+                        aria-label="Annulla nuova riga">
+                  Annulla
                 </button>
               </td>
             </tr>
@@ -216,15 +216,15 @@
                           class="cfg-btn cfg-btn--primary cfg-btn--xs"
                           [disabled]="savingRow"
                           (click)="saveRow()"
-                          aria-label="Save row changes">
+                          aria-label="Salva modifiche riga">
                     <span *ngIf="savingRow"><span class="cfg-spinner cfg-spinner--xs"></span></span>
-                    Save
+                    Salva
                   </button>
                   <button type="button"
                           class="cfg-btn cfg-btn--ghost cfg-btn--xs"
                           (click)="cancelEdit()"
-                          aria-label="Cancel editing">
-                    Cancel
+                          aria-label="Annulla modifica">
+                    Annulla
                   </button>
                 </td>
               </ng-container>
@@ -237,14 +237,14 @@
                           class="cfg-btn cfg-btn--ghost cfg-btn--xs"
                           (click)="startEditRow(row)"
                           [disabled]="!!editingRow"
-                          [attr.aria-label]="'Edit row ' + row.pkValue">
+                          [attr.aria-label]="'Modifica riga ' + row.pkValue">
                     ✏
                   </button>
                   <button type="button"
                           class="cfg-btn cfg-btn--danger cfg-btn--xs"
                           (click)="requestDeleteRow(row.pkValue)"
                           [disabled]="!!editingRow"
-                          [attr.aria-label]="'Delete row ' + row.pkValue">
+                          [attr.aria-label]="'Elimina riga ' + row.pkValue">
                     🗑
                   </button>
                 </td>
@@ -254,13 +254,13 @@
             <tr *ngIf="rows.length === 0 && !editingRow?.isNew">
               <td [attr.colspan]="columnDefs.length + 1"
                   class="cfg-de-td--empty">
-                No rows. Click "+ Add Row" to insert the first record.
+                Nessuna riga. Usa "+ Aggiungi riga" per inserire il primo record.
               </td>
             </tr>
             <tr *ngIf="rows.length > 0 && filteredRows.length === 0 && !editingRow?.isNew">
               <td [attr.colspan]="columnDefs.length + 1"
                   class="cfg-de-td--empty">
-                No rows match your search.
+                Nessuna riga corrisponde alla ricerca.
               </td>
             </tr>
           </tbody>

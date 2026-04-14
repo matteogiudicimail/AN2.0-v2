@@ -34,7 +34,7 @@ export class LockMembersDialogComponent implements OnInit {
     this.svc.getDistinctValues(this.schemaName, this.tableName, this.columnName, 1000)
       .subscribe({
         next: (r) => { this.distinctValues = r.values ?? []; this.isLoading = false; },
-        error: ()  => { this.errorMsg = 'Could not load values.'; this.isLoading = false; },
+        error: ()  => { this.errorMsg = 'Impossibile caricare i valori.'; this.isLoading = false; },
       });
   }
 

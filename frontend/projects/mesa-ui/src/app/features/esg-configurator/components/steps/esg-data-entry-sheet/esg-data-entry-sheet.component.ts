@@ -389,8 +389,11 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
     // Apply row-level filters.
     if (this.grid) {
       const rowFieldNames = new Set((this.grid.layout.rows ?? []).map((r) => r.fieldName));
-      const primaryDimRigaField = (this.grid.layout.rows ?? [])
-        .find((r) => !!(r as any).dimTable && !(r as any).paramTableId)?.fieldName;
+      // All non-grouping row fields from a dimTable — needed for multi-level
+      // hierarchies where the mapping may target a deeper field than the first.
+      const dimTableRigaFields = (this.grid.layout.rows ?? [])
+        .filter((r) => !!(r as any).dimTable && !(r as any).paramTableId)
+        .map((r) => r.fieldName);
 
       for (const f of (this.grid.layout.filters ?? [])) {
         const selVal = this.selectedFiltri[f.fieldName];
@@ -416,12 +419,14 @@ export class EsgDataEntrySheetComponent implements OnInit, OnDestroy {
           // Use filtriDimMapping if available to filter by which primary-row values belong
           // to this filter value.
           const mapping = (this.grid as any).filtriDimMapping?.[f.fieldName];
-          if (mapping && primaryDimRigaField) {
+          if (mapping && dimTableRigaFields.length > 0) {
             const validRowKeys = new Set<string>(mapping[selVal] ?? []);
-            visible = visible.filter((r) => {
-              const rv = r.pathValues[primaryDimRigaField];
-              return rv === undefined || validRowKeys.has(rv);
-            });
+            visible = visible.filter((r) =>
+              dimTableRigaFields.some((fn) => {
+                const rv = r.pathValues[fn];
+                return rv === undefined || validRowKeys.has(rv);
+              }),
+            );
           }
         }
       }

@@ -26,13 +26,13 @@ export interface DataEntryRigaOption {
    */
   ancestorKeys?: string[];
   paramRow: {
-    rowKind:           'Aggregato' | 'Indicatore';
-    indentLevel:       number;
-    raggruppamento:    string | null;
-    formula:           string | null;
-    guidaCompilazione: string | null;
-    isEditable:        boolean;
-    isFormula:         boolean;
+    rowKind:          'Aggregato' | 'Indicatore';
+    indentLevel:      number;
+    grouping:         string | null;
+    formula:          string | null;
+    compilationGuide: string | null;
+    isEditable:       boolean;
+    isFormula:        boolean;
   } | null;
 }
 
@@ -67,6 +67,8 @@ export interface DataEntryGridResponse {
    * Used by the frontend to filter visible rows when such a filter is active.
    */
   filtriDimMapping?: Record<string, Record<string, string[]>>;
+  /** SQL queries generated during this grid build — only populated for snapshot grid calls. */
+  debugSql?: string[];
   /**
    * For "pure dim-table-only" filtri fields whose dimTable matches a COLONNE field's dimTable:
    * maps filterValue → array of colonna field values visible under that filter.

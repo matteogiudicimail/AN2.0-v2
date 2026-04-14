@@ -1,4 +1,4 @@
-<div class="cfg-fb" role="dialog" aria-modal="true" [attr.aria-label]="'Formula editor for ' + rowLabel">
+<div class="cfg-fb" role="dialog" aria-modal="true" [attr.aria-label]="'Editor formula per ' + rowLabel">
 
   <div class="cfg-fb__header">
     <span class="cfg-fb__title">ƒ Formula Builder</span>
@@ -6,43 +6,43 @@
   </div>
 
   <!-- ── Reference chips ── -->
-  <div class="cfg-fb__refs-section" aria-label="Available references">
+  <div class="cfg-fb__refs-section" aria-label="Riferimenti disponibili">
     <div class="cfg-fb__refs-toolbar">
-      <span class="cfg-fb__refs-label">References ({{ availableRefs.length }})</span>
+      <span class="cfg-fb__refs-label">Riferimenti ({{ availableRefs.length }})</span>
       <input class="cfg-fb__refs-search"
              type="text"
              [(ngModel)]="refSearch"
-             placeholder="Search references…"
-             aria-label="Search references" />
+             placeholder="Cerca riferimenti…"
+             aria-label="Cerca riferimenti" />
     </div>
     <div class="cfg-fb__refs">
       <button *ngFor="let ref of filteredRefs"
               type="button"
               class="cfg-fb__ref-chip"
               (click)="insertRef(ref)"
-              [attr.aria-label]="'Insert reference ' + ref"
-              title="Click to insert [{{ ref }}]">
+              [attr.aria-label]="'Inserisci riferimento ' + ref"
+              title="Clicca per inserire [{{ ref }}]">
         [{{ ref }}]
       </button>
       <span *ngIf="!filteredRefs.length" class="cfg-fb__refs-empty">
-        {{ availableRefs.length ? 'No matches' : 'No references available' }}
+        {{ availableRefs.length ? 'Nessun risultato' : 'Nessun riferimento disponibile' }}
       </span>
     </div>
   </div>
 
   <!-- ── Operator buttons ── -->
-  <div class="cfg-fb__ops" role="group" aria-label="Operators">
+  <div class="cfg-fb__ops" role="group" aria-label="Operatori">
     <button *ngFor="let op of OPERATORS"
             type="button"
             class="cfg-fb__op-btn"
             (click)="insertOperator(op)"
-            [attr.aria-label]="'Insert operator ' + op">
+            [attr.aria-label]="'Inserisci operatore ' + op">
       {{ op }}
     </button>
-    <button type="button" class="cfg-fb__op-btn" (click)="insertParen('(')" aria-label="Insert opening parenthesis">(</button>
-    <button type="button" class="cfg-fb__op-btn" (click)="insertParen(')')" aria-label="Insert closing parenthesis">)</button>
-    <button type="button" class="cfg-fb__op-btn cfg-fb__op-btn--back" (click)="backspace()" aria-label="Delete last token">⌫</button>
-    <button type="button" class="cfg-fb__op-btn cfg-fb__op-btn--clear" (click)="clearFormula()" aria-label="Clear entire formula">✕</button>
+    <button type="button" class="cfg-fb__op-btn" (click)="insertParen('(')" aria-label="Inserisci parentesi aperta">(</button>
+    <button type="button" class="cfg-fb__op-btn" (click)="insertParen(')')" aria-label="Inserisci parentesi chiusa">)</button>
+    <button type="button" class="cfg-fb__op-btn cfg-fb__op-btn--back" (click)="backspace()" aria-label="Elimina ultimo token">⌫</button>
+    <button type="button" class="cfg-fb__op-btn cfg-fb__op-btn--clear" (click)="clearFormula()" aria-label="Cancella formula">✕</button>
   </div>
 
   <!-- ── Formula textarea ── -->
@@ -56,12 +56,12 @@
       [(ngModel)]="formula"
       (input)="onFormulaInput()"
       rows="2"
-      placeholder="Example: [Revenue] - [Costs]"
+      placeholder="Esempio: [Ricavi] - [Costi]"
       spellcheck="false"
       aria-describedby="cfg-fb-hint cfg-fb-error"
     ></textarea>
     <div id="cfg-fb-hint" class="cfg-fb__hint">
-      Use <code>[ReferenceName]</code> for row values. Supports +, -, *, /, parentheses, numbers.
+      Usa <code>[NomeRiferimento]</code> per i valori di riga. Supporta +, -, *, /, parentesi e numeri.
     </div>
     <!-- Validation feedback — role="alert" for screen-reader announcement -->
     <div *ngIf="validationError"
@@ -73,24 +73,24 @@
     <div *ngIf="isValid && formula"
          class="cfg-fb__ok"
          role="status">
-      ✓ Valid formula
+      ✓ Formula valida
     </div>
   </div>
 
-  <!-- ── Actions ── -->
+  <!-- ── Azioni ── -->
   <div class="cfg-fb__actions">
     <button type="button"
             class="cfg-btn cfg-btn--primary cfg-btn--sm"
             [disabled]="!isValid"
             (click)="save()"
-            aria-label="Save formula">
-      💾 Save formula
+            aria-label="Salva formula">
+      💾 Salva formula
     </button>
     <button type="button"
             class="cfg-btn cfg-btn--ghost cfg-btn--sm"
             (click)="cancel()"
-            aria-label="Cancel">
-      Cancel
+            aria-label="Annulla">
+      Annulla
     </button>
   </div>
 

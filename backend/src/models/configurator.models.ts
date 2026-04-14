@@ -26,10 +26,12 @@ export interface ReportSummary {
 }
 
 export interface ReportDetail extends ReportSummary {
-  description:  string | null;
-  tags:         string | null;
-  owner:        string | null;
-  isActive:     boolean;
+  description:     string | null;
+  tags:            string | null;
+  owner:           string | null;
+  isActive:        boolean;
+  /** Whether insert-tracking (write log) is enabled for this data model. */
+  trackingEnabled: boolean;
 }
 
 export interface CreateReportDto {
@@ -279,6 +281,22 @@ export interface UpsertLayoutDto {
   pivotConfig?:           unknown;
 }
 
+// ── Viewer Settings ────────────────────────────────────────────────────────────
+
+/** Controls which toolbars are shown to users in the snapshot viewer. */
+export interface ViewerSettings {
+  /** Show/hide the "Salva: Auto / Manuale" save-mode buttons. Default: true. */
+  showSaveMode:     boolean;
+  /** Default save mode when the viewer opens. Default: 'auto'. */
+  defaultSaveMode:  'auto' | 'manual';
+  /** Show/hide the "Excel: Griglia / Pivot / Importa" export buttons. Default: true. */
+  showExcelExport:  boolean;
+  /** Show/hide the "Solo con dati" checkbox. Default: true. */
+  showSoloConDati:  boolean;
+  /** Whether "Solo con dati" is active by default when the viewer opens. Default: false. */
+  defaultSoloConDati: boolean;
+}
+
 // ── Task ──────────────────────────────────────────────────────────────────────
 
 export interface TaskDef {
@@ -299,6 +317,10 @@ export interface TaskDef {
   allowedEntities: number[] | null;
   /** JSON string of default filter values applied when the report opens. */
   defaultFilters:  string | null;
+  /** JSON array of filter field names hidden from the user (but still applied via defaultFilters). */
+  hiddenFilters:   string | null;
+  /** JSON object controlling which controls are shown in the snapshot viewer. */
+  viewerSettings:  ViewerSettings | null;
   /** Comma-separated user IDs / role names allowed to read this report. */
   accessReaders:   string | null;
   /** Comma-separated user IDs / role names allowed to write this report. */
@@ -324,6 +346,8 @@ export interface CreateTaskDto {
   allowedRoles?:   string;
   allowedEntities?: number[];
   defaultFilters?: string;
+  hiddenFilters?:  string;
+  viewerSettings?: ViewerSettings | null;
   accessReaders?:  string;
   accessWriters?:  string;
 }
@@ -340,6 +364,8 @@ export interface UpdateTaskDto {
   allowedRoles?:   string;
   allowedEntities?: number[];
   defaultFilters?: string;
+  hiddenFilters?:  string;
+  viewerSettings?: ViewerSettings | null;
   accessReaders?:  string;
   accessWriters?:  string;
 }

@@ -22,7 +22,7 @@ import { EsgConfiguratorService } from '../../../../services/esg-configurator.se
 import { evaluateFormula, extractReferences } from '../../../../services/formula-engine';
 import {
   DataEntryGridResponse, DataEntryRowOption, SaveCellDto,
-  RowApprovalDto, BulkRowApprovalDto,
+  RowApprovalDto, BulkRowApprovalDto, ViewerSettings, CellHistoryEntry,
 } from '../../../../models/esg-configurator.models';
 
 interface EditingCell {
@@ -67,6 +67,45 @@ export class SnapshotViewerComponent implements OnInit {
   @Input() breadcrumbs: Array<{ label: string; action?: () => void }> = [];
   /** JSON string of default filter values from the task — applied on initial load. */
   @Input() taskDefaultFilters?: string | null;
+  /** JSON array of filter field names the admin has hidden from the user. */
+  @Input() taskHiddenFilters?: string | null;
+  /** Controls which toolbars are shown to the user (null = show all). */
+  @Input() taskViewerSettings?: ViewerSettings | null;
+  /** Whether insert-tracking is enabled for this report (controls right-click history). */
+  @Input() trackingEnabled = false;
+  /** When true, cell editing is disabled (dblclick/keyboard editing blocked). */
+  @Input() readOnly = false;
+
+  /** Whether the save-mode toggle (Auto/Manual) is visible. Defaults to true. */
+  get showSaveMode():    boolean { return this.taskViewerSettings?.showSaveMode    ?? true; }
+  /** Whether the Excel export/import buttons are visible. Defaults to true. */
+  get showExcelExport(): boolean { return this.taskViewerSettings?.showExcelExport ?? true; }
+  /** Whether the "Solo con dati" checkbox is visible. Defaults to true. */
+  get showSoloConDati(): boolean { return this.taskViewerSettings?.showSoloConDati ?? true; }
+
+  /** Apply viewerSettings defaults once on first load. */
+  private _viewerDefaultsApplied = false;
+  private applyViewerDefaults(): void {
+    if (this._viewerDefaultsApplied) return;
+    this._viewerDefaultsApplied = true;
+    if (this.taskViewerSettings?.defaultSaveMode) {
+      this.saveMode = this.taskViewerSettings.defaultSaveMode;
+    }
+    if (this.taskViewerSettings?.defaultSoloConDati) {
+      this.showOnlyWithData = true;
+    }
+  }
+
+  /** Parsed set of hidden filter field names (lazy, from taskHiddenFilters). */
+  get hiddenFilterSet(): Set<string> {
+    if (!this.taskHiddenFilters) return new Set();
+    try { return new Set(JSON.parse(this.taskHiddenFilters) as string[]); } catch { return new Set(); }
+  }
+
+  /** Layout filters that are visible to the user (not in hiddenFilterSet). */
+  get visibleLayoutFilters(): any[] {
+    return this.layoutFilters.filter((f: any) => !this.hiddenFilterSet.has(f.fieldName));
+  }
 
   @Output() closed = new EventEmitter<void>();
 
@@ -85,8 +124,66 @@ export class SnapshotViewerComponent implements OnInit {
   /** True while rebuildRollupCache is deferred (spinner shown on the grid) */
   isComputingFilter = false;
 
+  /** Free-text search inputs for live row/column filtering */
+  rowSearch = '';
+  colSearch = '';
+
   /** Collapsible params/filters section */
   paramsCollapsed = false;
+
+  /** Show/hide the SQL debug panel */
+  showSqlPanel = false;
+
+  /** Toggle between filtered (true) and raw (false) SQL view */
+  sqlShowFiltered = true;
+
+  /**
+   * Returns each debug SQL wrapped in a CTE with WHERE conditions
+   * that mirror the currently active client-side filters.
+   * Example:
+   *   WITH _base AS ( <original sql> )
+   *   SELECT * FROM _base
+   *   WHERE [Anno] = '2025'
+   *     AND [StrutturaRefKPI] = 'Acantus'
+   */
+  get debugSqlFiltered(): string[] {
+    const raw = this.grid?.debugSql;
+    if (!raw?.length) return [];
+
+    // Build the list of active (non-empty) filter conditions
+    const conditions: string[] = [];
+    for (const [field, val] of Object.entries(this.selectedFiltri)) {
+      if (!val) continue;
+      // Escape single quotes in the value
+      const escaped = val.replace(/'/g, "''");
+      conditions.push(`  [${field}] = '${escaped}'`);
+    }
+
+    return raw.map((sql) => {
+      if (conditions.length === 0) return sql;
+      // Strip comment header (lines starting with --)
+      const lines = sql.split('\n');
+      const commentLines = lines.filter((l) => l.trimStart().startsWith('--'));
+      const sqlBody     = lines.filter((l) => !l.trimStart().startsWith('--')).join('\n').trim();
+      const comment     = commentLines.length ? commentLines.join('\n') + '\n' : '';
+      return (
+        comment +
+        `WITH _base AS (\n  ${sqlBody.replace(/\n/g, '\n  ')}\n)\n` +
+        `SELECT * FROM _base\nWHERE\n` +
+        conditions.join('\n  AND ')
+      );
+    });
+  }
+
+  // ── Excel export / import ────────────────────────────────────────────────────
+  /** True while an export HTTP call is in flight */
+  isExporting: 'grid' | 'pivot' | null = null;
+
+  /** True while an import HTTP call is in flight */
+  isImporting = false;
+
+  /** Result of the last import attempt */
+  importResult: { imported: number; errors: string[] } | null = null;
 
   /** Filter search popup state */
   filterSearchField: string | null = null;
@@ -129,13 +226,28 @@ export class SnapshotViewerComponent implements OnInit {
   /** Cell right-click context menu */
   cellCtxMenu: CellCtxMenu | null = null;
 
+  // ── Cell History Modal ───────────────────────────────────────────────────────
+  cellHistoryModal: {
+    riga:         DataEntryRowOption;
+    colonnaField: string;
+    colonnaValue: string;
+    valoreField:  string;
+    valoreLabel:  string;
+    dimensionValues: Record<string, string>;
+  } | null = null;
+
+  cellHistoryEntries: CellHistoryEntry[] = [];
+  cellHistoryLoading = false;
+  cellHistoryError: string | null = null;
+
   // ── Row Approval ─────────────────────────────────────────────────────────────
   /** Set of sorted-JSON dimension keys for approved (locked) rows */
   approvedKeys = new Set<string>();
   approvalLoading = false;
 
-  @ViewChild('svCellInputRef') private svCellInputRef?: ElementRef<HTMLInputElement>;
-  @ViewChild('svGridRef')     private svGridRef?:     ElementRef<HTMLTableElement>;
+  @ViewChild('svCellInputRef')   private svCellInputRef?:   ElementRef<HTMLInputElement>;
+  @ViewChild('svGridRef')        private svGridRef?:        ElementRef<HTMLTableElement>;
+  @ViewChild('svExcelImportRef') private svExcelImportRef?: ElementRef<HTMLInputElement>;
 
   /** Bottom-up rollup sums: key = `pathKey||cf||cv||vf` → numeric sum */
   private rollupCache = new Map<string, number>();
@@ -176,7 +288,7 @@ export class SnapshotViewerComponent implements OnInit {
     private ngZone: NgZone,
   ) {}
 
-  ngOnInit(): void { this.load(); }
+  ngOnInit(): void { this.applyViewerDefaults(); this.load(); }
 
   load(): void {
     this.isLoading = true;
@@ -211,8 +323,11 @@ export class SnapshotViewerComponent implements OnInit {
         this.buildColumnCombinations();
         this.buildRowFieldNames();
         this.invalidateCellValueCache();
-        this.rebuildRollupCache();
-        this.cdr.markForCheck();
+        // detectChanges() runs synchronously, ensuring the grid renders immediately
+        // regardless of whether the subscription runs inside or outside NgZone.
+        // Rollup subtotals are intentionally empty on first render; they are computed
+        // lazily the first time the user changes a filter or toggles showOnlyWithData.
+        this.cdr.detectChanges();
       },
       error: () => {
         this.errorMsg = 'Impossibile caricare lo snapshot.';
@@ -284,16 +399,31 @@ export class SnapshotViewerComponent implements OnInit {
   /** Select a filter value, rebuild rollup/column data caches and invalidate rows */
   selectFiltro(fieldName: string, value: string): void {
     this.selectedFiltri[fieldName] = value;
-    // rebuildRollupCache handles invalidateCellValueCache + _visibleRowsCache reset
-    // and also rebuilds nodesWithData + colsWithData for the new filter selection.
-    this.rebuildRollupCache();
+    this.invalidateCellValueCache();
+    this._visibleRowsCache = null;
     this.cdr.markForCheck();
+    // Rebuild rollup asynchronously to avoid blocking the UI on large datasets.
+    this.scheduleRollupRebuild();
   }
 
   get visibleRows(): DataEntryRowOption[] {
     if (this._visibleRowsCache !== null) return this._visibleRowsCache;
     this._visibleRowsCache = this._computeVisibleRows();
     return this._visibleRowsCache;
+  }
+
+  /** visibleRows further filtered by rowSearch (case-insensitive contains on label) */
+  get filteredVisibleRows(): DataEntryRowOption[] {
+    const term = this.rowSearch.trim().toLowerCase();
+    if (!term) return this.visibleRows;
+    return this.visibleRows.filter((r) => (r.label ?? '').toLowerCase().includes(term));
+  }
+
+  /** columnCombinations further filtered by colSearch (case-insensitive contains on value) */
+  get filteredColumnCombinations(): Array<{ fieldName: string; value: string }> {
+    const term = this.colSearch.trim().toLowerCase();
+    if (!term) return this.columnCombinations;
+    return this.columnCombinations.filter((cc) => cc.value.toLowerCase().includes(term));
   }
 
   private _computeVisibleRows(): DataEntryRowOption[] {
@@ -316,6 +446,9 @@ export class SnapshotViewerComponent implements OnInit {
     // NOT simply because their children happen to be collapsed right now.
     const applyFilters = (rows: DataEntryRowOption[]): DataEntryRowOption[] => {
       let result = rows.filter((r: DataEntryRowOption) => {
+        // Group headers (non-leaf) are never filtered here — step 4 prunes them
+        // based on groupsWithChildren, so they are only removed when truly childless.
+        if (!r.isLeaf) return true;
         if (this.showOnlyWithData && !this.nodesWithData.has(this.pathKey(r.pathValues))) return false;
         return true;
       });
@@ -331,12 +464,21 @@ export class SnapshotViewerComponent implements OnInit {
           const mapping = this.grid?.filtriDimMapping?.[f.fieldName];
           if (mapping) {
             const validRowKeys = new Set<string>(mapping[selVal] ?? []);
-            const primaryRigaField = righeLayout.find((r: any) => !!(r as any).dimTable && !(r as any).paramTableId)?.fieldName;
-            if (primaryRigaField) {
-              result = result.filter((r: DataEntryRowOption) => {
-                const rv = r.pathValues[primaryRigaField];
-                return rv === undefined || validRowKeys.has(rv);
-              });
+            // With multi-level rows from the same dimTable, the mapping values may
+            // correspond to a deeper row dimension (e.g. DescrizioneKPI) rather than
+            // the first one (e.g. Stakeholder). Accept a row if ANY of its dim-table
+            // row-field values is in validRowKeys, or is absent (group header with no
+            // value for that field yet — pruned by step 4 if childless).
+            const dimTableRigaFields = righeLayout
+              .filter((r: any) => !!(r as any).dimTable && !(r as any).paramTableId)
+              .map((r: any) => r.fieldName as string);
+            if (dimTableRigaFields.length > 0) {
+              result = result.filter((r: DataEntryRowOption) =>
+                dimTableRigaFields.some((fn) => {
+                  const rv = r.pathValues[fn];
+                  return rv === undefined || validRowKeys.has(rv);
+                }),
+              );
             }
           }
         }
@@ -528,6 +670,20 @@ export class SnapshotViewerComponent implements OnInit {
     return this.columnCombinations.length === 0;
   }
 
+  /** Number of currently visible data cells (leaf rows × data columns). */
+  get cellCount(): number {
+    const rows = this.filteredVisibleRows.filter((r) => r.isLeaf).length;
+    const cols = this.noColonnaMode
+      ? this.layoutValues.length
+      : this.filteredColumnCombinations.length * this.layoutValues.length;
+    return rows * Math.max(1, cols);
+  }
+
+  /** True when the rendered grid exceeds the recommended cell threshold. */
+  get tooManyCells(): boolean {
+    return this.cellCount > 3000;
+  }
+
   // ── Formula rows ────────────────────────────────────────────────────────────
 
   isFormulaRow(riga: DataEntryRowOption): boolean {
@@ -535,10 +691,22 @@ export class SnapshotViewerComponent implements OnInit {
   }
 
   getFormulaValue(riga: DataEntryRowOption, cf: string, cv: string, vf: string): string {
+    const result = this._computeFormulaNumber(riga, cf, cv, vf);
+    if (result === null) return '';
+    const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
+    return this.formatCellDisplay(String(result), vfDef?.aggregation ?? 'SUM');
+  }
+
+  /**
+   * Returns the raw numeric result of a formula row, or null if the formula
+   * cannot be resolved.  Used internally so sibling formula references stay
+   * as raw numbers without going through locale-formatted strings.
+   */
+  private _computeFormulaNumber(riga: DataEntryRowOption, cf: string, cv: string, vf: string): number | null {
     const formula = riga.paramRow?.formula;
-    if (!formula) return '';
+    if (!formula) return null;
     const refs = extractReferences(formula);
-    if (!refs.length) return '';
+    if (!refs.length) return null;
 
     const all = this.grid?.rowOptions ?? [];
     const parentPath = Object.fromEntries(
@@ -546,23 +714,93 @@ export class SnapshotViewerComponent implements OnInit {
     );
     const context: Record<string, number> = {};
     for (const ref of refs) {
+      // Match siblings by value (sourceValue) OR by label — formulas may reference
+      // either the raw source value or the human-readable display label.
       const sibling = all.find(
-        (r) => r.value === ref
+        (r) => (r.value === ref || r.label === ref)
           && r.fieldName === riga.fieldName
           && r.depth === riga.depth
           && r !== riga
           && Object.entries(parentPath).every(([k, v]) => r.pathValues[k] === v),
       );
       if (sibling) {
-        const raw = this.getCellValue(sibling, cf, cv, vf);
-        context[ref] = raw !== '' ? (parseFloat(raw) || 0) : 0;
+        // Resolve sibling value as a raw number to avoid locale-formatted string issues.
+        let num: number;
+        if (this.isFormulaRow(sibling)) {
+          num = this._computeFormulaNumber(sibling, cf, cv, vf) ?? 0;
+        } else if (this.isAggregateRow(sibling)) {
+          num = this._computeAggregateNumber(sibling, cf, cv, vf) ?? 0;
+        } else {
+          const raw = this.getCellValue(sibling, cf, cv, vf);
+          num = raw !== '' ? (parseFloat(raw) || 0) : 0;
+        }
+        context[ref] = num;
       }
     }
 
-    const result = evaluateFormula(formula, context);
-    if (result === null) return '';
+    return evaluateFormula(formula, context);
+  }
+
+  // ── Aggregate rows ───────────────────────────────────────────────────────────
+
+  isAggregateRow(riga: DataEntryRowOption): boolean {
+    const rk = riga.paramRow?.rowKind;
+    return rk === 'Aggregato' || rk === 'Aggregate';
+  }
+
+  /**
+   * Computes the sum of sibling leaf rows whose paramRow.grouping matches this
+   * aggregate row's value or label.  Used for flat param hierarchies where Aggregato
+   * rows are emitted as isLeaf=true and are not connected via the expand/rollup path.
+   */
+  getAggregateValue(riga: DataEntryRowOption, cf: string, cv: string, vf: string): string {
+    const sum = this._computeAggregateNumber(riga, cf, cv, vf);
+    if (sum === null) return '';
     const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
-    return this.formatCellDisplay(String(result), vfDef?.aggregation ?? 'SUM');
+    return this.formatCellDisplay(String(sum), vfDef?.aggregation ?? 'SUM');
+  }
+
+  /**
+   * Returns the raw numeric aggregate sum, or null if no child rows have data.
+   * Separated from getAggregateValue so formula rows can reference aggregate rows
+   * without going through locale-formatted strings.
+   */
+  private _computeAggregateNumber(riga: DataEntryRowOption, cf: string, cv: string, vf: string): number | null {
+    const all = this.grid?.rowOptions ?? [];
+    // The grouping tag that child rows carry to indicate they belong to this aggregate.
+    // Child rows store paramRow.grouping = <aggregato sourceValue or label>.
+    const aggValue = riga.value;
+    const aggLabel = riga.label;
+
+    // Collect sibling leaf rows (same fieldName, same depth, same parent path, not the aggregate itself)
+    // whose paramRow.grouping matches this aggregate's value or label.
+    const parentPath = Object.fromEntries(
+      Object.entries(riga.pathValues).filter(([k]) => k !== riga.fieldName),
+    );
+
+    const children = all.filter(
+      (r) => r !== riga
+        && r.fieldName === riga.fieldName
+        && r.depth === riga.depth
+        && !this.isAggregateRow(r)
+        && !this.isFormulaRow(r)
+        && Object.entries(parentPath).every(([k, v]) => r.pathValues[k] === v)
+        && (r.paramRow?.grouping === aggValue || r.paramRow?.grouping === aggLabel),
+    );
+
+    if (children.length === 0) return null;
+
+    let sum = 0;
+    let hasData = false;
+    for (const child of children) {
+      const raw = this.getCellValue(child, cf, cv, vf);
+      if (raw !== '') {
+        const num = parseFloat(raw);
+        if (!isNaN(num)) { sum += num; hasData = true; }
+      }
+    }
+
+    return hasData ? sum : null;
   }
 
   // ── Cell value lookup ───────────────────────────────────────────────────────
@@ -713,6 +951,19 @@ export class SnapshotViewerComponent implements OnInit {
 
   getDisplayValue(riga: DataEntryRowOption, cf: string, cv: string, vf: string): string {
     if (this.isFormulaRow(riga)) return this.getFormulaValue(riga, cf, cv, vf);
+    if (this.isAggregateRow(riga)) {
+      // For non-leaf aggregate rows the rollup cache already handles the sum.
+      // For leaf-flagged aggregate rows (flat param tables) compute client-side.
+      if (!riga.isLeaf) {
+        const k = `${this.getRowPathKey(riga)}||${cf}||${cv}||${vf}`;
+        const rollup = this.rollupCache.get(k);
+        if (rollup !== undefined) {
+          const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
+          return this.formatCellDisplay(String(rollup), vfDef?.aggregation ?? 'SUM');
+        }
+      }
+      return this.getAggregateValue(riga, cf, cv, vf);
+    }
     const direct = this.getCellValue(riga, cf, cv, vf);
     if (direct !== '') {
       const vfDef = this.layoutValues.find((v) => v.fieldName === vf);
@@ -788,6 +1039,61 @@ export class SnapshotViewerComponent implements OnInit {
     this.closeFilterSearch();
   }
 
+  // ── Cell History ─────────────────────────────────────────────────────────────
+
+  openCellHistory(riga: DataEntryRowOption, cf: string, cv: string, vf: { fieldName: string; label: string }): void {
+    this.closeAllMenus();
+
+    // Build dimension values matching the cell (same as saveCell logic)
+    const dimValues: Record<string, string> = { ...riga.pathValues };
+    if (!this.noColonnaMode && cf) dimValues[cf] = cv;
+    for (const f of this.layoutFilters) {
+      dimValues[f.fieldName] = this.selectedFiltri[f.fieldName] ?? '';
+    }
+
+    this.cellHistoryModal = {
+      riga, colonnaField: cf, colonnaValue: cv,
+      valoreField: vf.fieldName, valoreLabel: vf.label,
+      dimensionValues: dimValues,
+    };
+    this.cellHistoryEntries = [];
+    this.cellHistoryLoading = true;
+    this.cellHistoryError   = null;
+    this.cdr.markForCheck();
+
+    this.svc.getSnapshotCellHistory(this.snapshotId, {
+      dimensionValues: dimValues,
+      valoreField:     vf.fieldName,
+    }).subscribe({
+      next: (entries) => {
+        this.cellHistoryEntries = entries;
+        this.cellHistoryLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.cellHistoryError   = 'Impossibile caricare lo storico.';
+        this.cellHistoryLoading = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  closeCellHistory(): void {
+    this.cellHistoryModal   = null;
+    this.cellHistoryEntries = [];
+    this.cellHistoryError   = null;
+    this.cdr.markForCheck();
+  }
+
+  formatHistoryDate(isoString: string): string {
+    try {
+      return new Intl.DateTimeFormat(navigator.language || 'it-IT', {
+        day: '2-digit', month: '2-digit', year: 'numeric',
+        hour: '2-digit', minute: '2-digit',
+      }).format(new Date(isoString));
+    } catch { return isoString; }
+  }
+
   // ── Filter search popup ────────────────────────────────────────────────────
 
   openFilterSearch(fieldName: string): void {
@@ -850,13 +1156,95 @@ export class SnapshotViewerComponent implements OnInit {
     return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 160);
   }
 
+  // ── Excel export / import ────────────────────────────────────────────────────
+
+  /** Exports the current grid to an .xlsx file and triggers a browser download. */
+  exportExcel(mode: 'grid' | 'pivot'): void {
+    if (this.isExporting) return;
+    this.isExporting = mode;
+    this.cdr.markForCheck();
+
+    // Build active filters map (only non-empty values)
+    const filters: Record<string, string> = {};
+    for (const [k, v] of Object.entries(this.selectedFiltri)) {
+      if (v) filters[k] = v;
+    }
+
+    this.svc.exportSnapshotExcel(this.snapshotId, mode, filters).subscribe({
+      next: (blob) => {
+        const url  = URL.createObjectURL(blob);
+        const a    = document.createElement('a');
+        a.href     = url;
+        const safe = this.taskLabel.replace(/[^\w\s-]/g, '').replace(/\s+/g, '_').slice(0, 40);
+        const tag  = mode === 'pivot' ? 'Pivot' : 'Griglia';
+        a.download = `ESG_Snap${this.snapshotId}_${safe}_${tag}.xlsx`;
+        a.click();
+        URL.revokeObjectURL(url);
+        this.isExporting = null;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isExporting = null;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  /** Opens the hidden file input to trigger the import flow. */
+  triggerImportExcel(): void {
+    this.svExcelImportRef?.nativeElement.click();
+  }
+
+  /** Handles file selection from the hidden import input. */
+  importExcel(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file  = input.files?.[0];
+    // Reset input so same file can be re-selected
+    input.value = '';
+    if (!file) return;
+
+    this.isImporting  = true;
+    this.importResult = null;
+    this.cdr.markForCheck();
+
+    this.svc.importSnapshotExcel(this.snapshotId, file).subscribe({
+      next: (result) => {
+        this.importResult = result;
+        this.isImporting  = false;
+        // Reload grid to show imported values
+        if (result.imported > 0) {
+          this.load();
+        } else {
+          this.cdr.markForCheck();
+        }
+      },
+      error: (err) => {
+        this.importResult = {
+          imported: 0,
+          errors: [err?.error?.error ?? 'Errore durante l\'importazione'],
+        };
+        this.isImporting = false;
+        this.cdr.markForCheck();
+      },
+    });
+  }
+
+  dismissImportResult(): void {
+    this.importResult = null;
+    this.cdr.markForCheck();
+  }
+
   // ── Document events ─────────────────────────────────────────────────────────
 
   @HostListener('document:click')
   onDocClick(): void { this.closeAllMenus(); }
 
   @HostListener('document:keydown.escape')
-  onEscape(): void { this.closeAllMenus(); this.editing = null; }
+  onEscape(): void {
+    if (this.cellHistoryModal) { this.closeCellHistory(); return; }
+    this.closeAllMenus();
+    this.editing = null;
+  }
 
   // ── Cell editing ────────────────────────────────────────────────────────────
 
@@ -902,6 +1290,7 @@ export class SnapshotViewerComponent implements OnInit {
   startEdit(riga: DataEntryRowOption, cf: string, cv: string, vf: string, initialValue?: string): void {
     if (!riga.isLeaf) return;
     if (this.isFormulaRow(riga)) return;
+    if (this.isAggregateRow(riga)) return;
     if (this.isColumnMemberLocked(cf, cv)) return;
     if (this.isRowApproved(riga)) return;
     const selectAll    = initialValue === undefined;
@@ -973,7 +1362,9 @@ export class SnapshotViewerComponent implements OnInit {
       return;
     }
 
-    // ── Enter edit mode ───────────────────────────────────────────────────────
+    // ── Enter edit mode (blocked in readOnly) ────────────────────────────────
+    if (this.readOnly) return;
+
     if (event.key === 'Enter' || event.key === 'F2') {
       event.preventDefault();
       this.startEdit(riga, cf, cv, vf);          // existing value, select-all

@@ -18,10 +18,12 @@ export interface DataModelSummary {
 }
 
 export interface DataModelDetail extends DataModelSummary {
-  description: string | null;
-  tags:        string | null;
-  owner:       string | null;
-  isActive:    boolean;
+  description:     string | null;
+  tags:            string | null;
+  owner:           string | null;
+  isActive:        boolean;
+  /** Whether insert-tracking (write log) is enabled for this data model. */
+  trackingEnabled: boolean;
 }
 
 export interface CreateDataModelDto {
@@ -296,6 +298,8 @@ export interface DataEntryGridResponse {
    * Used by columnCombinations to hide/show columns based on the active filter selection.
    */
   filtriColonneMapping?: Record<string, Record<string, string[]>>;
+  /** SQL queries generated server-side during this grid build. Useful for debugging. */
+  debugSql?: string[];
   // legacy keys
   filtriOptions?:  DataEntryFilterOption[];
   righeOptions?:   DataEntryRowOption[];
@@ -374,42 +378,64 @@ export interface EnsureAdjResult {
   adjSourceValue: string;
 }
 
+// ── Viewer Settings ───────────────────────────────────────────────────────────
+
+/** Controls which toolbars are shown to users in the snapshot viewer. */
+export interface ViewerSettings {
+  /** Show/hide the "Salva: Auto / Manuale" save-mode buttons. Default: true. */
+  showSaveMode:    boolean;
+  /** Default save mode when the viewer opens. Default: 'auto'. */
+  defaultSaveMode: 'auto' | 'manual';
+  /** Show/hide the "Excel: Griglia / Pivot / Importa" export buttons. Default: true. */
+  showExcelExport: boolean;
+  /** Show/hide the "Solo con dati" checkbox. Default: true. */
+  showSoloConDati: boolean;
+  /** Whether "Solo con dati" is active by default when the viewer opens. Default: false. */
+  defaultSoloConDati: boolean;
+}
+
 // ── Task / Publish ────────────────────────────────────────────────────────────
 
 export interface TaskSummary {
-  taskId:         number;
-  reportId:       number;
-  taskCode:       string;
-  label:          string;
-  status:         'Draft' | 'Active' | 'Archived';
-  menuItemCode:   string | null;
-  parentMenuCode: string | null;
-  routeUrl:       string | null;
-  allowedRoles:   string | null;
+  taskId:          number;
+  reportId:        number;
+  taskCode:        string;
+  label:           string;
+  status:          'Draft' | 'Active' | 'Archived';
+  menuItemCode:    string | null;
+  parentMenuCode:  string | null;
+  routeUrl:        string | null;
+  allowedRoles:    string | null;
   allowedEntities: string | null;
-  defaultFilters: string | null;
-  rowOrder:       string | null;
-  columnOrder:    string | null;
-  accessReaders:  string | null;
-  accessWriters:  string | null;
-  reportCode:     string | null;
-  reportLabel:    string | null;
-  description:    string | null;
-  createdAt:      string | null;
+  defaultFilters:  string | null;
+  hiddenFilters:   string | null;
+  /** Controls which toolbars are shown in the snapshot viewer. null = all shown (default). */
+  viewerSettings:  ViewerSettings | null;
+  rowOrder:        string | null;
+  columnOrder:     string | null;
+  accessReaders:   string | null;
+  accessWriters:   string | null;
+  reportCode:      string | null;
+  reportLabel:     string | null;
+  description:     string | null;
+  createdAt:       string | null;
 }
 
 export interface UpsertTaskDto {
-  label:           string;
-  description?:    string;
-  menuItemCode?:   string;
-  parentMenuCode?: string;
-  routeUrl?:       string;
-  allowedRoles?:   string;
-  defaultFilters?: string;
-  rowOrder?:       string;
-  columnOrder?:    string;
-  accessReaders?:  string;
-  accessWriters?:  string;
+  label:            string;
+  description?:     string;
+  menuItemCode?:    string;
+  parentMenuCode?:  string;
+  routeUrl?:        string;
+  allowedRoles?:    string;
+  defaultFilters?:  string;
+  hiddenFilters?:   string;
+  /** Controls which toolbars are shown in the snapshot viewer. */
+  viewerSettings?:  ViewerSettings | null;
+  rowOrder?:        string;
+  columnOrder?:     string;
+  accessReaders?:   string;
+  accessWriters?:   string;
 }
 
 export interface MenuTreeNode {

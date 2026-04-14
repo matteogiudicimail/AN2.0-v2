@@ -257,7 +257,7 @@ export class MasterDataManagerComponent implements OnInit, OnChanges {
   // ── Unregister table ──────────────────────────────────────────────────────────
 
   unregisterTable(table: MasterDataTableDef): void {
-    if (!confirm(`Unregister "${table.label}"? The actual database table is not affected.`)) return;
+    if (!confirm(`Rimuovi la registrazione di "${table.label}"? La tabella nel database non verrà eliminata.`)) return;
     this.svc.unregisterMasterDataTable(this.reportId, table.masterDataId).subscribe({
       next: () => {
         if (this.selectedTable?.masterDataId === table.masterDataId) {
